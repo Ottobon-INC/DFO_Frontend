@@ -17,7 +17,7 @@ import {
   ArrowUpRight 
 } from 'lucide-react';
 import { sendClinicalMessage } from '../../lib/dfoService';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../components/ui/button';
 
 export function NurseDashboard() {
   const { profile } = useAuth();

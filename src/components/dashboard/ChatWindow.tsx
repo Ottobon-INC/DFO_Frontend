@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Message, Thread } from '../../lib/types';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../components/ui/button';
 import { Send, UserCircle, Bot, Stethoscope, HeartPulse, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';

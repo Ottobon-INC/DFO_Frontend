@@ -1,211 +1,185 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { cn } from '../../lib/utils';
-import { 
-  LayoutDashboard,
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useClinicalData } from '@/hooks/useClinicalData';
+import {
   Users,
+  LayoutDashboard,
   Calendar,
-  FileText,
-  ShieldAlert,
-  Target,
   MessageSquare,
-  Menu
+  Activity,
+  UserPlus,
+  Settings,
+  LogOut,
+  Bell,
+  Search,
+  FileText,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { NotificationPopover } from './NotificationPopover';
+import { Button } from '@/components/ui/button';
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
+import { DashboardView } from './DashboardView';
+import { PatientsView } from './PatientsView';
+import { AppointmentsView } from './AppointmentsView';
+import { LeadsView } from './LeadsView';
+import { InboxView } from './InboxView';
+import { ConsultationsView } from './ConsultationsView';
+import { RiskMonitorView } from './RiskMonitorView';
+import { ProfileView } from './ProfileView';
+import { ClinicalAssistant } from './ClinicalAssistant';
+import { Logo } from '@/components/ui/Logo';
+
+export function DashboardLayout({
+  children,
+  activeMenu,
+  rightPanel
+}: {
+  children?: React.ReactNode;
   activeMenu?: string;
   rightPanel?: React.ReactNode;
-}
+} = {}) {
+  const { user, profile, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState('Overview');
+  const currentTab = activeMenu || activeTab;
 
-export function DashboardLayout({ children, activeMenu = 'dashboard', rightPanel }: DashboardLayoutProps) {
-  const { profile, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { 
+    patients, 
+    threads, 
+    messages, 
+    fetchMessages, 
+    sendMessage, 
+    appointments, 
+    leads, 
+    convertLeadToPatient, 
+    consultations, 
+    refreshConsultations 
+  } = useClinicalData();
 
-  // Close mobile menu on navigation
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [navigate]);
+  const navItems = [
+    { label: 'Overview', icon: LayoutDashboard },
+    { label: 'Patients', icon: Users },
+    { label: 'Schedule', icon: Calendar },
+    { label: 'Threads', icon: MessageSquare },
+    { label: 'Monitors', icon: Activity },
+    { label: 'CRM', icon: UserPlus },
+    { label: 'Reports', icon: FileText }, // Changed icon from ConsultationsView to FileText
+  ];
 
-  const getMenuItems = () => {
-    return [
-      { id: 'dashboard', label: 'Clinical Overview', icon: LayoutDashboard, path: '/dashboard/cro', section: 'Overview', badge: 'Live', badgeColor: 'green' },
-      { id: 'triage', label: 'Triage Inbox', icon: ShieldAlert, path: '/dashboard/cro/triage', section: 'Overview', badge: '3' },
-      
-      { id: 'patients', label: 'Medical Census', icon: Users, path: '/dashboard/cro/patients', section: 'Medical Records' },
-      { id: 'schedule', label: 'Schedule', icon: Calendar, path: '/dashboard/cro/schedule', section: 'Medical Records' },
-      { id: 'documents', label: 'Documents', icon: FileText, path: '/dashboard/cro/documents', section: 'Medical Records' },
-      
-      { id: 'risk', label: 'Risk Sentinel', icon: ShieldAlert, path: '/dashboard/cro/risk', section: 'Clinical Ops', badge: '2' },
-      { id: 'leads', label: 'Leads Desk', icon: Target, path: '/dashboard/cro/leads', section: 'Clinical Ops' },
-      
-      { id: 'queue', label: 'Support Queue', icon: MessageSquare, path: '/dashboard/cro/inbox', section: 'Sakhi AI', badge: '5', badgeColor: 'yellow' },
-    ];
+  const renderContent = () => {
+    if (children) return children;
+
+    switch (currentTab) {
+      case 'Patients': return <PatientsView />;
+      case 'Schedule': return <AppointmentsView />;
+      case 'Threads': return <InboxView threads={threads} messages={messages} fetchMessages={fetchMessages} sendMessage={sendMessage} />;
+      case 'Monitors': return <RiskMonitorView patients={patients} />;
+      case 'CRM': return <LeadsView leads={leads} onConvert={convertLeadToPatient} />;
+      case 'Reports': return <ConsultationsView patient={patients[0] || {}} consultations={consultations} refreshConsultations={refreshConsultations} />;
+      case 'Settings': return <div className="p-6">Settings Module Placeholder</div>;
+      case 'Profile': return <ProfileView profile={profile} user={user} role={profile?.role || 'Clinician'} onSignOut={signOut} />;
+      case 'Overview':
+      default:
+        return <DashboardView />;
+    }
   };
 
-  const menuItems = getMenuItems();
-  const sections = ['Overview', 'Medical Records', 'Clinical Ops', 'Sakhi AI'];
-
-  // Map active menu id to path/title
-  const activeItem = menuItems.find(item => item.id === activeMenu) || menuItems[0];
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full w-full">
-      {/* Sidebar Header Logo */}
-      <div className="sidebar-logo">
-        <div 
-          className="logo-mark cursor-pointer" 
-          onClick={() => navigate('/')}
-        >
-          <div className="logo-icon text-white">DFO</div>
-          <div className="logo-text">
-            <div className="app-name">DFO Platform</div>
-            <div className="clinic-name">Janmasethu IVF</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Role Connection Status Badge */}
-      <div className="sidebar-role-badge">
-        <div className="role-dot" />
-        <span className="role-badge-text uppercase">
-          CRO — {profile?.full_name || 'Dr. Priya Sharma'}
-        </span>
-      </div>
-
-      {/* Navigation Items */}
-      <nav className="sidebar-nav custom-scrollbar-dark">
-        {sections.map((sectionName) => (
-          <div key={sectionName} className="mb-4">
-            <div className="nav-section-label">{sectionName}</div>
-            {menuItems.filter(item => item.section === sectionName).map((item) => (
-              <button
-                key={item.id}
-                onClick={() => item.path !== '#' && navigate(item.path)}
-                className={cn(
-                  "nav-item",
-                  activeMenu === item.id && "active"
-                )}
-              >
-                <div className="nav-icon">
-                  <item.icon className="w-[18px] h-[18px] text-white/70" />
-                </div>
-                <span className="nav-label">{item.label}</span>
-                {item.badge && (
-                  <span className={cn(
-                    "nav-badge",
-                    item.badgeColor === 'green' && "green",
-                    item.badgeColor === 'yellow' && "yellow"
-                  )}>
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      {/* Sidebar Footer User Info */}
-      <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={() => signOut()}>
-          <div className="user-avatar text-white">
-            {profile?.full_name?.substring(0, 2).toUpperCase() || 'PS'}
-          </div>
-          <div className="user-info">
-            <div className="user-name">{profile?.full_name || 'Dr. Priya Sharma'}</div>
-            <div className="user-role">CRO · Admin</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="h-screen bg-[#F0F4F8] flex overflow-hidden font-sans selection:bg-[#E8F8FB]">
-      {/* 1. DESKTOP SIDEBAR */}
-      <aside className="hidden lg:flex flex-shrink-0 z-40 relative sidebar">
-        <SidebarContent />
+    <div className="flex bg-slate-50 h-screen w-screen overflow-hidden text-slate-900 font-sans">
+      
+      {/* Strict Compact Sidebar */}
+      <aside className="w-16 border-r border-slate-200 bg-white flex flex-col items-center py-4 shrink-0 z-20">
+        <div className="mb-8 cursor-pointer" onClick={() => setActiveTab('Overview')}>
+           {/* Abstract Geometric minimal logo for sidebar */}
+           <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <rect x="14" y="4" width="14" height="24" fill="#0EA5E9" fillOpacity="0.1" stroke="#0EA5E9" strokeWidth="3" strokeLinecap="square"/>
+             <path d="M4 10H20V22H4V10Z" fill="white" stroke="#0F172A" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter"/>
+           </svg>
+        </div>
+        
+        <nav className="flex flex-col gap-4 flex-1 w-full px-2">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => setActiveTab(item.label)}
+              title={item.label}
+              className={`w-12 h-12 flex items-center justify-center rounded transition-colors mx-auto ${
+                currentTab === item.label 
+                  ? 'bg-sky-50 text-sky-600 border border-sky-100' 
+                  : 'text-slate-400 border border-transparent hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex flex-col gap-4 w-full px-2 mt-4 border-t border-slate-200 pt-4">
+          <button 
+            onClick={() => setActiveTab('Profile')}
+            title="Profile"
+            className="w-12 h-12 flex items-center justify-center rounded transition-colors mx-auto text-slate-400 border border-transparent hover:bg-slate-50 hover:text-slate-900"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={signOut}
+            title="Sign Out"
+            className="w-12 h-12 flex items-center justify-center rounded transition-colors mx-auto text-slate-400 border border-transparent hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </aside>
 
-      {/* 2. MOBILE SIDEBAR OVERLAY */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-[100] lg:hidden">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.aside 
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute inset-y-0 left-0 w-[256px] overflow-hidden shadow-2xl sidebar"
-            >
-              <SidebarContent />
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* 3. MAIN AREA */}
-      <div className="main-area">
-        {/* TOPBAR */}
-        <header className="topbar">
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors mr-2 border border-slate-200"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Breadcrumb style navigation */}
-          <div className="topbar-breadcrumb">
-            <span className="breadcrumb-module">{activeItem.label}</span>
-            <span className="breadcrumb-sep">›</span>
-            <span className="breadcrumb-page tracking-wider text-xs font-semibold">
-              CRO Hub Dashboard
-            </span>
-          </div>
-
-          {/* Topbar Actions */}
-          <div className="topbar-actions">
-            {/* Live Sync Badge */}
-            <div className="sync-indicator">
-              <span className="sync-dot"></span>
-              <span>Live sync</span>
+      {/* Main Structural Area */}
+      <div className="flex-1 flex flex-col h-screen min-w-0">
+        
+        {/* Topbar: Search + Actions */}
+        <header className="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0 z-10">
+          <div className="flex items-center gap-6 flex-1">
+            <h1 className="text-sm font-black uppercase tracking-widest text-slate-900">{currentTab}</h1>
+            
+            {/* Search */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded w-full max-w-md focus-within:ring-1 focus-within:ring-sky-500 transition-all">
+              <Search className="w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search patient MRN, condition, or provider ID..." 
+                className="bg-transparent border-none outline-none text-xs w-full font-bold text-slate-900 placeholder:text-slate-400"
+              />
             </div>
-
-            <NotificationPopover />
-
-            {/* Avatar Pill */}
-            <div className="topbar-avatar" onClick={() => signOut()}>
-              {profile?.full_name?.substring(0, 2).toUpperCase() || 'PS'}
-            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex items-center gap-4 shrink-0 pl-4 border-l border-slate-200 ml-4">
+            <Button variant="outline" size="sm" className="h-8 bg-white border-slate-200 rounded text-[10px] font-black uppercase tracking-widest hidden sm:flex">
+              <Activity className="w-3.5 h-3.5 mr-2 text-sky-600" /> System Status: Optimal
+            </Button>
+            
+            <Button variant="outline" size="icon" className="h-8 w-8 rounded border-slate-200 relative bg-white">
+              <Bell className="w-4 h-4 text-slate-600" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
+            </Button>
+ 
+            <button onClick={() => setActiveTab('Profile')} className="w-8 h-8 rounded bg-slate-900 text-white flex items-center justify-center text-xs font-black hover:bg-slate-800 transition-colors">
+              {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </button>
           </div>
         </header>
 
-        {/* CONTENT CANVAS */}
-        <div className="flex-1 flex overflow-hidden">
-          <main className="content custom-scrollbar bg-[#F0F4F8] p-0">
-            {children}
+        {/* Dense Content Viewport */}
+        <div className="flex-1 flex overflow-hidden min-h-0 bg-slate-50">
+          <main className="flex-1 overflow-auto p-4 md:p-6 content-start">
+            {renderContent()}
           </main>
-          
           {rightPanel && (
-            <aside className="hidden xl:flex w-80 flex-shrink-0 bg-white border-l border-[#E2E8F0] flex-col overflow-y-auto custom-scrollbar">
+            <aside className="w-80 border-l border-slate-200 bg-white shrink-0 hidden xl:flex flex-col">
               {rightPanel}
             </aside>
           )}
         </div>
       </div>
+      
+      {/* Assistant */}
+      <ClinicalAssistant />
     </div>
   );
 }

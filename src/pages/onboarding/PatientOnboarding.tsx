@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Baby, Activity, Heart, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../components/ui/button';
 
 export function PatientOnboarding() {
   const { user, refreshProfile } = useAuth();

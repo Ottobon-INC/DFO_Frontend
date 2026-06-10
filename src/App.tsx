@@ -1,81 +1,43 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Navbar } from './components/sections/Navbar';
-import { Footer } from './components/sections/Footer';
+import React, { useState } from 'react';
+import { useAuth } from './contexts/AuthContext';
 
 // Pages
 import { Landing } from './pages/Landing';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
-import { SelectRole } from './pages/onboarding/SelectRole';
-import { CroOnboarding } from './pages/onboarding/CroOnboarding';
-import { NurseOnboarding } from './pages/onboarding/NurseOnboarding';
-import { DoctorOnboarding } from './pages/onboarding/DoctorOnboarding';
-import { CroDashboard } from './pages/dashboard/CroDashboard';
-import { NurseDashboard } from './pages/dashboard/NurseDashboard';
-import { DoctorDashboard } from './pages/dashboard/DoctorDashboard';
-import { ClinicalOverview } from './pages/dashboard/ClinicalOverview';
-import { PatientsOverview } from './pages/dashboard/PatientsOverview';
-import { LeadsOverview } from './pages/dashboard/LeadsOverview';
-import { TriageInbox } from './pages/dashboard/TriageInbox';
-import { ClinicalSchedule } from './pages/dashboard/ClinicalSchedule';
-import { DocumentsVault } from './pages/dashboard/DocumentsVault';
-import { RiskSentinel } from './pages/dashboard/RiskSentinel';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { DashboardLayout } from './components/dashboard/DashboardLayout';
 
-function App() {
-  return (
-    <BrowserRouter>
-      {/* Some pages like dashboards might not need the main landing Navbar, but for simplicity we keep it global or page-specific. 
-          Actually, let's keep Navbar inside the Landing page layout, OR conditionally render it. 
-          Since it's a root component, we can conditionally hide it on auth/dashboard routes, 
-          but making a Layout wrapper is cleaner. We will do a generic visual wrapper here. */}
-      
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={
-          <div className="min-h-screen bg-slate-50 font-sans selection:bg-sky-200">
-            <Navbar />
-            <Landing />
-            <Footer />
-          </div>
-        } />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+export default function App() {
+  const { user, isLoading } = useAuth();
+  const [authView, setAuthView] = useState<'landing' | 'login' | 'signup'>('landing');
 
-        {/* Protected Onboarding Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/select-role" element={<SelectRole />} />
-          <Route path="/onboarding/cro" element={<CroOnboarding />} />
-          <Route path="/onboarding/nurse" element={<NurseOnboarding />} />
-          <Route path="/onboarding/doctor" element={<DoctorOnboarding />} />
-        </Route>
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
-        {/* Protected Dashboard Routes (Role Specific) */}
-        <Route element={<ProtectedRoute requireRole="cro" />}>
-          <Route path="/dashboard/cro" element={<ClinicalOverview />} />
-          <Route path="/dashboard/cro/inbox" element={<CroDashboard />} />
-          <Route path="/dashboard/cro/patients" element={<PatientsOverview />} />
-          <Route path="/dashboard/cro/leads" element={<LeadsOverview />} />
-          <Route path="/dashboard/cro/triage" element={<TriageInbox />} />
-          <Route path="/dashboard/cro/schedule" element={<ClinicalSchedule />} />
-          <Route path="/dashboard/cro/documents" element={<DocumentsVault />} />
-          <Route path="/dashboard/cro/risk" element={<RiskSentinel />} />
-        </Route>
-        <Route element={<ProtectedRoute requireRole="nurse" />}>
-          <Route path="/dashboard/nurse" element={<NurseDashboard />} />
-          <Route path="/dashboard/nurse/patients" element={<PatientsOverview />} />
-          <Route path="/dashboard/nurse/leads" element={<LeadsOverview />} />
-        </Route>
-        <Route element={<ProtectedRoute requireRole="doctor" />}>
-          <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
-          <Route path="/dashboard/doctor/patients" element={<PatientsOverview />} />
-        </Route>
+  if (!user) {
+    if (authView === 'login') {
+      return (
+        <Login 
+          onBackToLanding={() => setAuthView('landing')} 
+          onSwitchToSignup={() => setAuthView('signup')} 
+        />
+      );
+    }
+    if (authView === 'signup') {
+      return (
+        <Signup 
+          onBackToLanding={() => setAuthView('landing')} 
+          onSwitchToLogin={() => setAuthView('login')} 
+        />
+      );
+    }
+    return <Landing onLogin={() => setAuthView('login')} />;
+  }
 
-        {/* Catch-all Fallback Route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <DashboardLayout />;
 }
-
-export default App;

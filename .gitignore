@@ -7,5 +7,5 @@ coverage/
 .env*
 !.env.example
 .vercel
-
-.vercel
+payload_decoded.txt
+reference.html

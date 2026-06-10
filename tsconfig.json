@@ -32,6 +32,7 @@
   "exclude": [
     "node_modules",
     "src_old/**/*",
+    "src/src_old/**/*",
     "public_old/**/*",
     "dist"
   ]
