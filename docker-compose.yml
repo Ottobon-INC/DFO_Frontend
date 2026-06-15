@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build: .
+    container_name: janmasethu-clinical-frontend
+    ports:
+      - "${FRONTEND_PORT:-4500}:80"
+    restart: always
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - clinical-network
+
+networks:
+  clinical-network:
+    driver: bridge
