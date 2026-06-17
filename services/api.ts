@@ -325,6 +325,28 @@ export const api = {
     },
 
 
+    // Users (Team Management)
+    getClinicUsers: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users`, {
+            headers: getHeaders()
+        });
+    },
+
+    createClinicUser: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    updateClinicUser: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
 
     // Control Tower
     getPatientFlowSummary: async () => {

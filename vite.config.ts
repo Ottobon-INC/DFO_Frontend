@@ -22,7 +22,8 @@ export default defineConfig(({ mode }) => {
               '/api/knowledge',
               '/api/dashboard',
               '/api/control-tower',
-              '/api/internal-assistant'
+              '/api/internal-assistant',
+              '/api/clinic/'
             ];
             if (keepApiPrefixes.some(prefix => path.startsWith(prefix))) {
               return path;

@@ -6,7 +6,18 @@ export enum UserRole {
     CRO = 'CRO'
 }
 
-export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings';
+export interface AuthUser {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    clinic_id: string;
+    is_super_admin: boolean;
+    is_clinic_admin: boolean;
+    token: string;
+}
+
+export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings' | 'team';
 
 export interface Lead {
     id: string;

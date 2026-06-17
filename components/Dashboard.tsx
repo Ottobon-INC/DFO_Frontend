@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -19,6 +19,7 @@ import { CroAnalytics } from './cro/CroAnalytics';
 import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
+import { TeamManagementView } from './TeamManagementView';
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
@@ -478,6 +479,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             )}
           </div>
+
+          {/* Team Management - Only for Clinic Admins */}
+          {(() => {
+            try {
+              const userStr = localStorage.getItem('user');
+              const user = userStr ? JSON.parse(userStr) : null;
+              if (user?.is_clinic_admin) {
+                return (
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest px-4 mb-2 mt-4 flex items-center gap-1.5">
+                      Administration
+                    </div>
+                    <NavItem
+                      icon={<Shield size={20} />}
+                      label="Team Management"
+                      active={location.pathname === '/dashboard/team'}
+                      onClick={() => navigate('/dashboard/team')}
+                    />
+                  </div>
+                );
+              }
+            } catch (e) { }
+            return null;
+          })()}
         </nav>
 
         <div className="p-6 border-t border-brand-border">
@@ -581,6 +606,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
              <Route path="analytics" element={
                <div className="animate-slide-up">
                  <AnalyticsView />
+               </div>
+             } />
+             <Route path="team" element={
+               <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-6">
+                 <TeamManagementView />
                </div>
              } />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
