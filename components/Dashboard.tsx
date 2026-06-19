@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  LayoutDashboard, CalendarDays, Users, TrendingUp, Settings,
-  Search, Bell, LogOut, ChevronDown, UserCheck, Activity
-} from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -14,8 +11,14 @@ import { PatientProfile } from './PatientProfile';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
-import { DOCTORS } from '../constants';
+import { DoctorDashboard } from './doctor/DoctorDashboard';
+import { NurseDashboard } from './nurse/NurseDashboard';
+import { ControlTowerConsole } from './cro/ControlTowerConsole';
+import { CroInbox } from './cro/CroInbox';
+import { CroAnalytics } from './cro/CroAnalytics';
+import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
+import { DailyRegisterTable } from './PatientRegistration';
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
@@ -24,10 +27,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<string>('overview');
 
-  // --- Mock State ---
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
 
   // --- Refresh Trigger ---
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -35,15 +38,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [apptsData, leadsData, patientsData] = await Promise.all([
-          api.getAppointments({ date: new Date().toISOString().split('T')[0], doctor_id: 'dr_sireesha' }),
+        const [apptsData, leadsData, patientsData, doctorsData] = await Promise.all([
+          api.getAppointments({ date: new Date().toISOString().split('T')[0] }), // Fetch all appointments today
           api.getLeads(),
-          api.getPatients()
+          api.getPatients(),
+          api.getDoctors()
         ]);
 
-        // Mock Data for Fallback
-        // Mock Data for Fallback (Removed in favor of DOCTORS constant)
-
+        // Save doctors list
+        const doctorsList = doctorsData?.data ?? [];
+        setDoctors(doctorsList);
 
         // Create Patient Map
         const patientItems = patientsData?.data?.items ?? [];
@@ -78,16 +82,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
           const docId = item.doctor_id || item.doctorId;
           // Robust Doctor Name Resolution
-          // Check: doctor_name_snapshot -> doctor_name -> doctorName -> consultant -> MOCK lookup -> 'Unknown'
           let resolvedDocName = item.doctor_name_snapshot || item.doctor_name || item.doctorName || item.consultant;
 
           if (!resolvedDocName || resolvedDocName === 'Unknown') {
-            resolvedDocName = DOCTORS.find(d => d.id === docId)?.name || 'Unknown';
+            resolvedDocName = doctorsList.find((d: any) => d.id === docId)?.name || 'Unknown';
           }
 
           // Final fallback for demo if ID exists but name failed (prevent 'Unknown' for valid-looking IDs)
           if ((!resolvedDocName || resolvedDocName === 'Unknown') && docId) {
-            const found = DOCTORS.find(d => d.id === docId);
+            const found = doctorsList.find((d: any) => d.id === docId);
             if (found) resolvedDocName = found.name;
           }
 
@@ -104,8 +107,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             resourceId: item.resource_id
           };
         }) : [];
-        // Seed Mock Data if Empty (Removed)
-        // if (mappedAppts.length === 0) { ... }
 
         setAppointments(mappedAppts);
 
@@ -378,50 +379,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 md:px-4 lg:px-6 py-4 md:py-6 lg:py-8 space-y-2 md:space-y-3 overflow-y-auto custom-scrollbar">
-          <NavItem
-            icon={<LayoutDashboard size={20} />}
-            label="Dashboard"
-            active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'}
-            onClick={() => navigate('/dashboard')}
-          />
-          {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
+        <nav className="flex-1 px-3 md:px-4 lg:px-6 py-4 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* Operations Section */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-2">Operations</div>
             <NavItem
-              icon={<Activity size={20} />} // Use Activity icon for operations
-              label="Control Tower"
-              active={false} // Will navigate away, so never active in Dashboard 
-              onClick={() => navigate('/control-tower')}
+              icon={<LayoutDashboard size={20} />}
+              label="Dashboard"
+              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'}
+              onClick={() => navigate('/dashboard')}
             />
-          )}
-          {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
             <NavItem
               icon={<Users size={20} />}
               label="Leads Pipeline"
               active={location.pathname === '/dashboard/leads'}
               onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
             />
-          )}
-          <NavItem
-            icon={<CalendarDays size={22} />}
-            label="Appointments"
-            active={location.pathname === '/dashboard/appointments'}
-            onClick={() => navigate('/dashboard/appointments')}
-          />
-          <NavItem
-            icon={<UserCheck size={22} />}
-            label="Patients"
-            active={location.pathname === '/dashboard/patients'}
-            onClick={() => navigate('/dashboard/patients')}
-          />
-          {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
             <NavItem
-              icon={<TrendingUp size={22} />}
-              label="Analytics"
-              active={location.pathname === '/dashboard/analytics'}
-              onClick={() => navigate('/dashboard/analytics')}
+              icon={<FileText size={20} />}
+              label="Daily Register"
+              active={location.pathname === '/dashboard/daily-register'}
+              onClick={() => navigate('/dashboard/daily-register')}
             />
-          )}
+            <NavItem
+              icon={<CalendarDays size={22} />}
+              label="Appointments"
+              active={location.pathname === '/dashboard/appointments'}
+              onClick={() => navigate('/dashboard/appointments')}
+            />
+            <NavItem
+              icon={<UserCheck size={22} />}
+              label="Patients"
+              active={location.pathname === '/dashboard/patients'}
+              onClick={() => navigate('/dashboard/patients')}
+            />
+          </div>
 
+          {/* Specialist & Clinical Dashboards */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-bold text-brand-accent uppercase tracking-widest px-4 mb-2 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
+              Live Control Towers
+            </div>
+            {userRole === UserRole.CRO && (
+              <>
+                <NavItem
+                  icon={<Activity size={20} />}
+                  label="Control Tower"
+                  active={location.pathname === '/dashboard/control-tower'}
+                  onClick={() => navigate('/dashboard/control-tower')}
+                  highlighted
+                />
+                <NavItem
+                  icon={<MessageSquare size={20} />}
+                  label="CRO Inbox"
+                  active={location.pathname === '/dashboard/cro-inbox'}
+                  onClick={() => navigate('/dashboard/cro-inbox')}
+                  highlighted
+                />
+                <NavItem
+                  icon={<TrendingUp size={20} />}
+                  label="CRO Analytics"
+                  active={location.pathname === '/dashboard/cro-analytics'}
+                  onClick={() => navigate('/dashboard/cro-analytics')}
+                  highlighted
+                />
+              </>
+            )}
+            {userRole === UserRole.DOCTOR && (
+              <NavItem
+                icon={<Stethoscope size={20} />}
+                label="Doctor Dashboard"
+                active={location.pathname === '/dashboard/doctor'}
+                onClick={() => navigate('/dashboard/doctor')}
+                highlighted
+              />
+            )}
+            {userRole === UserRole.NURSE && (
+              <NavItem
+                icon={<Stethoscope size={20} />}
+                label="Nurse Dashboard"
+                active={location.pathname === '/dashboard/nurse'}
+                onClick={() => navigate('/dashboard/nurse')}
+                highlighted
+              />
+            )}
+            {userRole === UserRole.CRO && (
+              <NavItem
+                icon={<Clock size={20} />}
+                label="Audit Logs"
+                active={location.pathname === '/dashboard/audit-logs'}
+                onClick={() => navigate('/dashboard/audit-logs')}
+                highlighted
+              />
+            )}
+          </div>
         </nav>
 
         <div className="p-6 border-t border-brand-border">
@@ -458,15 +510,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
             <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
-                {userRole === UserRole.ADMIN ? 'AD' : userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'FD'}
+                {userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU'}
               </div>
               <div className="hidden md:block text-left">
                 <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
-                  {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'CRO / Admin' :
-                    userRole === UserRole.DOCTOR ? 'Doctor' : 'Front Desk'}
+                  {userRole === UserRole.CRO ? 'CRO / Admin' :
+                    userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse'}
                 </p>
                 <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
-                  {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
+                  {userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
                 </p>
               </div>
               <ChevronDown size={16} className="text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block" />
@@ -514,12 +566,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
-
-            <Route path="analytics" element={
-              <div className="animate-slide-up">
-                <AnalyticsView />
-              </div>
-            } />
+             <Route path="doctor" element={<DoctorDashboard />} />
+             <Route path="nurse" element={<NurseDashboard />} />
+             <Route path="control-tower" element={<ControlTowerConsole />} />
+             <Route path="cro-inbox" element={<CroInbox />} />
+             <Route path="cro-analytics" element={<CroAnalytics />} />
+             <Route path="audit-logs" element={<AuditLogsView />} />
+             <Route path="daily-register" element={<DailyRegisterTable />} />
+ 
+             <Route path="analytics" element={
+               <div className="animate-slide-up">
+                 <AnalyticsView />
+               </div>
+             } />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
@@ -570,14 +629,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   );
 };
 
-const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }> = ({ icon, label, active, onClick }) => (
+const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean; highlighted?: boolean; onClick?: () => void }> = ({ icon, label, active, highlighted, onClick }) => (
   <div
     onClick={onClick}
     className={`
       flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 group
       ${active
-        ? 'bg-brand-primary/20 text-brand-primary font-bold translate-x-1 border-r-4 border-brand-primary'
-        : 'text-brand-textSecondary hover:bg-brand-bg hover:text-brand-textPrimary font-medium hover:translate-x-1'}
+        ? highlighted
+          ? 'bg-brand-accent/20 text-brand-accent font-bold translate-x-1 border-r-4 border-brand-accent shadow-lg shadow-brand-accent/10'
+          : 'bg-brand-primary/20 text-brand-primary font-bold translate-x-1 border-r-4 border-brand-primary'
+        : highlighted
+          ? 'text-brand-textSecondary hover:bg-brand-accent/10 hover:text-brand-accent font-medium hover:translate-x-1'
+          : 'text-brand-textSecondary hover:bg-brand-hover hover:text-brand-textPrimary font-medium hover:translate-x-1'}
     `}
   >
     <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>

@@ -64,7 +64,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
     // Fetch CRO dashboard data when component mounts (for Admin/CRO users)
     useEffect(() => {
-        if (userRole === UserRole.ADMIN || userRole === UserRole.CRO) {
+        if (userRole === UserRole.CRO) {
             const fetchCRODashboard = async () => {
                 setKpiLoading(true);
                 setKpiError(null);
@@ -113,7 +113,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     return (
         <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 max-w-[1600px] mx-auto animate-fade-in overflow-hidden">
 
-            {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? (
+            {userRole === UserRole.CRO ? (
                 // --- Admin / CRO Layout ---
                 <div className="flex flex-col gap-3 sm:gap-4 lg:gap-6 xl:gap-8 overflow-hidden">
                     {/* Top Row: KPIs */}
@@ -148,7 +148,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                 // --- Doctor / Nurse Dashboard ---
                 <div>
                     <DoctorDashboard
-                        appointments={appointments.filter(a => a.doctorId === 'dr1')}
+                        appointments={appointments.filter(a => {
+                            const userStr = localStorage.getItem('user');
+                            const loggedInUser = userStr ? JSON.parse(userStr) : null;
+                            if (!loggedInUser) return false;
+                            const cleanDocName = (loggedInUser.name || '').toLowerCase().replace('dr.', '').trim();
+                            return a.doctorId === loggedInUser.id || 
+                                   (a.doctorName && cleanDocName && a.doctorName.toLowerCase().includes(cleanDocName));
+                        })}
                         onPatientSelect={onPatientSelect}
                     />
                 </div>

@@ -11,17 +11,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          bg: '#F0F4F8',        // Light Grey/Blueish Background
-          surface: '#FFFFFF',   // White Surface
-          textPrimary: '#0F172A', // Black/Dark Slate Text
-          textSecondary: '#475569', // Dark Grey Text
+          bg: 'var(--color-bg)',
+          surface: 'var(--color-surface)',
+          textPrimary: 'var(--color-text-primary)',
+          textSecondary: 'var(--color-text-secondary)',
 
-          // Light Blue Palette
-          primary: '#0EA5E9',   // Sky Blue (Vibrant)
-          secondary: '#BAE6FD', // Very Light Blue (for accents/bg)
-          accent: '#38BDF8',    // Lighter Sky Blue
+          // Dynamic brand palette using CSS variables
+          primary: 'var(--color-primary)',
+          primaryDark: 'var(--color-primary-dark)',
+          accent: 'var(--color-accent)',
 
-          border: '#E2E8F0',    // Light Grey Border
+          border: 'var(--color-border)',
+          hover: 'var(--color-hover)',
 
           success: '#10B981',
           warning: '#F59E0B',

@@ -17,12 +17,6 @@ interface PatientProfileProps {
     initialTab?: string;
 }
 
-const MOCK_DOCTORS = [
-    { id: 'dr1', name: 'Dr. Sharma', speciality: 'IVF Specialist' },
-    { id: 'dr2', name: 'Dr. Gupta', speciality: 'Gynecologist' },
-    { id: 'dr3', name: 'Dr. Patel', speciality: 'Embryologist' },
-];
-
 // MOCK_APPOINTMENTS removed
 const MOCK_APPOINTMENTS: Appointment[] = [];
 // MOCK_DOCUMENTS removed
@@ -34,6 +28,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isConsultationComplete, setIsConsultationComplete] = useState(false);
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
     const [patientDocuments, setPatientDocuments] = useState<PatientDocument[]>([]);
+    const [doctors, setDoctors] = useState<any[]>([]);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [consultationNote, setConsultationNote] = useState('');
@@ -91,6 +86,18 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         try {
             let items: any[] = [];
 
+            // Fetch doctors if not loaded yet
+            let doctorsList = doctors;
+            if (doctorsList.length === 0) {
+                try {
+                    const docRes = await api.getDoctors();
+                    doctorsList = docRes?.data || [];
+                    setDoctors(doctorsList);
+                } catch (e) {
+                    console.warn("Failed to fetch doctors list", e);
+                }
+            }
+
             // 1. Try Specific Endpoint
             try {
                 const response = await api.getPatientAppointments(patient.id);
@@ -126,12 +133,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     let dName = item.doctor_name || item.doctorName;
 
                     if (!dName || dName === 'Unknown') {
-                        const found = MOCK_DOCTORS.find(d => d.id === dId);
+                        const found = doctorsList.find(d => d.id === dId);
                         if (found) dName = found.name;
-                        // Fallback for hardcoded IDs if not in mock
-                        else if (dId === 'dr1') dName = 'Dr. Sharma';
-                        else if (dId === 'dr2') dName = 'Dr. Gupta';
-                        else if (dId === 'dr3') dName = 'Dr. Patel';
                     }
 
                     return {
@@ -187,9 +190,11 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
     const handleBookAppointment = async (formData: any) => {
         try {
+            const selectedDoc = doctors.find(d => d.name === formData.consultant);
             const payload = {
                 patient_id: patient.id,
-                doctor_id: formData.consultant === 'Dr. Sharma' ? 'dr1' : formData.consultant === 'Dr. Gupta' ? 'dr2' : 'dr3', // Simple mapping
+                doctor_id: selectedDoc ? selectedDoc.id : null,
+                doctor_name_snapshot: formData.consultant,
                 appointment_date: formData.date,
                 start_time: formData.time,
                 type: 'Consultation',
@@ -817,7 +822,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     sex: patient.gender,
                     patientId: patient.id
                 }}
-                doctors={MOCK_DOCTORS}
+                doctors={doctors}
             />
         </div >
     );

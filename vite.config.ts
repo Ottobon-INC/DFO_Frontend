@@ -13,6 +13,22 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_BINDING_URL || 'http://localhost:8000',
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => {
+            const keepApiPrefixes = [
+              '/api/auth/',
+              '/api/appointments',
+              '/api/patients',
+              '/api/leads',
+              '/api/knowledge',
+              '/api/dashboard',
+              '/api/control-tower',
+              '/api/internal-assistant'
+            ];
+            if (keepApiPrefixes.some(prefix => path.startsWith(prefix))) {
+              return path;
+            }
+            return path.replace(/^\/api/, '');
+          },
         }
       },
     },

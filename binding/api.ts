@@ -39,8 +39,15 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
         try {
             const errorJson = await response.json();
             errorData = errorJson;
-            if (errorJson && (errorJson.error || errorJson.message)) {
-                errorMessage = errorJson.error || errorJson.message;
+            if (errorJson) {
+                const rawError = errorJson.error || errorJson.message;
+                if (typeof rawError === 'string') {
+                    errorMessage = rawError;
+                } else if (rawError && typeof rawError === 'object') {
+                    errorMessage = rawError.error || rawError.message || JSON.stringify(rawError);
+                } else if (typeof errorJson.message === 'string') {
+                    errorMessage = errorJson.message;
+                }
             }
         } catch (e) {
             // Check if response is text

@@ -39,8 +39,15 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
         try {
             const errorJson = await response.json();
             errorData = errorJson;
-            if (errorJson && (errorJson.error || errorJson.message)) {
-                errorMessage = errorJson.error || errorJson.message;
+            if (errorJson) {
+                const rawError = errorJson.error || errorJson.message;
+                if (typeof rawError === 'string') {
+                    errorMessage = rawError;
+                } else if (rawError && typeof rawError === 'object') {
+                    errorMessage = rawError.error || rawError.message || JSON.stringify(rawError);
+                } else if (typeof errorJson.message === 'string') {
+                    errorMessage = errorJson.message;
+                }
             }
         } catch (e) {
             // Check if response is text
@@ -92,6 +99,12 @@ export const api = {
     getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
         return fetchJson<any>(`${API_BASE_URL}/api/appointments${query}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getDoctors: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/appointments/doctors`, {
             headers: getHeaders()
         });
     },
@@ -340,6 +353,81 @@ export const api = {
 
     getLeadSnapshot: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/control-tower/lead-summary`, {
+            headers: getHeaders()
+        });
+    },
+
+
+
+    getAuditLogs: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/audit-logs`, {
+            headers: getHeaders()
+        });
+    },
+
+    getInboxThreads: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/threads`, {
+            headers: getHeaders()
+        });
+    },
+
+    getOverviewAnalytics: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/analytics`, {
+            headers: getHeaders()
+        });
+    },
+
+    replyToThread: async (data: { thread_id: string; sender_type: string; content: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/reply`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    getThreadContext: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/context/${threadId}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getDoctorQueue: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
+            headers: getHeaders()
+        });
+    },
+
+    getNurseQueue: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/nurse`, {
+            headers: getHeaders()
+        });
+    },
+
+    takeControl: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/take-control/${threadId}`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+    },
+
+    escalateThread: async (threadId: string, targetStatus: 'red' | 'yellow', assignedUserId?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/escalate/${threadId}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ targetStatus, assignedUserId })
+        });
+    },
+
+    saveVitals: async (data: { patientId: string; systolic?: number; diastolic?: number; temperature?: number; heartRate?: number; pulse?: number; weight?: number; height?: number; notes?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/vitals`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    getVitals: async (patientId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/vitals/${patientId}`, {
             headers: getHeaders()
         });
     },

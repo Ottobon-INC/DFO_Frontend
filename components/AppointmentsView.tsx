@@ -1,97 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon, Upload, Download } from 'lucide-react';
 import { Doctor, Appointment, Patient, UserRole } from '../types';
 import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
 import { RescheduleModal } from './Modals';
 import { PatientProfile } from './PatientProfile';
 import { api } from '../services/api';
+import { parseAndMapFile } from '../services/importHelper';
 
-// Mock Data
-import { DOCTORS } from '../constants';
-
-const MOCK_DOCTORS = DOCTORS;
-
-const MOCK_PATIENT_PROFILE: Patient = {
-    id: 'P-1001',
-    uhid: 'UHID-1001',
-    name: 'Sarah Jenkins',
-    mobile: '+91 98765 43210',
-    email: 'sarah.j@example.com',
+const DEFAULT_PATIENT_PROFILE: Patient = {
+    id: '',
+    uhid: '',
+    name: 'Unknown Patient',
     gender: 'Female',
-    registrationDate: '2025-01-15',
-    status: 'Active',
-    dob: '1993-05-20',
-    age: '32',
-    bloodGroup: 'O+',
-    house: '123',
-    street: 'Main St',
-    area: 'Downtown',
-    city: 'Mumbai',
-
-    state: 'Maharashtra',
-    postalCode: '400001'
+    mobile: '',
+    registrationDate: new Date().toISOString().split('T')[0],
+    status: 'Active'
 };
 
-const MOCK_APPOINTMENTS: Appointment[] = [
-    {
-        id: '1',
-        patientName: 'Priya Sharma',
-        date: new Date().toISOString().split('T')[0], // Today
-        time: '09:00',
-        type: 'IVF Consult',
-        doctorId: 'dr1',
-        doctorName: 'Dr. Sharma',
-        status: 'Scheduled',
-        phone: '+91 9876543210',
-        email: 'priya.s@example.com'
-    },
-    {
-        id: '2',
-        patientName: 'Rahul Verma',
-        date: new Date().toISOString().split('T')[0], // Today
-        time: '10:00',
-        type: 'Semen Analysis',
-        doctorId: 'dr3',
-        doctorName: 'Dr. Patel',
-        status: 'Arrived',
-        phone: '+91 9876543211'
-    },
-    {
-        id: '3',
-        patientName: 'Sneha Gupta',
-        date: new Date().toISOString().split('T')[0], // Today
-        time: '11:00',
-        type: 'IUI Procedure',
-        doctorId: 'dr2',
-        doctorName: 'Dr. Gupta',
-        status: 'Checked-In',
-        phone: '+91 9876543212'
-    },
-    {
-        id: '4',
-        patientName: 'Anjali Desai',
-        date: new Date().toISOString().split('T')[0], // Today
-        time: '14:00',
-        type: 'Scan',
-        doctorId: 'dr1',
-        doctorName: 'Dr. Sharma',
-        status: 'Scheduled',
-        phone: '+91 9876543213'
-    },
-    {
-        id: '5',
-        patientName: 'Vikram Singh',
-        date: new Date().toISOString().split('T')[0], // Today
-        time: '16:00',
-        type: 'Consultation',
-        doctorId: 'dr2',
-        doctorName: 'Dr. Gupta',
-        status: 'Scheduled',
-        phone: '+91 9876543214'
-    }
+// Dynamic Doctor Colors Mapping Helper
+const DOCTOR_COLORS = [
+    'bg-brand-primary/20 text-brand-primary border-brand-primary/30',
+    'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    'bg-blue-500/20 text-blue-300 border-blue-500/30',
+    'bg-pink-500/20 text-pink-300 border-pink-500/30',
+    'bg-orange-500/20 text-orange-300 border-orange-500/30',
+    'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    'bg-teal-500/20 text-teal-300 border-teal-500/30',
+    'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+    'bg-rose-500/20 text-rose-300 border-rose-500/30'
 ];
 
+const getDoctorColor = (index: number) => {
+    return DOCTOR_COLORS[index % DOCTOR_COLORS.length];
+};
 
 interface AppointmentsViewProps {
     userRole?: UserRole;
@@ -104,6 +47,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [patients, setPatients] = useState<any[]>([]);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
 
     useEffect(() => {
         const fetchAppointments = async () => {
@@ -111,19 +55,33 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 const results = await Promise.allSettled([
                     api.getAppointments(),
                     api.getPatients(),
-                    api.getLeads()
+                    api.getLeads(),
+                    api.getDoctors()
                 ]);
 
                 const apptsResult = results[0];
                 const patientsResult = results[1];
                 const leadsResult = results[2];
+                const doctorsResult = results[3];
+
+                let dbDoctors: Doctor[] = [];
+                if (doctorsResult.status === 'fulfilled' && doctorsResult.value?.data) {
+                    dbDoctors = doctorsResult.value.data.map((d: any, idx: number) => ({
+                        id: d.id,
+                        name: d.name,
+                        speciality: 'Consultant',
+                        location: 'Medcy Hospital',
+                        category: 'Hospital',
+                        color: getDoctorColor(idx)
+                    }));
+                }
+                setDoctors(dbDoctors);
 
                 let mapped: Appointment[] = [];
 
                 if (apptsResult.status === 'fulfilled') {
                     const items = apptsResult.value?.data?.items ?? [];
 
-                    // Create lookup maps
                     // Create lookup maps
                     let patientItems: any[] = [];
                     if (patientsResult.status === 'fulfilled') {
@@ -170,7 +128,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         // NOW INCLUDING doctor_name_snapshot which we send to backend now
                         let resolvedDocName = item.doctor_name_snapshot || item.doctor_name || item.doctorName || item.consultant;
 
-                        const matchedDoctor = MOCK_DOCTORS.find(d => d.id === docId);
+                        const matchedDoctor = dbDoctors.find(d => d.id === docId);
 
                         if (!resolvedDocName || resolvedDocName === 'Unknown') {
                             resolvedDocName = matchedDoctor?.name || 'Unknown';
@@ -178,7 +136,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
                         // Final fallback loop for IDs like 'dr1', 'dr2' if name is still missing
                         if ((!resolvedDocName || resolvedDocName === 'Unknown') && docId) {
-                            const found = MOCK_DOCTORS.find(d => d.id === docId);
+                            const found = dbDoctors.find(d => d.id === docId);
                             if (found) resolvedDocName = found.name;
                         }
 
@@ -202,13 +160,13 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         };
                     }) : [];
                 } else {
-                    console.warn("Failed to fetch appointments (API Error), using Mock Data");
-                    mapped = MOCK_APPOINTMENTS;
+                    console.warn("Failed to fetch appointments (API Error)");
+                    mapped = [];
                 }
                 setAppointments(mapped);
             } catch (error) {
                 console.error("Critical error in fetchAppointments:", error);
-                setAppointments(MOCK_APPOINTMENTS);
+                setAppointments([]);
             }
         };
 
@@ -281,6 +239,113 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const weekDays = getWeekDays(viewDate);
 
     // --- Handlers ---
+    // --- Export Appointments to CSV ---
+    const handleExportCSV = () => {
+        if (appointments.length === 0) {
+            alert('No appointments to export.');
+            return;
+        }
+
+        const headers = [
+            'Patient Name', 'Doctor Name', 'Date', 'Time', 'Type', 'Status', 'Visit Reason'
+        ];
+
+        const csvRows = [
+            headers.join(','),
+            ...appointments.map(a => [
+                `"${a.patientName || ''}"`,
+                `"${a.doctorName || ''}"`,
+                `"${a.date || ''}"`,
+                `"${a.time || ''}"`,
+                `"${a.type || ''}"`,
+                `"${a.status || ''}"`,
+                `"${a.resourceId || ''}"`
+            ].join(','))
+        ];
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.download = `JanmaSethu_Appointments_${dateStr}.csv`;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // --- Import Appointments from CSV ---
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImportClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const parsedRows = await parseAndMapFile(file);
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const row of parsedRows) {
+                const patientName = row.name || row.patientName || row.patient;
+                const doctorName = row.doctor || row.doctorName || row.physician || row.consultant;
+
+                // Basic validation: skip if no patient name
+                if (!patientName) continue;
+
+                try {
+                    const matchedPatient = patients.find(p => p.name?.toLowerCase() === patientName.toLowerCase());
+                    const matchedDoc = doctors.find(d => d.name?.toLowerCase() === doctorName?.toLowerCase());
+
+                    const payload: any = {
+                        appointment_date: row.date || new Date().toISOString().split('T')[0],
+                        start_time: row.time || '09:00',
+                        doctor_id: matchedDoc ? matchedDoc.id : undefined,
+                        doctor_name_snapshot: doctorName || undefined,
+                        type: row.type || 'Consultation',
+                        status: row.status || 'Scheduled',
+                        visit_reason: row.problem || 'Consultation',
+                        patient_name_snapshot: patientName,
+                    };
+
+                    if (matchedPatient) {
+                        payload.patient_id = matchedPatient.id;
+                        payload.patient_phone_snapshot = matchedPatient.mobile || matchedPatient.phone;
+                    } else {
+                        payload.name = patientName;
+                        // For auto-created leads, try to use the phone in the CSV if available
+                        payload.phone = row.phone || row.mobile || '9999999999';
+                    }
+
+                    console.log('Importing appointment:', patientName, payload);
+                    await api.createAppointment(payload);
+                    successCount++;
+                } catch (err) {
+                    console.error('Failed to import appointment:', patientName, err);
+                    errorCount++;
+                }
+            }
+
+            alert(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
+            if (successCount > 0) {
+                window.location.reload();
+            }
+        } catch (err: any) {
+            console.error('File parsing error:', err);
+            alert(`Failed to parse file: ${err.message || err}`);
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
+        }
+    };
     const handlePrev = () => {
         const newDate = new Date(viewDate);
         if (viewMode === 'day') newDate.setDate(viewDate.getDate() - 1);
@@ -307,12 +372,12 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             // formData provided by BookAppointmentModal
             // Structure: { name, phone, date, time, consultant, ... }
 
-            const selectedDoc = MOCK_DOCTORS.find(d => d.name === formData.consultant);
+            const selectedDoc = doctors.find(d => d.name === formData.consultant);
 
             // Robust doctor handling: Send ID if available, PLUS name as snapshot (required by backend now)
             // If ID is not a UUID (like 'dr1'), backend treats it as string ID.
             const doctorId = selectedDoc?.id || formData.doctorId || 'dr_sireesha';
-            const doctorName = selectedDoc?.name || formData.consultant || MOCK_DOCTORS.find(d => d.id === doctorId)?.name || 'Dr. B. Sireesha Rani';
+            const doctorName = selectedDoc?.name || formData.consultant || doctors.find(d => d.id === doctorId)?.name || 'Dr. B. Sireesha Rani';
 
             // Safe Enum Mapping for Appointment Type
             // Valid Backend Enums: Consultation, Follow-up, Procedure, Emergency, Scan, Surgery, IVF, Camp, Other
@@ -532,7 +597,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                     >
                                         All Staff
                                     </button>
-                                    {MOCK_DOCTORS.map(doc => (
+                                    {doctors.map(doc => (
                                         <button
                                             key={doc.id}
                                             onClick={() => setSelectedDoctor(doc.id)}
@@ -647,6 +712,27 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                 </button>
                             </div>
 
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".csv,.xlsx,.xls"
+                                className="hidden"
+                            />
+                            <button
+                                onClick={handleExportCSV}
+                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
+                                title="Export to CSV"
+                            >
+                                <Download size={12} className="sm:mr-1" /> <span className="hidden sm:inline">Export</span>
+                            </button>
+                            <button
+                                onClick={handleImportClick}
+                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
+                                title="Import from CSV"
+                            >
+                                <Upload size={12} className="sm:mr-1" /> <span className="hidden sm:inline">Import</span>
+                            </button>
                             <button
                                 onClick={() => { setBookModalData({ date: new Date(), time: 9 }); setIsBookModalOpen(true); }}
                                 className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg sm:rounded-xl shadow-md shadow-brand-primary/20 flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
@@ -692,7 +778,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                         const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
                                         const dayAppointments = appointments.filter(a => {
                                             const matchesDate = a.date === dateStr;
-                                            const matchesDoctor = selectedDoctor === 'all' || a.doctorId === selectedDoctor || a.doctorName === MOCK_DOCTORS.find(d => d.id === selectedDoctor)?.name;
+                                            const matchesDoctor = selectedDoctor === 'all' || a.doctorId === selectedDoctor || a.doctorName === doctors.find(d => d.id === selectedDoctor)?.name;
                                             return matchesDate && matchesDoctor;
                                         });
                                         const isToday = dateStr === new Date().toISOString().split('T')[0];
@@ -715,7 +801,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                                 </div>
                                                 <div className="space-y-1">
                                                     {dayAppointments.slice(0, 3).map(apt => {
-                                                        const doctor = MOCK_DOCTORS.find(d => d.name === apt.doctorName);
+                                                        const doctor = doctors.find(d => d.name === apt.doctorName);
                                                         const colorClass = doctor?.color || 'bg-brand-surface text-brand-textSecondary border-brand-border';
                                                         return (
                                                             <div key={apt.id} className={`text-[10px] truncate px-1.5 py-1 rounded border-l-2 ${colorClass} ${apt.status === 'Canceled' ? 'opacity-50 line-through grayscale' : ''}`}>
@@ -804,10 +890,8 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                                     aptHour = parseInt(parts[0]);
                                                 }
 
-
-
                                                 const matchesDate = aDateStr === dateStr && aptHour === hour;
-                                                const matchesDoctor = selectedDoctor === 'all' || a.doctorId === selectedDoctor || a.doctorName === MOCK_DOCTORS.find(d => d.id === selectedDoctor)?.name;
+                                                const matchesDoctor = selectedDoctor === 'all' || a.doctorId === selectedDoctor || a.doctorName === doctors.find(d => d.id === selectedDoctor)?.name;
 
                                                 return matchesDate && matchesDoctor;
                                             });
@@ -825,7 +909,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
                                                     {/* Render Appointments */}
                                                     {slotAppointments.map(apt => {
-                                                        const doctor = MOCK_DOCTORS.find(d => d.name === apt.doctorName) || MOCK_DOCTORS.find(d => d.id === apt.doctorId);
+                                                        const doctor = doctors.find(d => d.name === apt.doctorName) || doctors.find(d => d.id === apt.doctorId);
                                                         const colorClass = doctor?.color || 'bg-brand-surface text-brand-textSecondary border-brand-border';
 
                                                         return (
@@ -867,7 +951,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 initialDate={bookModalData.date}
                 initialTime={bookModalData.time}
                 initialData={bookModalData.initialData}
-                doctors={MOCK_DOCTORS}
+                doctors={doctors}
                 patients={patients}
             />
 
@@ -878,7 +962,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     appointment={selectedAppointment}
                     onReschedule={handleRescheduleInit}
                     onCancel={handleCancel}
-                    doctors={MOCK_DOCTORS}
+                    doctors={doctors}
                 />
             )}
 
@@ -902,7 +986,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                             </button>
                         </div>
                         <PatientProfile
-                            patient={MOCK_PATIENT_PROFILE}
+                            patient={DEFAULT_PATIENT_PROFILE}
                             onClose={() => setViewingPatientProfile(null)}
                         />
                     </div>

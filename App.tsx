@@ -11,7 +11,7 @@ import { api } from './services/api';
 
 const AppContent: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(() => {
-    return (localStorage.getItem('userRole') as UserRole) || UserRole.FRONT_DESK;
+    return (localStorage.getItem('userRole') as UserRole) || UserRole.NURSE;
   });
   const [user, setUser] = useState<any>(() => {
     const saved = localStorage.getItem('user');
@@ -35,7 +35,7 @@ const AppContent: React.FC = () => {
     }
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
-    setUserRole(UserRole.FRONT_DESK);
+    setUserRole(UserRole.NURSE);
     setUser(null);
     navigate('/');
   };

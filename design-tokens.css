@@ -1,0 +1,38 @@
+/* Design Tokens */
+:root {
+  /* Primary and Accent */
+  --color-primary: #0A84FF; /* blue-ish */
+  --color-primary-dark: #0766cc;
+  --color-accent: #FF9F0A; /* amber */
+
+  /* Backgrounds */
+  --color-bg: #1e1e1e; /* dark mode background */
+  --color-surface: rgba(255, 255, 255, 0.08); /* glass effect */
+  --color-surface-light: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #A0A0A0;
+
+  /* Borders & Highlights */
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-hover: rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #F0F4F8;
+    --color-surface: rgba(255, 255, 255, 0.6);
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #334155;
+    --color-border: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Utility classes */
+.bg-brand-bg { background-color: var(--color-bg); }
+.bg-brand-surface { background-color: var(--color-surface); backdrop-filter: blur(12px); }
+.text-brand-primary { color: var(--color-primary); }
+.text-brand-accent { color: var(--color-accent); }
+.border-brand-border { border-color: var(--color-border); }
+.hover\:bg-brand-hover:hover { background-color: var(--color-hover); }

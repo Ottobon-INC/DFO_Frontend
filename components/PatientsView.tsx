@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, Filter, UserPlus, List, FileText, ClipboardList, ArrowRight } from 'lucide-react';
+import { Search, Filter, UserPlus, List, FileText, ClipboardList, ArrowRight, Upload, Download } from 'lucide-react';
 import { Patient, Doctor } from '../types';
 import { PatientProfile } from './PatientProfile';
 import { BookAppointmentModal } from './AppointmentModals';
 import { PatientConversionForm } from './PatientRegistration';
 import { api } from '../services/api';
+import { parseAndMapFile } from '../services/importHelper';
 
 // Mock Data
 // MOCK_PATIENTS removed in favor of API
 const MOCK_PATIENTS: Patient[] = [];
-
-const MOCK_DOCTORS: Doctor[] = [
-    { id: 'dr1', name: 'Dr. Sharma', speciality: 'IVF Specialist', color: 'bg-brand-primary/20 text-brand-primary border-brand-primary/30' },
-    { id: 'dr2', name: 'Dr. Gupta', speciality: 'Gynecologist', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-    { id: 'dr3', name: 'Dr. Patel', speciality: 'Embryologist', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-];
 
 interface PatientsViewProps {
     onNavigateToLeads: () => void;
@@ -85,6 +80,127 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
         fetchPatients();
     }, []);
 
+    // --- Export Patients to CSV ---
+    const handleExportCSV = () => {
+        if (filteredPatients.length === 0) {
+            alert('No patients to export.');
+            return;
+        }
+
+        const headers = [
+            'UHID', 'Name', 'Gender', 'Mobile', 'Email', 'DOB', 'Age', 
+            'Marital Status', 'Blood Group', 'Aadhar', 'House', 'Street', 
+            'Area', 'City', 'District', 'State', 'Postal Code', 'Reg. Date', 'Status'
+        ];
+
+        const csvRows = [
+            headers.join(','),
+            ...filteredPatients.map(p => [
+                `"${p.uhid || ''}"`,
+                `"${p.name || ''}"`,
+                `"${p.gender || ''}"`,
+                `"${p.mobile || ''}"`,
+                `"${p.email || ''}"`,
+                `"${p.dob || ''}"`,
+                `"${p.age || ''}"`,
+                `"${p.maritalStatus || p.marital_status || ''}"`,
+                `"${p.bloodGroup || p.blood_group || ''}"`,
+                `"${p.aadhar || ''}"`,
+                `"${p.house || ''}"`,
+                `"${p.street || ''}"`,
+                `"${p.area || ''}"`,
+                `"${p.city || ''}"`,
+                `"${p.district || ''}"`,
+                `"${p.state || ''}"`,
+                `"${p.postalCode || p.postal_code || ''}"`,
+                `"${p.registrationDate || p.registration_date || ''}"`,
+                `"${p.status || ''}"`
+            ].join(','))
+        ];
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.download = `JanmaSethu_Patients_${dateStr}.csv`;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // --- Import Patients from CSV ---
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImportClick = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const parsedRows = await parseAndMapFile(file);
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const row of parsedRows) {
+                const name = row.name;
+                const mobile = row.phone || row.mobile;
+
+                // Basic validation: skip if no name
+                if (!name) continue;
+
+                try {
+                    const patientData = {
+                        uhid: row.uhid || undefined,
+                        name,
+                        gender: row.gender || 'Female',
+                        mobile: mobile || '',
+                        phone: mobile || '',
+                        email: row.email || undefined,
+                        dob: row.dob || undefined,
+                        age: row.age || undefined,
+                        marital_status: row.maritalStatus || 'Married',
+                        blood_group: row.bloodGroup || undefined,
+                        aadhar: row.aadhar || undefined,
+                        house: row.house || undefined,
+                        street: row.street || undefined,
+                        area: row.area || undefined,
+                        city: row.city || undefined,
+                        district: row.district || undefined,
+                        state: row.state || undefined,
+                        postal_code: row.postalCode || undefined,
+                        registration_date: row.date || new Date().toISOString().split('T')[0],
+                        status: row.status || 'Active'
+                    };
+
+                    console.log('Importing patient:', name, patientData);
+                    await api.createPatient(patientData);
+                    successCount++;
+                } catch (err) {
+                    console.error('Failed to import patient:', name, err);
+                    errorCount++;
+                }
+            }
+
+            alert(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
+            if (successCount > 0) {
+                fetchPatients();
+            }
+        } catch (err: any) {
+            console.error('File parsing error:', err);
+            alert(`Failed to parse file: ${err.message || err}`);
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
+        }
+    };
     // Booking Modal State
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [patientForBooking, setPatientForBooking] = useState<Patient | null>(null);
@@ -183,12 +299,35 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
                                         className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
                                     />
                                 </div>
-                                <button
-                                    onClick={() => setActiveTab('conversion')}
-                                    className="px-6 py-3 bg-brand-primary hover:bg-brand-secondary text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 flex items-center transition-all active:scale-95"
-                                >
-                                    <UserPlus size={18} className="mr-2" /> New Patient
-                                </button>
+                                <div className="flex flex-wrap gap-2 sm:gap-3">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileChange}
+                                        accept=".csv,.xlsx,.xls"
+                                        className="hidden"
+                                    />
+                                    <button
+                                        onClick={handleExportCSV}
+                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
+                                        title="Export to CSV"
+                                    >
+                                        <Download size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Export</span>
+                                    </button>
+                                    <button
+                                        onClick={handleImportClick}
+                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
+                                        title="Import from CSV"
+                                    >
+                                        <Upload size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Import</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('conversion')}
+                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg sm:rounded-xl shadow-lg shadow-brand-primary/20 flex items-center text-xs sm:text-sm transition-all active:scale-95"
+                                    >
+                                        <UserPlus size={16} className="mr-1 sm:mr-2" /> <span className="hidden sm:inline">New Patient</span><span className="sm:hidden">New</span>
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-auto custom-scrollbar">
