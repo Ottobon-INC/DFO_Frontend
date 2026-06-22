@@ -218,6 +218,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
 
             const response = await api.createPatient(patientPayload);
             const newPatientId = response?.data?.id || response?.id;
+            const newPin = response?.generatedPin;
 
             // 2. Update Lead Status if applicable
             if (initialData?.id) {
@@ -231,7 +232,11 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                 }
             }
 
-            alert(`Patient ${formData.name} registered successfully!`);
+            if (newPin) {
+                alert(`Patient ${formData.name} registered successfully!\n\nPORTAL ACCESS PIN: ${newPin}\n\nPlease share this 4-digit PIN with the patient.`);
+            } else {
+                alert(`Patient ${formData.name} registered successfully!`);
+            }
 
             if (onSuccess) {
                 onSuccess();

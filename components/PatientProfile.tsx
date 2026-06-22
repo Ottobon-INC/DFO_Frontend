@@ -35,6 +35,12 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [historyNotes, setHistoryNotes] = useState<any[]>([]);
 
+    // PIN Reset State
+    const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
+    const [newPinInput, setNewPinInput] = useState('');
+    const [isResettingPin, setIsResettingPin] = useState(false);
+    const [resetPinSuccess, setResetPinSuccess] = useState<string | null>(null);
+
     // File Upload
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -274,6 +280,19 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const handleCloseAfterComplete = () => {
         if (onCompleteConsultation) onCompleteConsultation();
         else onClose();
+    };
+
+    const handleResetPin = async () => {
+        setIsResettingPin(true);
+        try {
+            const res = await api.resetPatientPin(patient.id, newPinInput || undefined);
+            setResetPinSuccess(res.newPin);
+            setNewPinInput('');
+        } catch (error: any) {
+            alert(error.message || 'Failed to reset PIN');
+        } finally {
+            setIsResettingPin(false);
+        }
     };
 
     // Determine tabs based on role
@@ -607,6 +626,12 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                         >
                                             Archive Patient Record
                                         </button>
+                                        <button
+                                            onClick={() => setIsResetPinModalOpen(true)}
+                                            className="px-4 py-2 ml-4 bg-brand-surface border border-brand-primary/30 text-brand-primary text-sm font-bold rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-sm"
+                                        >
+                                            Reset Portal Access PIN
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -824,6 +849,58 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 }}
                 doctors={doctors}
             />
+
+            {/* Reset PIN Modal */}
+            {isResetPinModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-brand-surface w-full max-w-sm rounded-2xl p-6 shadow-xl border border-brand-border animate-scale-in">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-brand-textPrimary text-lg">Reset Portal Access PIN</h3>
+                            <button onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }} className="text-brand-textSecondary hover:text-brand-textPrimary">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        {!resetPinSuccess ? (
+                            <div className="space-y-4">
+                                <p className="text-sm text-brand-textSecondary">
+                                    Generate a new 4-digit PIN for {patient.name}'s portal access.
+                                </p>
+                                <div>
+                                    <label className="text-xs font-bold text-brand-textSecondary uppercase block mb-1">Custom PIN (Optional)</label>
+                                    <input 
+                                        type="text" 
+                                        maxLength={4} 
+                                        placeholder="Leave blank to auto-generate" 
+                                        value={newPinInput} 
+                                        onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
+                                        className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary"
+                                    />
+                                </div>
+                                <button 
+                                    onClick={handleResetPin}
+                                    disabled={isResettingPin}
+                                    className="w-full py-2.5 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg transition-colors flex justify-center items-center"
+                                >
+                                    {isResettingPin ? 'Resetting...' : 'Reset PIN'}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center space-y-4 py-4 animate-fade-in">
+                                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <CheckCircle2 size={32} />
+                                </div>
+                                <h4 className="font-bold text-brand-textPrimary text-xl">Success!</h4>
+                                <p className="text-sm text-brand-textSecondary">The new portal PIN is:</p>
+                                <div className="text-3xl font-mono font-bold text-brand-primary tracking-widest bg-brand-bg py-3 rounded-lg border border-brand-border">
+                                    {resetPinSuccess}
+                                </div>
+                                <p className="text-xs text-brand-textSecondary mt-2">Please share this with the patient securely.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

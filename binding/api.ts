@@ -171,25 +171,25 @@ export const api = {
 
     // patients
     getPatients: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
             headers: getHeaders()
         });
     },
 
     getPatientById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
             headers: getHeaders()
         });
     },
 
     getPatientAppointments: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/appointments`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/appointments`, {
             headers: getHeaders()
         });
     },
 
     createPatient: async (data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -197,7 +197,7 @@ export const api = {
     },
 
     updatePatient: async (id: string, data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -205,7 +205,7 @@ export const api = {
     },
 
     getPatientDocuments: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/documents`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
             headers: getHeaders()
         });
     },
@@ -233,7 +233,7 @@ export const api = {
             base64: base64
         };
 
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/documents`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
             method: 'POST',
             headers: getHeaders(), // application/json
             body: JSON.stringify(payload)
@@ -241,7 +241,7 @@ export const api = {
     },
 
     saveClinicalNote: async (patientId: string, note: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${patientId}/clinical-notes`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/clinical-notes`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ note })
@@ -249,7 +249,7 @@ export const api = {
     },
 
     getClinicalNotes: async (patientId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${patientId}/clinical-notes`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/clinical-notes`, {
             headers: getHeaders()
         });
     },
@@ -266,7 +266,7 @@ export const api = {
             params.append('q', query);
         }
 
-        return fetchJson<any>(`${API_BASE_URL}/api/patients?${params.toString()}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients?${params.toString()}`, {
             headers: getHeaders()
         });
     },

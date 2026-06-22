@@ -60,8 +60,8 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         } />
-        <Route path="/control-tower" element={<ControlTower onLogout={handleLogout} userRole={userRole} />} />
-        <Route path="/dashboard/*" element={<Dashboard onLogout={handleLogout} userRole={userRole} />} />
+        <Route path="/control-tower" element={user ? <ControlTower onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
+        <Route path="/dashboard/*" element={user ? <Dashboard onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

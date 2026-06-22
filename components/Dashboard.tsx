@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -20,6 +20,7 @@ import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
 import { TeamManagementView } from './TeamManagementView';
+import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
@@ -160,6 +161,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [globalSearch, setGlobalSearch] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        setCurrentUser(JSON.parse(userStr));
+      }
+    } catch(e) {}
+  }, []);
 
   const handleGlobalSearch = () => {
     showToast(`Searching for: "${globalSearch}"...`);
@@ -537,20 +551,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
-            <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
-                {userRole === UserRole.ADMIN ? 'AD' : userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'FD'}
+            <div className="relative">
+              <div 
+                className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors"
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              >
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
+                  {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : (userRole === UserRole.ADMIN ? 'AD' : userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'FD')}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
+                    {currentUser?.name || (userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'CRO / Admin' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Front Desk')}
+                  </p>
+                  <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
+                    {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
+                  </p>
+                </div>
+                <ChevronDown size={16} className={`text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
-              <div className="hidden md:block text-left">
-                <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
-                  {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'CRO / Admin' :
-                    userRole === UserRole.DOCTOR ? 'Doctor' : 'Front Desk'}
-                </p>
-                <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
-                  {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
-                </p>
-              </div>
-              <ChevronDown size={16} className="text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block" />
+
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-brand-surface rounded-xl shadow-lg border border-brand-border py-2 z-50 animate-fade-in">
+                  <button 
+                    onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
+                  >
+                    <User size={16} className="text-brand-primary" />
+                    My Profile
+                  </button>
+                  <button 
+                    onClick={() => { setIsChangePasswordModalOpen(true); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
+                  >
+                    <Lock size={16} className="text-brand-primary" />
+                    Change Password
+                  </button>
+                  <div className="border-t border-brand-border my-1"></div>
+                  <button 
+                    onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-error hover:bg-brand-error/10 transition-colors flex items-center gap-2"
+                  >
+                    <LogOut size={16} />
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -643,6 +688,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         show={toast.show}
         message={toast.message}
         onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={currentUser}
+        onProfileUpdate={(updatedUser) => setCurrentUser(updatedUser)}
+        showToast={showToast}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        showToast={showToast}
       />
 
       {/* Patient Profile Overlay - Lifted to Dashboard level for z-index fix */}

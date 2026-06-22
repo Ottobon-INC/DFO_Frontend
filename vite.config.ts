@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
             const keepApiPrefixes = [
               '/api/auth/',
               '/api/appointments',
-              '/api/patients',
+              '/api/v1/clinics/patients',
               '/api/leads',
               '/api/knowledge',
               '/api/dashboard',
