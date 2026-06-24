@@ -106,6 +106,7 @@ export interface Doctor {
 export interface DashboardProps {
     onLogout: () => void;
     userRole: UserRole;
+    user?: any;
 }
 
 

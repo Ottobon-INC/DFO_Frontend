@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search } from 'lucide-react';
+import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, X } from 'lucide-react';
 import { api } from '../../services/api';
 
 export const DoctorDashboard: React.FC = () => {
@@ -13,6 +13,8 @@ export const DoctorDashboard: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [takingControl, setTakingControl] = useState(false);
+  const [showSummary, setShowSummary] = useState(true);
+  const [showSummaryPopup, setShowSummaryPopup] = useState(false);
 
   // Patients state
   const [patients, setPatients] = useState<any[]>([]);
@@ -47,7 +49,11 @@ export const DoctorDashboard: React.FC = () => {
   const fetchThreadContext = async (id: string) => {
     try {
       const res = await api.getThreadContext(id);
-      setThreadContext(res.data || res);
+      const data = res.data || res;
+      setThreadContext(data);
+      if (data.structured_memory?.summary) {
+        setShowSummaryPopup(true);
+      }
     } catch (err) {
       console.error("Failed to fetch thread context", err);
       setThreadContext({
@@ -160,7 +166,17 @@ export const DoctorDashboard: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Stethoscope className="text-brand-primary" size={28} />
           <div>
-            <h1 className="text-2xl font-bold text-brand-textPrimary">Doctor Dashboard</h1>
+            <h1 className="text-2xl font-bold text-brand-textPrimary">
+              {(() => {
+                try {
+                  const saved = localStorage.getItem('user');
+                  const u = saved ? JSON.parse(saved) : null;
+                  return u?.name ? `${u.name}'s Dashboard` : 'Doctor Dashboard';
+                } catch {
+                  return 'Doctor Dashboard';
+                }
+              })()}
+            </h1>
             <p className="text-sm text-brand-textSecondary">Clinical Lifecycle & Escalations console</p>
           </div>
         </div>
@@ -251,6 +267,28 @@ export const DoctorDashboard: React.FC = () => {
                         <ShieldAlert size={14} /> Take Over Control
                       </button>
                     </div>
+
+                    {threadContext.structured_memory?.summary && (
+                      <div className="mx-4 mt-4 p-4 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl transition-all duration-300">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-brand-primary">AI Context Summary</span>
+                          </div>
+                          <button 
+                            onClick={() => setShowSummary(!showSummary)}
+                            className="text-[10px] font-bold text-brand-primary hover:text-brand-secondary underline cursor-pointer bg-transparent border-none outline-none"
+                          >
+                            {showSummary ? 'Hide Summary' : 'Show Summary'}
+                          </button>
+                        </div>
+                        {showSummary && (
+                          <p className="mt-2 text-xs text-brand-textSecondary leading-relaxed bg-brand-bg/40 p-3 rounded-xl border border-brand-border/50 animate-slide-up">
+                            {threadContext.structured_memory.summary}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {threadContext.messages?.map((msg: any) => (
@@ -372,6 +410,38 @@ export const DoctorDashboard: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* AI Context Summary Popup Modal */}
+      {showSummaryPopup && threadContext?.structured_memory?.summary && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
+            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/10">
+              <h3 className="font-bold text-sm text-brand-textPrimary flex items-center gap-2">
+                <AlertTriangle className="text-brand-primary" size={16} /> Clinical Chat Summary & Context
+              </h3>
+              <button 
+                onClick={() => setShowSummaryPopup(false)}
+                className="p-1 rounded-lg hover:bg-brand-bg text-brand-textSecondary hover:text-brand-textPrimary transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <p className="text-xs text-brand-textSecondary leading-relaxed bg-brand-bg/40 p-4 rounded-xl border border-brand-border/50">
+                {threadContext.structured_memory.summary}
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border bg-brand-bg/5 flex justify-end">
+              <button
+                onClick={() => setShowSummaryPopup(false)}
+                className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all shadow-md shadow-brand-primary/10 cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -61,7 +61,7 @@ const AppContent: React.FC = () => {
           </div>
         } />
         <Route path="/control-tower" element={<ControlTower onLogout={handleLogout} userRole={userRole} />} />
-        <Route path="/dashboard/*" element={<Dashboard onLogout={handleLogout} userRole={userRole} />} />
+        <Route path="/dashboard/*" element={<Dashboard onLogout={handleLogout} userRole={userRole} user={user} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

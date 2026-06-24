@@ -20,12 +20,42 @@ import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
 
-export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [leadsFilter, setLeadsFilter] = useState('All');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<string>('overview');
+
+  // --- Logged in user info ---
+  const [currentUser, setCurrentUser] = useState<any>(user || (() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }));
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, [user]);
+
+  const getInitials = (name: string, fallback: string) => {
+    if (!name) return fallback;
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+
+  const displayName = currentUser?.name || (userRole === UserRole.CRO ? 'CRO' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse');
+  const displayInitials = currentUser?.name
+    ? getInitials(currentUser.name, userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU')
+    : (userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU');
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -510,12 +540,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
             <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
-                {userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU'}
+                {displayInitials}
               </div>
               <div className="hidden md:block text-left">
                 <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
-                  {userRole === UserRole.CRO ? 'CRO / Admin' :
-                    userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse'}
+                  {displayName}
                 </p>
                 <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
                   {userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}

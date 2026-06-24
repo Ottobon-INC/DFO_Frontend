@@ -7,6 +7,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UserRole } from '../types';
 import { api } from '../services/api';
+import { ControlTowerWorkspace } from './ControlTowerWorkspace';
 
 interface ControlTowerProps {
     onLogout: () => void;
@@ -49,6 +50,7 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
     const [threadContext, setThreadContext] = useState<any>(null);
     const [replyText, setReplyText] = useState('');
     const [sendingReply, setSendingReply] = useState(false);
+    const [showSummary, setShowSummary] = useState(true);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     // --- State for Analytics & Audit Logs ---
@@ -465,90 +467,7 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
 
                         {/* 2. CRO Inbox View */}
                         {activeView === 'inbox' && (
-                            <div className="flex-1 flex gap-6 overflow-hidden min-h-[500px] h-[calc(100vh-230px)] animate-slide-up">
-                                {/* Threads List */}
-                                <div className="w-80 bg-brand-surface border border-brand-border rounded-2xl flex flex-col overflow-hidden">
-                                    <div className="p-4 border-b border-brand-border">
-                                        <div className="relative flex items-center bg-brand-bg rounded-xl px-3 py-2 border border-brand-border">
-                                            <Search size={16} className="text-brand-textSecondary mr-2" />
-                                            <input placeholder="Search inbox..." className="bg-transparent outline-none text-xs w-full text-brand-textPrimary" />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto divide-y divide-brand-border custom-scrollbar">
-                                        {threads.length === 0 ? (
-                                            <div className="p-8 text-center text-brand-textSecondary text-xs">No conversations.</div>
-                                        ) : (
-                                            threads.map((thread) => (
-                                                <div 
-                                                    key={thread.id} 
-                                                    onClick={() => handleThreadSelect(thread.id)}
-                                                    className={`p-4 cursor-pointer hover:bg-brand-bg/50 transition-colors ${selectedThreadId === thread.id ? 'bg-brand-primary/10 border-l-4 border-brand-primary' : ''}`}
-                                                >
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <span className="font-bold text-xs text-brand-textPrimary">{thread.patient_name}</span>
-                                                        <span className="text-[10px] text-brand-textSecondary">{new Date(thread.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    </div>
-                                                    <p className="text-xs text-brand-textSecondary truncate">{thread.latest_message}</p>
-                                                    {thread.status === 'PENDING_DOCTOR' && (
-                                                        <span className="inline-block mt-2 px-2 py-0.5 text-[10px] font-bold bg-red-500/10 text-red-400 rounded-md border border-red-500/20">Needs Attention</span>
-                                                    )}
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Active Conversation Area */}
-                                <div className="flex-1 bg-brand-surface border border-brand-border rounded-2xl flex flex-col overflow-hidden">
-                                    {selectedThreadId && threadContext ? (
-                                        <>
-                                            <div className="px-6 py-4 border-b border-brand-border bg-brand-bg/20 flex justify-between items-center">
-                                                <div>
-                                                    <h3 className="font-bold text-brand-textPrimary">{threadContext.thread?.patient_name || 'Patient Details'}</h3>
-                                                    <span className="text-xs text-brand-textSecondary">Active WhatsApp Thread</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                                                {threadContext.messages?.map((msg: any) => (
-                                                    <div key={msg.id} className={`flex ${msg.sender_type === 'HUMAN' ? 'justify-end' : 'justify-start'}`}>
-                                                        <div className={`max-w-md p-4 rounded-2xl text-xs font-medium border ${msg.sender_type === 'HUMAN' ? 'bg-brand-primary text-white border-brand-primary/30 rounded-tr-none' : 'bg-brand-bg text-brand-textPrimary border-brand-border rounded-tl-none'}`}>
-                                                            <p className="leading-relaxed">{msg.content}</p>
-                                                            <span className={`block text-[9px] mt-1.5 text-right ${msg.sender_type === 'HUMAN' ? 'text-white/70' : 'text-brand-textSecondary'}`}>
-                                                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                <div ref={chatEndRef} />
-                                            </div>
-
-                                            <div className="p-4 border-t border-brand-border bg-brand-bg/10 flex gap-3">
-                                                <input 
-                                                    value={replyText}
-                                                    onChange={(e) => setReplyText(e.target.value)}
-                                                    onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
-                                                    placeholder="Type a clinical or operational reply..."
-                                                    className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:ring-1 focus:ring-brand-primary"
-                                                />
-                                                <button 
-                                                    onClick={handleSendReply}
-                                                    disabled={sendingReply}
-                                                    className="bg-brand-primary hover:bg-brand-secondary text-white rounded-xl px-5 py-3 flex items-center justify-center transition-all disabled:opacity-50"
-                                                >
-                                                    <Send size={16} />
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="flex-1 flex flex-col items-center justify-center text-brand-textSecondary p-8">
-                                            <Mail size={48} className="mb-4 stroke-[1.5]" />
-                                            <p className="font-bold text-sm">Select a Conversation</p>
-                                            <p className="text-xs mt-1">Select a thread from the left pane to view the chat and dispatch replies.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <ControlTowerWorkspace />
                         )}
 
                         {/* 3. Performance Analytics View */}

@@ -443,6 +443,62 @@ export const api = {
                 body: JSON.stringify(payload)
             });
         }
+    },
+
+    // New Control Tower Conversation Workspace APIs
+    getWorkspaceThreads: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads`, {
+            headers: getHeaders()
+        });
+    },
+    getWorkspaceThreadById: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}`, {
+            headers: getHeaders()
+        });
+    },
+    getWorkspaceThreadMessages: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/messages`, {
+            headers: getHeaders()
+        });
+    },
+    assignWorkspaceThread: async (id: string, data: { assignTo: string; role: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/assign`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    escalateWorkspaceThread: async (id: string, data: { reason: string; status: string; riskScore: number }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/escalate`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    replyToWorkspaceThread: async (id: string, data: { message: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/reply`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    resolveWorkspaceThread: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/resolve`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+    },
+    refreshWorkspaceSummary: async (id: string, data: { clinicalSummary: string; handoffSummary: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/refresh-summary`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    getWorkspaceClinicians: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/clinicians`, {
+            headers: getHeaders()
+        });
     }
 };
 
