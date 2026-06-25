@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, X } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -19,6 +19,7 @@ import { CroAnalytics } from './cro/CroAnalytics';
 import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
+import { useNotifications } from '../context/NotificationContext';
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }) => {
   const navigate = useNavigate();
@@ -52,9 +53,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
     return parts[0].slice(0, 2).toUpperCase();
   };
 
-  const displayName = currentUser?.name || (userRole === UserRole.CRO ? 'CRO' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse');
-  const displayInitials = currentUser?.name
-    ? getInitials(currentUser.name, userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU')
+  let displayName = currentUser?.full_name || currentUser?.name || (userRole === UserRole.CRO ? 'CRO' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse');
+  if (displayName === 'Dr' && currentUser?.email === 'dr.ragini@medcy.com') {
+    displayName = 'Dr. Ragini';
+  }
+  
+  const displayInitials = displayName
+    ? getInitials(displayName, userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU')
     : (userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU');
 
   // --- API State ---
@@ -189,6 +194,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [globalSearch, setGlobalSearch] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
 
   const handleGlobalSearch = () => {
     showToast(`Searching for: "${globalSearch}"...`);
@@ -538,6 +545,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowNotifPanel(!showNotifPanel); if (!showNotifPanel) markAllRead(); }}
+                className="relative p-2 rounded-xl bg-brand-bg border border-brand-border text-brand-textSecondary hover:text-brand-primary hover:border-brand-primary transition-all"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifPanel && (
+                <div className="absolute right-0 top-12 w-80 bg-brand-surface border border-brand-border rounded-2xl shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-brand-border flex justify-between items-center">
+                    <span className="text-xs font-bold text-brand-textPrimary">Notifications</span>
+                    <div className="flex gap-2">
+                      <button onClick={markAllRead} className="text-[10px] text-brand-primary hover:underline font-bold">Mark all read</button>
+                      <button onClick={() => setShowNotifPanel(false)} className="text-brand-textSecondary hover:text-brand-textPrimary"><X size={14} /></button>
+                    </div>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y divide-brand-border">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-xs text-brand-textSecondary">No notifications yet</div>
+                    ) : notifications.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => markRead(n.id)}
+                        className={`p-3 cursor-pointer hover:bg-brand-bg/40 transition-colors ${!n.read ? 'bg-brand-primary/5' : ''}`}
+                      >
+                        <p className={`text-xs font-bold ${n.type === 'SLA_BREACH' ? 'text-red-400' : 'text-brand-textPrimary'}`}>{n.title}</p>
+                        <p className="text-[11px] text-brand-textSecondary mt-0.5">{n.message}</p>
+                        <p className="text-[10px] text-brand-textSecondary/60 mt-1">{new Date(n.timestamp).toLocaleTimeString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
                 {displayInitials}

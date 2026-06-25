@@ -4,9 +4,8 @@ import { LoginCard } from './components/LoginCard';
 import { Dashboard } from './components/Dashboard';
 import { ControlTower } from './components/ControlTower';
 import { LandingPage } from './components/LandingPage';
-
+import { NotificationProvider } from './context/NotificationContext';
 import { UserRole } from './types';
-
 import { api } from './services/api';
 
 const AppContent: React.FC = () => {
@@ -29,6 +28,14 @@ const AppContent: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      // Mark user as offline before logging out
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (u.id) {
+          await api.setAvailability(u.id, false).catch(() => {});
+        }
+      }
       await api.logout();
     } catch (e) {
       console.error("Logout failed", e);
@@ -72,7 +79,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </BrowserRouter>
   );
 };

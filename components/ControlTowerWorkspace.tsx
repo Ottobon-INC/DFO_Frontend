@@ -26,6 +26,16 @@ export const ControlTowerWorkspace: React.FC = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showEarlier, setShowEarlier] = useState(false);
+
+  // Modals state
+  const [showResolveConfirm, setShowResolveConfirm] = useState(false);
+  const [showEscalateModal, setShowEscalateModal] = useState(false);
+  const [escalateReason, setEscalateReason] = useState('');
+  const [escalateRole, setEscalateRole] = useState('DOCTOR');
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summaryText, setSummaryText] = useState('');
+  const [handoffText, setHandoffText] = useState('');
+
   const [filter, setFilter] = useState<string>('ALL');
   const [userRole, setUserRole] = useState<string>('CRO');
   const [userId, setUserId] = useState<string>('');
@@ -240,28 +250,51 @@ export const ControlTowerWorkspace: React.FC = () => {
     try {
       await api.resolveWorkspaceThread(selectedThreadId);
       await fetchThreadContext(selectedThreadId);
+      setShowResolveConfirm(false);
     } catch (e) {
       alert('Failed to resolve thread');
     }
   };
 
-  // Handle refresh summary
-  const handleRefreshSummary = async () => {
+  // Handle Escalation Modal Submit
+  const handleEscalateSubmit = async () => {
+    if (!selectedThreadId || !escalateReason.trim()) return;
+    try {
+      const riskScore = escalateRole === 'DOCTOR' ? 90 : 70;
+      const status = escalateRole === 'DOCTOR' ? 'red' : 'yellow';
+      await api.escalateWorkspaceThread(selectedThreadId, { reason: escalateReason, status, riskScore });
+      await api.assignWorkspaceThread(selectedThreadId, { assignTo: 'QUEUE', role: escalateRole });
+      await fetchThreadContext(selectedThreadId);
+      setShowEscalateModal(false);
+      setEscalateReason('');
+    } catch (e) {
+      alert('Escalation failed');
+    }
+  };
+
+  // Handle Summary Modal Submit
+  const handleSummarySubmit = async () => {
     if (!selectedThreadId) return;
     try {
-      const summaryText = prompt('Enter AI Clinical Summary update:');
-      const handoffText = prompt('Enter AI Handoff Summary bullet list update:');
-      if (summaryText !== null && handoffText !== null) {
-        await api.refreshWorkspaceSummary(selectedThreadId, { 
-          clinicalSummary: summaryText, 
-          handoffSummary: handoffText 
-        });
-        await fetchThreadContext(selectedThreadId);
-      }
+      await api.refreshWorkspaceSummary(selectedThreadId, { 
+        clinicalSummary: summaryText, 
+        handoffSummary: handoffText 
+      });
+      await fetchThreadContext(selectedThreadId);
+      setShowSummaryModal(false);
     } catch (e) {
       alert('Failed to update summary');
     }
   };
+
+  // Handle refresh summary click
+  const handleRefreshSummary = () => {
+    if (!selectedThreadId || !threadDetails) return;
+    setSummaryText(threadDetails.clinical_summary || '');
+    setHandoffText(threadDetails.handoff_summary || '');
+    setShowSummaryModal(true);
+  };
+
 
   // Filter messages for collapse option (hide greetings etc)
   const isGreetingMessage = (msg: string) => {
@@ -277,7 +310,7 @@ export const ControlTowerWorkspace: React.FC = () => {
     if (userRole !== 'CRO' && userRole !== 'ADMIN') return threads;
     switch (filter) {
       case 'AI_ACTIVE':
-        return threads.filter(t => t.current_owner_type === 'AI' || t.status === 'AI_ACTIVE');
+        return threads.filter(t => t.current_owner_type === 'AI' || t.status === 'AI_ACTIVE' || t.status === 'active');
       case 'NURSE':
         return threads.filter(t => t.current_owner_type === 'NURSE' || t.status === 'NURSE_ASSIGNED');
       case 'DOCTOR':
@@ -295,11 +328,10 @@ export const ControlTowerWorkspace: React.FC = () => {
 
   const getAssignedClinicianName = () => {
     if (!threadDetails?.assigned_user_id) return '';
-    const clinician = clinicians.find(
-      c => c.id === threadDetails.assigned_user_id || 
-           (c.id === '24efa0aa-16d8-4b59-8c1b-91847d7b5599' && threadDetails.assigned_user_id === 'dr_sireesha') ||
-           (c.id === 'adf72781-93d8-4827-ad1f-607d40c0edf3' && threadDetails.assigned_user_id === 'nurse_divya')
-    );
+    // Prefer the name returned directly by the backend (current_owner_name)
+    if (threadDetails?.current_owner_name) return threadDetails.current_owner_name;
+    // Fallback: look up in local clinicians list
+    const clinician = clinicians.find(c => c.id === threadDetails.assigned_user_id);
     return clinician ? clinician.name : threadDetails.assigned_to || 'Clinician';
   };
 
@@ -408,43 +440,44 @@ export const ControlTowerWorkspace: React.FC = () => {
               {/* Header Actions */}
               <div className="flex items-center gap-2">
                 {(userRole === 'CRO' || userRole === 'ADMIN') && (
-                  <div className="flex items-center bg-brand-bg border border-brand-border rounded-xl p-1 gap-1">
-                    <select
-                      onChange={(e) => handleAssign(e.target.value, 'DOCTOR')}
-                      className="bg-transparent text-[11px] text-brand-textPrimary outline-none border-none px-2 cursor-pointer font-bold"
-                      value={
-                        threadDetails.assigned_role === 'DOCTOR' 
-                          ? (threadDetails.assigned_user_id === 'dr_sireesha' ? '24efa0aa-16d8-4b59-8c1b-91847d7b5599' : threadDetails.assigned_user_id) 
-                          : ""
-                      }
+                  <>
+                    <button
+                      onClick={() => setShowEscalateModal(true)}
+                      className="px-3 py-2 text-xs font-bold bg-red-50 hover:bg-red-100 text-red-600 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border border-red-200"
                     >
-                      <option value="" disabled>Assign Doctor</option>
-                      {clinicians.filter(c => c.role?.toLowerCase() === 'doctor').map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <select
-                      onChange={(e) => handleAssign(e.target.value, 'NURSE')}
-                      className="bg-transparent text-[11px] text-brand-textPrimary outline-none border-none px-2 cursor-pointer font-bold"
-                      value={
-                        threadDetails.assigned_role === 'NURSE' 
-                          ? (threadDetails.assigned_user_id === 'nurse_divya' ? 'adf72781-93d8-4827-ad1f-607d40c0edf3' : threadDetails.assigned_user_id) 
-                          : ""
-                      }
-                    >
-                      <option value="" disabled>Assign Nurse</option>
-                      {clinicians.filter(c => c.role?.toLowerCase() === 'nurse').map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                      <ShieldAlert size={14} /> Escalate Case
+                    </button>
+                    
+                    <div className="flex items-center bg-brand-bg border border-brand-border rounded-xl p-1 gap-1">
+                      <select
+                        onChange={(e) => handleAssign(e.target.value, 'DOCTOR')}
+                        className="bg-transparent text-[11px] text-brand-textPrimary outline-none border-none px-2 cursor-pointer font-bold"
+                        value={threadDetails.assigned_role === 'DOCTOR' ? (threadDetails.assigned_user_id || '') : ""}
+                      >
+                        <option value="" disabled>Assign Doctor</option>
+                        {clinicians.filter(c => c.role?.toLowerCase() === 'doctor').map(c => (
+                          <option key={c.id} value={c.id}>{c.name}{c.is_available ? ' 🟢' : ' 🔴'}</option>
+                        ))}
+                      </select>
+                      <select
+                        onChange={(e) => handleAssign(e.target.value, 'NURSE')}
+                        className="bg-transparent text-[11px] text-brand-textPrimary outline-none border-none px-2 cursor-pointer font-bold"
+                        value={threadDetails.assigned_role === 'NURSE' ? (threadDetails.assigned_user_id || '') : ""}
+                      >
+                        <option value="" disabled>Assign Nurse</option>
+                        {clinicians.filter(c => c.role?.toLowerCase() === 'nurse').map(c => (
+                          <option key={c.id} value={c.id}>{c.name}{c.is_available ? ' 🟢' : ' 🔴'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
 
-                {((threadDetails.current_owner_type === 'DOCTOR' && userRole === 'DOCTOR' && (threadDetails.current_owner_id === userId || threadDetails.current_owner_id === 'dr_sireesha')) ||
-                  (threadDetails.current_owner_type === 'NURSE' && userRole === 'NURSE' && (threadDetails.current_owner_id === userId || threadDetails.current_owner_id === 'nurse_divya')) ||
+                {((threadDetails.current_owner_type === 'DOCTOR' && userRole === 'DOCTOR' && threadDetails.current_owner_id === userId) ||
+                  (threadDetails.current_owner_type === 'NURSE' && userRole === 'NURSE' && threadDetails.current_owner_id === userId) ||
                   userRole === 'CRO' || userRole === 'ADMIN') && (
                   <button
-                    onClick={handleResolve}
+                    onClick={() => setShowResolveConfirm(true)}
                     className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
                   >
                     <CheckCircle size={14} /> Resolve & Return to AI
@@ -457,50 +490,57 @@ export const ControlTowerWorkspace: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               
               {/* 2. AI Handoff Summary */}
-              {threadDetails.handoff_summary && (
-                <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
-                      <BrainCircuit size={15} /> AI Clinical Handoff Report
-                    </h4>
-                    <button
-                      onClick={handleRefreshSummary}
-                      className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
-                      title="Update summary"
-                    >
-                      <RefreshCw size={13} />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
-                    <div>
-                      <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
-                      <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
-                    </div>
-                    {threadDetails.escalation_reason && (
-                      <div>
-                        <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
-                        <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
-                    {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
-                      if (line.includes(':')) {
-                        const parts = line.split(':');
-                        return (
-                          <div key={i} className="mt-1">
-                            <span className="font-extrabold text-brand-textPrimary">{parts[0]}:</span>
-                            <span>{parts.slice(1).join(':')}</span>
-                          </div>
-                        );
-                      }
-                      return <p key={i}>{line}</p>;
-                    })}
-                  </div>
+              <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <BrainCircuit size={15} /> AI Clinical Handoff Report
+                  </h4>
+                  <button
+                    onClick={handleRefreshSummary}
+                    className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
+                    title="Update or Add summary"
+                  >
+                    <RefreshCw size={13} />
+                  </button>
                 </div>
-              )}
+
+                {threadDetails.handoff_summary ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
+                      <div>
+                        <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
+                        <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
+                      </div>
+                      {threadDetails.escalation_reason && (
+                        <div>
+                          <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
+                          <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
+                      {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
+                        if (line.includes(':')) {
+                          const parts = line.split(':');
+                          return (
+                            <div key={i} className="mt-1">
+                              <span className="font-extrabold text-brand-textPrimary">{parts[0]}:</span>
+                              <span>{parts.slice(1).join(':')}</span>
+                            </div>
+                          );
+                        }
+                        return <p key={i}>{line}</p>;
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-brand-textSecondary text-center py-6 italic font-medium">
+                    No clinical summary generated for this thread yet.<br/>
+                    Click the refresh icon above to generate or write one manually.
+                  </div>
+                )}
+              </div>
 
               {/* 3. Complete Chat Timeline */}
               <div className="border-t border-brand-border pt-6 space-y-4">
@@ -612,6 +652,96 @@ export const ControlTowerWorkspace: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showResolveConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border">
+              <h3 className="font-bold text-sm text-brand-textPrimary">Resolve Thread?</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-xs text-brand-textSecondary">Are you sure you want to resolve this thread? It will be returned to AI automation and marked as resolved.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end">
+              <button onClick={() => setShowResolveConfirm(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-bg border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleResolve} className="px-4 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all">Yes, Resolve</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEscalateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-red-500/10">
+              <h3 className="font-bold text-sm text-red-500 flex items-center gap-2"><ShieldAlert size={16} /> Escalate Thread</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Escalate To Queue</label>
+                <select 
+                  value={escalateRole} 
+                  onChange={(e) => setEscalateRole(e.target.value)}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400 font-bold"
+                >
+                  <option value="DOCTOR">Doctor / Specialist (Red Queue)</option>
+                  <option value="NURSE">Nurse / Triage (Yellow Queue)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Reason for Escalation</label>
+                <textarea 
+                  value={escalateReason} 
+                  onChange={(e) => setEscalateReason(e.target.value)}
+                  placeholder="Provide clinical context for the clinician..."
+                  rows={3}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+              <button onClick={() => setShowEscalateModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleEscalateSubmit} disabled={!escalateReason.trim()} className="px-4 py-2 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50">Escalate Now</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center">
+              <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2"><BrainCircuit size={16} /> Edit AI Context Summary</h3>
+            </div>
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Clinical Summary</label>
+                <textarea 
+                  value={summaryText} 
+                  onChange={(e) => setSummaryText(e.target.value)}
+                  rows={4}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Handoff Bullet Points</label>
+                <textarea 
+                  value={handoffText} 
+                  onChange={(e) => setHandoffText(e.target.value)}
+                  rows={6}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary font-mono text-[10px]"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+              <button onClick={() => setShowSummaryModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleSummarySubmit} className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all">Save Summary</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
