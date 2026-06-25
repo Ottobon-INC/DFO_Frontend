@@ -152,7 +152,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                             const userStr = localStorage.getItem('user');
                             const loggedInUser = userStr ? JSON.parse(userStr) : null;
                             if (!loggedInUser) return false;
-                            const cleanDocName = (loggedInUser.name || '').toLowerCase().replace('dr.', '').trim();
+                            const cleanDocName = ((loggedInUser.full_name || loggedInUser.name) || '').toLowerCase().replace('dr.', '').trim();
                             return a.doctorId === loggedInUser.id || 
                                    (a.doctorName && cleanDocName && a.doctorName.toLowerCase().includes(cleanDocName));
                         })}

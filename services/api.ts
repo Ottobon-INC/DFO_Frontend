@@ -499,6 +499,28 @@ export const api = {
         return fetchJson<any>(`${API_BASE_URL}/api/threads/clinicians`, {
             headers: getHeaders()
         });
-    }
-};
+    },
 
+    // Availability
+    setAvailability: async (userId: string, isAvailable: boolean) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/${userId}/availability`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ is_available: isAvailable })
+        });
+    },
+
+    getAvailableClinicians: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/available`, {
+            headers: getHeaders()
+        });
+    },
+
+    // Generate AI summary for thread
+    generateThreadSummary: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/generate-summary`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+    },
+};
