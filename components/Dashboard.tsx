@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
 import { LeadsView } from './LeadsView';
 import { AppointmentsView } from './AppointmentsView';
 import { PatientsView } from './PatientsView';
+import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
@@ -218,9 +219,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           showToast(`Rescheduled to ${date} at ${time}`);
           setRescheduleId(null);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
-        showToast('Failed to reschedule');
+        showToast(e?.message || e?.error || 'Failed to reschedule');
       }
     }
   };
@@ -425,6 +426,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               label="Appointments"
               active={location.pathname === '/dashboard/appointments'}
               onClick={() => navigate('/dashboard/appointments')}
+            />
+            <NavItem
+              icon={<Inbox size={20} />}
+              label="Pending Files"
+              active={location.pathname === '/dashboard/pending-files'}
+              onClick={() => navigate('/dashboard/pending-files')}
             />
             <NavItem
               icon={<UserCheck size={22} />}
@@ -635,6 +642,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <AppointmentsView userRole={userRole} />
               </div>
             } />
+            <Route path="pending-files" element={
+              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col">
+                <UnassignedDocumentsView />
+              </div>
+            } />
             <Route path="patients" element={
               <div className="animate-slide-up">
                 <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
@@ -658,6 +670,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                  <TeamManagementView />
                </div>
              } />
+             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

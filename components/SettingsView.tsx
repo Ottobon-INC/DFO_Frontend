@@ -3,6 +3,7 @@ import {
     Users, Calendar, FileText, Link, Plus, Settings,
     Shield, UserPlus, Database, Mail, DollarSign, CreditCard, Download
 } from 'lucide-react';
+import { StaffActivityLogs } from './StaffActivityLogs';
 
 export const SettingsView: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'users' | 'resources' | 'templates' | 'integrations' | 'financial' | 'audit'>('users');
@@ -245,45 +246,7 @@ export const SettingsView: React.FC = () => {
                 )}
 
                 {activeTab === 'audit' && (
-                    <div className="animate-fade-in">
-                        <div className="flex justify-between items-center mb-8">
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-textPrimary">System Audit Log</h2>
-                                <p className="text-brand-textSecondary mt-1">Track all critical system actions and security events.</p>
-                            </div>
-                            <button className="text-brand-textSecondary font-bold text-sm border border-brand-border px-4 py-2 rounded-lg hover:bg-brand-bg flex items-center">
-                                <Download size={18} className="mr-2" /> Export Log
-                            </button>
-                        </div>
-
-                        <div className="border border-brand-border rounded-xl overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-brand-bg border-b border-brand-border">
-                                    <tr>
-                                        <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase">Timestamp</th>
-                                        <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase">User</th>
-                                        <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase">Action</th>
-                                        <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-brand-border">
-                                    {[
-                                        { time: 'Today, 10:45 AM', user: 'Admin', action: 'User Role Change', details: 'Changed Dr. Smith to Admin' },
-                                        { time: 'Today, 09:30 AM', user: 'Front Desk', action: 'New Patient', details: 'Created file for Sarah J.' },
-                                        { time: 'Yesterday, 4:15 PM', user: 'System', action: 'Backup', details: 'Daily database backup completed' },
-                                        { time: 'Yesterday, 2:00 PM', user: 'CRO Anjali', action: 'Lead Status', details: 'Marked Lead #402 as Dropped' },
-                                    ].map((log, i) => (
-                                        <tr key={i} className="hover:bg-brand-bg/50 transition-colors">
-                                            <td className="p-4 text-xs font-bold text-brand-textSecondary">{log.time}</td>
-                                            <td className="p-4 text-sm font-bold text-brand-textPrimary">{log.user}</td>
-                                            <td className="p-4 text-sm text-brand-textSecondary"><span className="bg-brand-bg px-2 py-1 rounded text-xs font-bold border border-brand-border">{log.action}</span></td>
-                                            <td className="p-4 text-sm text-brand-textSecondary">{log.details}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <StaffActivityLogs />
                 )}
             </div>
         </div>

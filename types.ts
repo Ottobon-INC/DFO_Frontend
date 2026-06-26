@@ -142,6 +142,17 @@ export interface PatientDocument {
     url: string;
 }
 
+export interface TriageDocument {
+    id: string;
+    name: string;
+    file_path: string;
+    file_size: number;
+    mime_type: string;
+    status: string;
+    created_at: string;
+    uploader?: { name: string };
+    previewUrl?: string;
+}
 
 
 

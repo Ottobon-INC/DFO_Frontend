@@ -77,9 +77,9 @@ export const DailyRegisterTable: React.FC = () => {
                 };
                 await api.createAppointment(payload);
                 fetchRegisterData();
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to add walk-in", e);
-                alert("Failed to add walk-in.");
+                alert(e?.message || e?.error || "Failed to add walk-in.");
             }
         }
     };

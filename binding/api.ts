@@ -98,19 +98,19 @@ export const api = {
     // Appointments
     getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments${query}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
             headers: getHeaders()
         });
     },
 
     getAppointmentById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             headers: getHeaders()
         });
     },
 
     createAppointment: async (data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -118,7 +118,7 @@ export const api = {
     },
 
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -126,7 +126,7 @@ export const api = {
     },
 
     updateAppointmentStatus: async (id: string, data: AppointmentStatusPayload) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}/status`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/status`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)

@@ -463,13 +463,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             }
 
             let createdAppointmentId = `apt-${Date.now()}`;
-            try {
-                const response = await api.createAppointment(payload);
-                if (response && (response.id || (response.data && response.data.id))) {
-                    createdAppointmentId = response.id || response.data.id;
-                }
-            } catch (e) {
-                console.warn("API Error (ignored for demo), using mock ID:", e);
+            const response = await api.createAppointment(payload);
+            if (response && (response.id || (response.data && response.data.id))) {
+                createdAppointmentId = response.id || response.data.id;
             }
 
             const newApt: Appointment = {
@@ -483,10 +479,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 status: 'Scheduled',
             };
             setAppointments(prev => [...prev, newApt]);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to create appointment:", e);
-            // Optionally show alert here
-            alert("Failed to book appointment. Please check details.");
+            alert(e?.message || e?.error || "Failed to book appointment. Please check details.");
         }
     };
 
@@ -550,9 +545,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 // Close reschedule modal
                 setIsRescheduleModalOpen(false);
                 setAppointmentToReschedule(null);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Reschedule failed", error);
-                alert("Failed to reschedule.");
+                alert(error?.message || error?.error || "Failed to reschedule.");
             }
         }
     };

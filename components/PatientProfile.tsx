@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
-    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2
+    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2
 } from 'lucide-react';
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
@@ -41,8 +41,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isResettingPin, setIsResettingPin] = useState(false);
     const [resetPinSuccess, setResetPinSuccess] = useState<string | null>(null);
 
-    // File Upload
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [uploadingDoc, setUploadingDoc] = useState(false);
+    const [docTypeToUpload, setDocTypeToUpload] = useState('prescription');
 
     const fetchPatientDocuments = async () => {
         try {
@@ -59,31 +60,50 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            
+            const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+            if (file.size > MAX_FILE_SIZE) {
+                alert('File size exceeds the 25MB limit. Please upload a smaller file.');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
 
-            // Optimistic UI
-            const tempId = `doc-temp-${Date.now()}`;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const newDoc: PatientDocument = {
-                    id: tempId,
-                    patientId: patient.id,
-                    name: file.name,
-                    type: 'Uploaded',
-                    uploadDate: new Date().toISOString().split('T')[0],
-                    url: event.target?.result as string
-                };
-                setPatientDocuments(prev => [newDoc, ...prev]);
-            };
-            reader.readAsDataURL(file);
+            setUploadingDoc(true);
 
-            // API Upload
             try {
-                await api.uploadPatientDocument(patient.id, file);
-                alert("Document uploaded successfully to server!");
+                // 1. Get Ticket
+                const ticketRes = await api.getDocumentUploadTicket(file.name, file.size, docTypeToUpload);
+                const { uploadUrl, path } = ticketRes.data;
+
+                // 2. Upload to S3
+                const s3Response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type || 'application/octet-stream'
+                    }
+                });
+
+                if (!s3Response.ok) throw new Error('S3 upload failed');
+
+                // 3. Register Document Metadata
+                await api.registerDocument({
+                    patient_id: patient.id,
+                    name: file.name,
+                    file_path: path,
+                    file_size: file.size,
+                    mime_type: file.type || 'application/octet-stream',
+                    document_type: docTypeToUpload
+                });
+
+                alert("Document uploaded securely!");
                 fetchPatientDocuments();
             } catch (err) {
                 console.error("Upload failed", err);
-                alert("Failed to upload document to server, but saved locally.");
+                alert("Failed to upload document securely.");
+            } finally {
+                setUploadingDoc(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
             }
         }
     };
@@ -207,11 +227,15 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 status: 'Scheduled',
                 notes: formData.notes
             };
-            await api.createAppointment(payload);
+            const response = await api.createAppointment(payload);
+            let newId = `temp-${Date.now()}`;
+            if (response && (response.id || (response.data && response.data.id))) {
+                newId = response.id || response.data.id;
+            }
 
-            // Optimistic Update: Add to list immediately
+            // Update: Add to list immediately with real ID
             const newApt: Appointment = {
-                id: `temp-${Date.now()}`,
+                id: newId,
                 patientName: patient.name,
                 doctorName: formData.consultant,
                 doctorId: payload.doctor_id,
@@ -228,9 +252,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             // Background refresh
             setTimeout(fetchPatientAppointments, 1000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to book appointment", error);
-            alert("Failed to book appointment.");
+            alert(error?.message || error?.error || "Failed to book appointment.");
         }
     };
 
@@ -766,65 +790,132 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                         <h3 className="font-bold text-brand-textPrimary flex items-center">
                                             <FileText size={18} className="mr-2 text-brand-primary" /> Patient Documents
                                         </h3>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            hidden
-                                            onChange={handleFileSelect}
-                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                        />
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm"
-                                        >
-                                            <Upload size={14} className="mr-1" /> Upload Document
-                                        </button>
+                                        <div className="flex items-center space-x-3">
+                                            <select
+                                                value={docTypeToUpload}
+                                                onChange={(e) => setDocTypeToUpload(e.target.value)}
+                                                className="text-sm border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary"
+                                                disabled={uploadingDoc}
+                                            >
+                                                <option value="prescription">Prescription</option>
+                                                <option value="lab-report">Lab Report</option>
+                                                <option value="scan-imaging">Scan/Imaging</option>
+                                                <option value="clinical-note">Clinical Note</option>
+                                                <option value="consent-form">Consent Form</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                hidden
+                                                onChange={handleFileSelect}
+                                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                            />
+                                            <button
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={uploadingDoc}
+                                                className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm disabled:opacity-50"
+                                            >
+                                                <Upload size={14} className="mr-1" /> {uploadingDoc ? 'Uploading...' : 'Upload Document'}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-6 mt-4">
                                         {patientDocuments.length === 0 && (
                                             <div className="col-span-2 text-center py-8 text-brand-textSecondary text-sm">
                                                 No documents uploaded yet.
                                             </div>
                                         )}
-                                        {patientDocuments.map((doc) => (
-                                            <div key={doc.id} className="p-4 border border-brand-border rounded-xl hover:bg-brand-bg transition-colors flex items-center justify-between group">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-brand-error/10 text-brand-error flex items-center justify-center border border-brand-error/20">
-                                                        <FileText size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-brand-textPrimary truncate max-w-[150px]">{doc.name}</p>
-                                                        <p className="text-xs text-brand-textSecondary">{doc.type} • {doc.uploadDate}</p>
+                                        {(() => {
+                                            const groupedDocuments = patientDocuments.reduce((acc, doc) => {
+                                                const type = doc.type || 'Other';
+                                                if (!acc[type]) acc[type] = [];
+                                                acc[type].push(doc);
+                                                return acc;
+                                            }, {} as Record<string, any[]>);
+
+                                            return Object.entries(groupedDocuments).map(([type, docs]: [string, any[]]) => (
+                                                <div key={type} className="mb-6">
+                                                    <h4 className="text-sm font-bold text-brand-textPrimary mb-3 uppercase tracking-wider flex items-center gap-2">
+                                                        {type.toLowerCase().includes('prescription') ? <Pill size={16} className="text-brand-primary" /> : 
+                                                         type.toLowerCase().includes('report') ? <FileText size={16} className="text-brand-primary" /> :
+                                                         <FileText size={16} className="text-brand-textSecondary" />}
+                                                        {type}
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {docs.map((doc: any) => (
+                                                            <div key={doc.id} className="p-4 border border-brand-border rounded-xl hover:bg-brand-bg transition-colors flex items-center justify-between group">
+                                                                <div className="flex items-center space-x-3">
+                                                                    <div className="w-10 h-10 rounded-lg bg-brand-primary/10 text-brand-primary flex items-center justify-center border border-brand-primary/20">
+                                                                        <FileText size={20} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-bold text-brand-textPrimary truncate max-w-[150px]">{doc.name}</p>
+                                                                        <p className="text-xs text-brand-textSecondary">{doc.uploadDate}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            if (doc.url && doc.url !== '#') {
+                                                                                window.open(doc.url, '_blank');
+                                                                            } else {
+                                                                                alert('Preview not available for this mock document.');
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
+                                                                        title="View/Download"
+                                                                    >
+                                                                        <Download size={18} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            const reason = prompt('Please enter a reason for unlinking this document (e.g., "Assigned to wrong patient"):');
+                                                                            if (reason === null) return; // User cancelled
+                                                                            if (reason.trim() === '') {
+                                                                                alert('A reason is required to unlink a document.');
+                                                                                return;
+                                                                            }
+                                                                            
+                                                                            if (confirm('Are you sure you want to remove this document from the patient? It will be sent back to Pending Files.')) {
+                                                                                try {
+                                                                                    await api.unlinkDocument(doc.id, reason);
+                                                                                    alert('Document unlinked successfully.');
+                                                                                    fetchPatientDocuments(); // refresh list
+                                                                                } catch (err: any) {
+                                                                                    alert(err.message || 'Failed to unlink document.');
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 text-brand-textSecondary hover:text-brand-warning transition-colors"
+                                                                        title="Remove from Patient (Unlink)"
+                                                                    >
+                                                                        <X size={18} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (confirm('WARNING: Are you sure you want to permanently delete this document? This cannot be undone.')) {
+                                                                                try {
+                                                                                    await api.deleteDocument(doc.id);
+                                                                                    alert('Document deleted successfully.');
+                                                                                    fetchPatientDocuments(); // refresh list
+                                                                                } catch (err: any) {
+                                                                                    alert(err.message || 'Failed to delete document.');
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 text-brand-textSecondary hover:text-brand-error transition-colors"
+                                                                        title="Delete Permanently"
+                                                                    >
+                                                                        <Trash2 size={18} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={() => {
-                                                            if (doc.url && doc.url !== '#') {
-                                                                window.open(doc.url, '_blank');
-                                                            } else {
-                                                                alert('Preview not available for this mock document.');
-                                                            }
-                                                        }}
-                                                        className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
-                                                        title="View/Download"
-                                                    >
-                                                        <Download size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (confirm('Archive this document?')) {
-                                                                setPatientDocuments(prev => prev.filter(d => d.id !== doc.id));
-                                                            }
-                                                        }}
-                                                        className="p-2 text-brand-textSecondary hover:text-brand-error transition-colors"
-                                                        title="Archive"
-                                                    >
-                                                        <X size={18} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ));
+                                        })()}
                                     </div>
                                 </div>
                             )}

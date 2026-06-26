@@ -366,7 +366,7 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Time</label>
-                                        <input type="time" name="time" value={formData.time} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
+                                        <input type="time" name="time" step="900" value={formData.time} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
                                     </div>
                                 </div>
 
