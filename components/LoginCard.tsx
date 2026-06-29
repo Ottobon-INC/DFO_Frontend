@@ -13,7 +13,7 @@ interface LoginCardProps {
 export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuccess, onBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>(UserRole.NURSE);
+  const [role, setRole] = useState<UserRole>(UserRole.FRONT_DESK);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -29,10 +29,12 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
         if (response.user) {
           // Normalize role from backend case-insensitively
           const backendRole = (response.user.role || '').toLowerCase();
-          let userRole: UserRole = UserRole.NURSE; // Default
+          let userRole: UserRole = UserRole.FRONT_DESK; // Default
           if (backendRole === 'doctor') userRole = UserRole.DOCTOR;
-          else if (backendRole === 'cro' || backendRole === 'admin') userRole = UserRole.CRO;
-          else if (backendRole === 'nurse' || backendRole === 'frontdesk' || backendRole === 'front_desk' || backendRole === 'front desk' || backendRole === 'receptionist') userRole = UserRole.NURSE;
+          else if (backendRole === 'cro') userRole = UserRole.CRO;
+          else if (backendRole === 'nurse') userRole = UserRole.NURSE;
+          else if (backendRole === 'admin') userRole = UserRole.ADMIN;
+          else if (backendRole === 'frontdesk' || backendRole === 'front_desk' || backendRole === 'front desk') userRole = UserRole.FRONT_DESK;
 
           if (onLoginSuccess) {
             onLoginSuccess(userRole, response.user);
@@ -146,7 +148,7 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
                     onChange={(e) => setRole(e.target.value as UserRole)}
                     className="appearance-none bg-brand-bg border border-brand-border rounded-lg py-1.5 px-3 text-xs font-bold text-brand-textSecondary hover:border-brand-primary focus:outline-none cursor-pointer uppercase tracking-wide transition-colors"
                   >
-                    {[UserRole.DOCTOR, UserRole.CRO, UserRole.NURSE].map((r) => (
+                    {[UserRole.DOCTOR, UserRole.CRO, UserRole.FRONT_DESK].map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>

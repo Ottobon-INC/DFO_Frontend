@@ -1,10 +1,23 @@
 export enum UserRole {
+    ADMIN = 'Admin',
     DOCTOR = 'Doctor',
     NURSE = 'Nurse',
+    FRONT_DESK = 'Front Desk',
     CRO = 'CRO'
 }
 
-export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings';
+export interface AuthUser {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    clinic_id: string;
+    is_super_admin: boolean;
+    is_clinic_admin: boolean;
+    token: string;
+}
+
+export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings' | 'team';
 
 export interface Lead {
     id: string;
@@ -106,7 +119,6 @@ export interface Doctor {
 export interface DashboardProps {
     onLogout: () => void;
     userRole: UserRole;
-    user?: any;
 }
 
 
@@ -130,6 +142,17 @@ export interface PatientDocument {
     url: string;
 }
 
+export interface TriageDocument {
+    id: string;
+    name: string;
+    file_path: string;
+    file_size: number;
+    mime_type: string;
+    status: string;
+    created_at: string;
+    uploader?: { name: string };
+    previewUrl?: string;
+}
 
 
 

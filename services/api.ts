@@ -74,21 +74,25 @@ const getHeaders = () => {
     try {
         // Try to get token from user object in localStorage
         const userStr = localStorage.getItem('user');
-        if (userStr) {
+        if (userStr && userStr !== 'undefined' && userStr !== 'null') {
             const user = JSON.parse(userStr);
-            if (user.token) {
+            if (user && user.token) {
                 headers['Authorization'] = `Bearer ${user.token}`;
                 return headers;
             }
         }
+    } catch (e) {
+        console.warn('Error parsing user from localStorage:', e);
+    }
 
+    try {
         // Fallback: check straightforward 'token' key
         const token = localStorage.getItem('token');
-        if (token) {
+        if (token && token !== 'undefined' && token !== 'null') {
             headers['Authorization'] = `Bearer ${token}`;
         }
     } catch (e) {
-        // Ignore parsing errors
+        console.warn('Error reading token from localStorage:', e);
     }
 
     return headers;
@@ -98,25 +102,25 @@ export const api = {
     // Appointments
     getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments${query}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
             headers: getHeaders()
         });
     },
 
     getDoctors: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/doctors`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/doctors`, {
             headers: getHeaders()
         });
     },
 
     getAppointmentById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             headers: getHeaders()
         });
     },
 
     createAppointment: async (data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -124,7 +128,7 @@ export const api = {
     },
 
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -132,7 +136,7 @@ export const api = {
     },
 
     updateAppointmentStatus: async (id: string, data: AppointmentStatusPayload) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/appointments/${id}/status`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/status`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -177,25 +181,25 @@ export const api = {
 
     // patients
     getPatients: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
             headers: getHeaders()
         });
     },
 
     getPatientById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
             headers: getHeaders()
         });
     },
 
     getPatientAppointments: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/appointments`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/appointments`, {
             headers: getHeaders()
         });
     },
 
     createPatient: async (data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -203,7 +207,7 @@ export const api = {
     },
 
     updatePatient: async (id: string, data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -211,8 +215,89 @@ export const api = {
     },
 
     getPatientDocuments: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/documents`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
             headers: getHeaders()
+        });
+    },
+
+    getDocumentUploadTicket: async (filename: string, fileSize: number, documentType?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/upload-ticket`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ filename, fileSize, documentType })
+        });
+    },
+
+    getUnassignedDocuments: async (page: number = 1, limit: number = 10) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/unassigned?page=${page}&limit=${limit}`, {
+            headers: getHeaders()
+        });
+    },
+
+    linkDocument: async (documentId: string, patient_id: string, document_type: string = 'other') => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/link`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ patient_id, document_type })
+        });
+    },
+
+    linkNewPatientToDocument: async (documentId: string, payload: { name: string, mobile: string, dob?: string, document_type?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/link-new-patient`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
+    unlinkDocument: async (documentId: string, reason: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/unlink`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ reason })
+        });
+    },
+
+    getAuditLogs: async (limit: number = 50) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/audit-logs?limit=${limit}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getSystemAuditLogs: async (filters: { limit?: number; offset?: number; action?: string; target_table?: string; search?: string; start_date?: string; end_date?: string }) => {
+        const queryParams = new URLSearchParams();
+        if (filters.limit) queryParams.append('limit', filters.limit.toString());
+        if (filters.offset !== undefined) queryParams.append('offset', filters.offset.toString());
+        if (filters.action) queryParams.append('action', filters.action);
+        if (filters.target_table) queryParams.append('target_table', filters.target_table);
+        if (filters.search) queryParams.append('search', filters.search);
+        if (filters.start_date) queryParams.append('start_date', filters.start_date);
+        if (filters.end_date) queryParams.append('end_date', filters.end_date);
+        
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/audit-logs?${queryParams.toString()}`, {
+            headers: getHeaders()
+        });
+    },
+
+    deleteDocument: async (documentId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+    registerDocument: async (data: { patient_id?: string; name: string; file_path: string; file_size: number; mime_type: string; document_type: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/register`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    resetPatientPin: async (id: string, newPin?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/reset-pin`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ newPin })
         });
     },
 
@@ -239,7 +324,7 @@ export const api = {
             base64: base64
         };
 
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${id}/documents`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
             method: 'POST',
             headers: getHeaders(), // application/json
             body: JSON.stringify(payload)
@@ -247,7 +332,7 @@ export const api = {
     },
 
     saveClinicalNote: async (patientId: string, note: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${patientId}/clinical-notes`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/clinical-notes`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ note })
@@ -255,7 +340,7 @@ export const api = {
     },
 
     getClinicalNotes: async (patientId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/patients/${patientId}/clinical-notes`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/clinical-notes`, {
             headers: getHeaders()
         });
     },
@@ -272,7 +357,7 @@ export const api = {
             params.append('q', query);
         }
 
-        return fetchJson<any>(`${API_BASE_URL}/api/patients?${params.toString()}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients?${params.toString()}`, {
             headers: getHeaders()
         });
     },
@@ -324,7 +409,45 @@ export const api = {
         });
     },
 
+    updateProfile: async (data: { name?: string; email?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/profile`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
 
+    changePassword: async (data: { currentPassword?: string; newPassword?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/change-password`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+
+    // Users (Team Management)
+    getClinicUsers: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users`, {
+            headers: getHeaders()
+        });
+    },
+
+    createClinicUser: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    updateClinicUser: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
 
     // Control Tower
     getPatientFlowSummary: async () => {
@@ -358,12 +481,6 @@ export const api = {
     },
 
 
-
-    getAuditLogs: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/audit-logs`, {
-            headers: getHeaders()
-        });
-    },
 
     getInboxThreads: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/threads`, {
@@ -443,84 +560,6 @@ export const api = {
                 body: JSON.stringify(payload)
             });
         }
-    },
-
-    // New Control Tower Conversation Workspace APIs
-    getWorkspaceThreads: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads`, {
-            headers: getHeaders()
-        });
-    },
-    getWorkspaceThreadById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}`, {
-            headers: getHeaders()
-        });
-    },
-    getWorkspaceThreadMessages: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/messages`, {
-            headers: getHeaders()
-        });
-    },
-    assignWorkspaceThread: async (id: string, data: { assignTo: string; role: string }) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/assign`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
-        });
-    },
-    escalateWorkspaceThread: async (id: string, data: { reason: string; status: string; riskScore: number }) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/escalate`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
-        });
-    },
-    replyToWorkspaceThread: async (id: string, data: { message: string }) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/reply`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
-        });
-    },
-    resolveWorkspaceThread: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/resolve`, {
-            method: 'POST',
-            headers: getHeaders()
-        });
-    },
-    refreshWorkspaceSummary: async (id: string, data: { clinicalSummary: string; handoffSummary: string }) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${id}/refresh-summary`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
-        });
-    },
-    getWorkspaceClinicians: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/clinicians`, {
-            headers: getHeaders()
-        });
-    },
-
-    // Availability
-    setAvailability: async (userId: string, isAvailable: boolean) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/${userId}/availability`, {
-            method: 'PATCH',
-            headers: getHeaders(),
-            body: JSON.stringify({ is_available: isAvailable })
-        });
-    },
-
-    getAvailableClinicians: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/available`, {
-            headers: getHeaders()
-        });
-    },
-
-    // Generate AI summary for thread
-    generateThreadSummary: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/generate-summary`, {
-            method: 'POST',
-            headers: getHeaders()
-        });
-    },
+    }
 };
+

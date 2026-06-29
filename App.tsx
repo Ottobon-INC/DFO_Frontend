@@ -4,13 +4,15 @@ import { LoginCard } from './components/LoginCard';
 import { Dashboard } from './components/Dashboard';
 import { ControlTower } from './components/ControlTower';
 import { LandingPage } from './components/LandingPage';
-import { NotificationProvider } from './context/NotificationContext';
+
 import { UserRole } from './types';
+
 import { api } from './services/api';
+import { NotificationProvider } from './context/NotificationContext';
 
 const AppContent: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(() => {
-    return (localStorage.getItem('userRole') as UserRole) || UserRole.NURSE;
+    return (localStorage.getItem('userRole') as UserRole) || UserRole.FRONT_DESK;
   });
   const [user, setUser] = useState<any>(() => {
     const saved = localStorage.getItem('user');
@@ -28,21 +30,13 @@ const AppContent: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // Mark user as offline before logging out
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        if (u.id) {
-          await api.setAvailability(u.id, false).catch(() => {});
-        }
-      }
       await api.logout();
     } catch (e) {
       console.error("Logout failed", e);
     }
     localStorage.removeItem('userRole');
     localStorage.removeItem('user');
-    setUserRole(UserRole.NURSE);
+    setUserRole(UserRole.FRONT_DESK);
     setUser(null);
     navigate('/');
   };
@@ -67,8 +61,8 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         } />
-        <Route path="/control-tower" element={<ControlTower onLogout={handleLogout} userRole={userRole} />} />
-        <Route path="/dashboard/*" element={<Dashboard onLogout={handleLogout} userRole={userRole} user={user} />} />
+        <Route path="/control-tower" element={user ? <ControlTower onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
+        <Route path="/dashboard/*" element={user ? <Dashboard onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

@@ -6,27 +6,17 @@
   --color-accent: #FF9F0A; /* amber */
 
   /* Backgrounds */
-  --color-bg: #1e1e1e; /* dark mode background */
-  --color-surface: rgba(255, 255, 255, 0.08); /* glass effect */
-  --color-surface-light: rgba(255, 255, 255, 0.12);
+  --color-bg: #F0F4F8; 
+  --color-surface: rgba(255, 255, 255, 0.6); /* glass effect */
+  --color-surface-light: rgba(255, 255, 255, 0.8);
 
   /* Text */
-  --color-text-primary: #F5F5F5;
-  --color-text-secondary: #A0A0A0;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #334155;
 
   /* Borders & Highlights */
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-hover: rgba(255, 255, 255, 0.05);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-bg: #F0F4F8;
-    --color-surface: rgba(255, 255, 255, 0.6);
-    --color-text-primary: #0F172A;
-    --color-text-secondary: #334155;
-    --color-border: rgba(0, 0, 0, 0.1);
-  }
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-hover: rgba(0, 0, 0, 0.05);
 }
 
 /* Utility classes */

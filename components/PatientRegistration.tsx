@@ -70,7 +70,7 @@ export const DailyRegisterTable: React.FC = () => {
                     name: name,
                     phone: phone,
                     appointment_date: new Date().toISOString().split('T')[0],
-                    start_time: new Date().toLocaleTimeString('en-US', { hour12: false }).slice(0, 5),
+                    start_time: '10:00',
                     type: 'Consultation',
                     status: 'Scheduled',
                     visit_reason: 'Walk-In'
@@ -79,7 +79,7 @@ export const DailyRegisterTable: React.FC = () => {
                 fetchRegisterData();
             } catch (e: any) {
                 console.error("Failed to add walk-in", e);
-                alert(`Failed to add walk-in: ${e.message || e}`);
+                alert(e?.message || e?.error || "Failed to add walk-in.");
             }
         }
     };
@@ -94,7 +94,7 @@ export const DailyRegisterTable: React.FC = () => {
                     <button onClick={handleAddWalkIn} className="px-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-bold text-brand-textSecondary hover:text-brand-primary transition-colors">
                         Add Walk-In
                     </button>
-                    <button onClick={() => window.print()} className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-secondary transition-colors">
+                    <button className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-secondary transition-colors">
                         Print Register
                     </button>
                 </div>
@@ -218,6 +218,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
 
             const response = await api.createPatient(patientPayload);
             const newPatientId = response?.data?.id || response?.id;
+            const newPin = response?.generatedPin;
 
             // 2. Update Lead Status if applicable
             if (initialData?.id) {
@@ -231,7 +232,11 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                 }
             }
 
-            alert(`Patient ${formData.name} registered successfully!`);
+            if (newPin) {
+                alert(`Patient ${formData.name} registered successfully!\n\nPORTAL ACCESS PIN: ${newPin}\n\nPlease share this 4-digit PIN with the patient.`);
+            } else {
+                alert(`Patient ${formData.name} registered successfully!`);
+            }
 
             if (onSuccess) {
                 onSuccess();

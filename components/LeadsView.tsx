@@ -6,7 +6,6 @@ import {
     FileText, History, Ban, RefreshCw, Calendar, Download, Upload
 } from 'lucide-react';
 import { api } from '../services/api';
-import { parseAndMapFile } from '../services/importHelper';
 import { Lead } from '../types';
 import { DOCTORS } from '../constants';
 
@@ -113,6 +112,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
 
     // --- Import Feature ---
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     const handleImportClick = () => {
         if (fileInputRef.current) {
             fileInputRef.current.click();
@@ -123,33 +123,47 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
         const file = event.target.files?.[0];
         if (!file) return;
 
-        try {
-            const parsedRows = await parseAndMapFile(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            if (!text) return;
+
+            const rows = text.split('\n').map(row => row.split(','));
+            // CSV columns match export: Name, Phone, Status, Source, Gender, Age, Problem, Date Added
+            // Skipping header if detected
+            const startIndex = rows[0][0].toLowerCase().includes('name') ? 1 : 0;
+
             let successCount = 0;
             let errorCount = 0;
 
-            for (const row of parsedRows) {
-                const name = row.name;
-                const phone = row.phone;
+            for (let i = startIndex; i < rows.length; i++) {
+                const cols = rows[i].map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 2 || !cols[0]) continue; // Skip empty rows
+
+                // Match export column order: Name, Phone, Status, Source, Gender, Age, Problem, Date Added
+                const [name, phone, _status, source, gender, age, problem] = cols;
 
                 // Basic validation
                 if (!name || !phone) continue;
 
                 try {
-                    const genderVal = row.gender ? row.gender.trim() : '';
-                    const ageVal = row.age ? row.age.trim() : '';
-                    const problemVal = row.problem ? row.problem.trim() : '';
-                    const sourceVal = row.source ? row.source.trim() : 'Bulk Import';
+                    // Create lead with all CSV fields properly mapped
+                    // Note: We trim values and keep them as strings - the backend will handle empty strings
+                    const genderVal = gender ? gender.trim() : '';
+                    const ageVal = age ? age.trim() : '';
+                    const problemVal = problem ? problem.trim() : '';
 
                     const leadData: Record<string, any> = {
                         name,
                         phone,
-                        source: sourceVal,
+                        source: source ? source.trim() : 'Bulk Import',
+                        // Always set status to 'New Inquiry' for imported leads
                         status: 'New Inquiry',
                         inquiry: 'Bulk Import',
-                        date_added: row.date || new Date().toISOString()
+                        date_added: new Date().toISOString()
                     };
 
+                    // Only add these fields if they have actual values
                     if (genderVal) leadData.gender = genderVal;
                     if (ageVal) leadData.age = ageVal;
                     if (problemVal) leadData.problem = problemVal;
@@ -167,12 +181,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
             if (onRefresh && successCount > 0) {
                 onRefresh();
             }
-        } catch (err: any) {
-            console.error('File parsing error:', err);
-            alert(`Failed to parse file: ${err.message || err}`);
-        } finally {
             if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
-        }
+        };
+        reader.readAsText(file);
     };
 
     return (
@@ -197,7 +208,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                             type="file"
                             ref={fileInputRef}
                             onChange={handleFileChange}
-                            accept=".csv,.xlsx,.xls"
+                            accept=".csv"
                             className="hidden"
                         />
                         <button

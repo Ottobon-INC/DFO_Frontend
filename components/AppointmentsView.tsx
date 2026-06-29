@@ -6,7 +6,6 @@ import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals
 import { RescheduleModal } from './Modals';
 import { PatientProfile } from './PatientProfile';
 import { api } from '../services/api';
-import { parseAndMapFile } from '../services/importHelper';
 
 const DEFAULT_PATIENT_PROFILE: Patient = {
     id: '',
@@ -286,34 +285,40 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             fileInputRef.current.click();
         }
     };
+
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        try {
-            const parsedRows = await parseAndMapFile(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            if (!text) return;
+
+            const rows = text.split('\n').map(row => row.split(','));
+            const startIndex = rows[0][0] && (rows[0][0].toLowerCase().includes('patient') || rows[0][0].toLowerCase().includes('name')) ? 1 : 0;
+
             let successCount = 0;
             let errorCount = 0;
 
-            for (const row of parsedRows) {
-                const patientName = row.name || row.patientName || row.patient;
-                const doctorName = row.doctor || row.doctorName || row.physician || row.consultant;
+            for (let i = startIndex; i < rows.length; i++) {
+                const cols = rows[i].map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 2 || !cols[0]) continue; // Skip empty rows
 
-                // Basic validation: skip if no patient name
-                if (!patientName) continue;
+                const [patientName, doctorName, date, time, type, status, visitReason] = cols;
 
                 try {
                     const matchedPatient = patients.find(p => p.name?.toLowerCase() === patientName.toLowerCase());
-                    const matchedDoc = doctors.find(d => d.name?.toLowerCase() === doctorName?.toLowerCase());
+                    const matchedDoc = doctors.find(d => d.name?.toLowerCase() === doctorName.toLowerCase());
 
                     const payload: any = {
-                        appointment_date: row.date || new Date().toISOString().split('T')[0],
-                        start_time: row.time || '09:00',
+                        appointment_date: date || new Date().toISOString().split('T')[0],
+                        start_time: time || '09:00',
                         doctor_id: matchedDoc ? matchedDoc.id : undefined,
                         doctor_name_snapshot: doctorName || undefined,
-                        type: row.type || 'Consultation',
-                        status: row.status || 'Scheduled',
-                        visit_reason: row.problem || 'Consultation',
+                        type: type || 'Consultation',
+                        status: status || 'Scheduled',
+                        visit_reason: visitReason || 'Consultation',
                         patient_name_snapshot: patientName,
                     };
 
@@ -322,8 +327,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         payload.patient_phone_snapshot = matchedPatient.mobile || matchedPatient.phone;
                     } else {
                         payload.name = patientName;
-                        // For auto-created leads, try to use the phone in the CSV if available
-                        payload.phone = row.phone || row.mobile || '9999999999';
+                        payload.phone = '9999999999'; // default phone for auto-created leads
                     }
 
                     console.log('Importing appointment:', patientName, payload);
@@ -339,12 +343,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             if (successCount > 0) {
                 window.location.reload();
             }
-        } catch (err: any) {
-            console.error('File parsing error:', err);
-            alert(`Failed to parse file: ${err.message || err}`);
-        } finally {
             if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
-        }
+        };
+        reader.readAsText(file);
     };
     const handlePrev = () => {
         const newDate = new Date(viewDate);
@@ -462,13 +463,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             }
 
             let createdAppointmentId = `apt-${Date.now()}`;
-            try {
-                const response = await api.createAppointment(payload);
-                if (response && (response.id || (response.data && response.data.id))) {
-                    createdAppointmentId = response.id || response.data.id;
-                }
-            } catch (e) {
-                console.warn("API Error (ignored for demo), using mock ID:", e);
+            const response = await api.createAppointment(payload);
+            if (response && (response.id || (response.data && response.data.id))) {
+                createdAppointmentId = response.id || response.data.id;
             }
 
             const newApt: Appointment = {
@@ -482,10 +479,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 status: 'Scheduled',
             };
             setAppointments(prev => [...prev, newApt]);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to create appointment:", e);
-            // Optionally show alert here
-            alert("Failed to book appointment. Please check details.");
+            alert(e?.message || e?.error || "Failed to book appointment. Please check details.");
         }
     };
 
@@ -549,9 +545,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 // Close reschedule modal
                 setIsRescheduleModalOpen(false);
                 setAppointmentToReschedule(null);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Reschedule failed", error);
-                alert("Failed to reschedule.");
+                alert(error?.message || error?.error || "Failed to reschedule.");
             }
         }
     };
@@ -716,7 +712,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                 type="file"
                                 ref={fileInputRef}
                                 onChange={handleFileChange}
-                                accept=".csv,.xlsx,.xls"
+                                accept=".csv"
                                 className="hidden"
                             />
                             <button

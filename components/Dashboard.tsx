@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, X } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
 import { LeadsView } from './LeadsView';
 import { AppointmentsView } from './AppointmentsView';
 import { PatientsView } from './PatientsView';
+import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
@@ -19,48 +20,15 @@ import { CroAnalytics } from './cro/CroAnalytics';
 import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
-import { useNotifications } from '../context/NotificationContext';
+import { TeamManagementView } from './TeamManagementView';
+import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
 
-export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [leadsFilter, setLeadsFilter] = useState('All');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<string>('overview');
-
-  // --- Logged in user info ---
-  const [currentUser, setCurrentUser] = useState<any>(user || (() => {
-    try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  }));
-
-  useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, [user]);
-
-  const getInitials = (name: string, fallback: string) => {
-    if (!name) return fallback;
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return parts[0].slice(0, 2).toUpperCase();
-  };
-
-  let displayName = currentUser?.full_name || currentUser?.name || (userRole === UserRole.CRO ? 'CRO' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Nurse');
-  if (displayName === 'Dr' && currentUser?.email === 'dr.ragini@medcy.com') {
-    displayName = 'Dr. Ragini';
-  }
-  
-  const displayInitials = displayName
-    ? getInitials(displayName, userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU')
-    : (userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'NU');
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -194,8 +162,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [globalSearch, setGlobalSearch] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showNotifPanel, setShowNotifPanel] = useState(false);
-  const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        setCurrentUser(JSON.parse(userStr));
+      }
+    } catch(e) {}
+  }, []);
 
   const handleGlobalSearch = () => {
     showToast(`Searching for: "${globalSearch}"...`);
@@ -240,9 +219,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
           showToast(`Rescheduled to ${date} at ${time}`);
           setRescheduleId(null);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
-        showToast('Failed to reschedule');
+        showToast(e?.message || e?.error || 'Failed to reschedule');
       }
     }
   };
@@ -426,23 +405,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
               active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'}
               onClick={() => navigate('/dashboard')}
             />
-            <NavItem
-              icon={<Users size={20} />}
-              label="Leads Pipeline"
-              active={location.pathname === '/dashboard/leads'}
-              onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
-            />
-            <NavItem
-              icon={<FileText size={20} />}
-              label="Daily Register"
-              active={location.pathname === '/dashboard/daily-register'}
-              onClick={() => navigate('/dashboard/daily-register')}
-            />
+            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+              <NavItem
+                icon={<Users size={20} />}
+                label="Leads Pipeline"
+                active={location.pathname === '/dashboard/leads'}
+                onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
+              />
+            )}
+            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+              <NavItem
+                icon={<FileText size={20} />}
+                label="Daily Register"
+                active={location.pathname === '/dashboard/daily-register'}
+                onClick={() => navigate('/dashboard/daily-register')}
+              />
+            )}
             <NavItem
               icon={<CalendarDays size={22} />}
               label="Appointments"
               active={location.pathname === '/dashboard/appointments'}
               onClick={() => navigate('/dashboard/appointments')}
+            />
+            <NavItem
+              icon={<Inbox size={20} />}
+              label="Pending Files"
+              active={location.pathname === '/dashboard/pending-files'}
+              onClick={() => navigate('/dashboard/pending-files')}
             />
             <NavItem
               icon={<UserCheck size={22} />}
@@ -458,7 +447,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
               <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
               Live Control Towers
             </div>
-            {userRole === UserRole.CRO && (
+            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
               <>
                 <NavItem
                   icon={<Activity size={20} />}
@@ -501,7 +490,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
                 highlighted
               />
             )}
-            {userRole === UserRole.CRO && (
+            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
               <NavItem
                 icon={<Clock size={20} />}
                 label="Audit Logs"
@@ -511,6 +500,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
               />
             )}
           </div>
+
+          {/* Team Management - Only for Clinic Admins */}
+          {(() => {
+            try {
+              const userStr = localStorage.getItem('user');
+              const user = userStr ? JSON.parse(userStr) : null;
+              if (user?.is_clinic_admin) {
+                return (
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest px-4 mb-2 mt-4 flex items-center gap-1.5">
+                      Administration
+                    </div>
+                    <NavItem
+                      icon={<Shield size={20} />}
+                      label="Team Management"
+                      active={location.pathname === '/dashboard/team'}
+                      onClick={() => navigate('/dashboard/team')}
+                    />
+                  </div>
+                );
+              }
+            } catch (e) { }
+            return null;
+          })()}
         </nav>
 
         <div className="p-6 border-t border-brand-border">
@@ -545,61 +558,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
-            {/* Notification Bell */}
             <div className="relative">
-              <button
-                onClick={() => { setShowNotifPanel(!showNotifPanel); if (!showNotifPanel) markAllRead(); }}
-                className="relative p-2 rounded-xl bg-brand-bg border border-brand-border text-brand-textSecondary hover:text-brand-primary hover:border-brand-primary transition-all"
+              <div 
+                className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors"
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
+                  {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : (userRole === UserRole.ADMIN ? 'AD' : userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'FD')}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
+                    {currentUser?.name || (userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'CRO / Admin' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Front Desk')}
+                  </p>
+                  <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
+                    {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
+                  </p>
+                </div>
+                <ChevronDown size={16} className={`text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
 
-              {showNotifPanel && (
-                <div className="absolute right-0 top-12 w-80 bg-brand-surface border border-brand-border rounded-2xl shadow-2xl z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-brand-border flex justify-between items-center">
-                    <span className="text-xs font-bold text-brand-textPrimary">Notifications</span>
-                    <div className="flex gap-2">
-                      <button onClick={markAllRead} className="text-[10px] text-brand-primary hover:underline font-bold">Mark all read</button>
-                      <button onClick={() => setShowNotifPanel(false)} className="text-brand-textSecondary hover:text-brand-textPrimary"><X size={14} /></button>
-                    </div>
-                  </div>
-                  <div className="max-h-72 overflow-y-auto divide-y divide-brand-border">
-                    {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-brand-textSecondary">No notifications yet</div>
-                    ) : notifications.map(n => (
-                      <div
-                        key={n.id}
-                        onClick={() => markRead(n.id)}
-                        className={`p-3 cursor-pointer hover:bg-brand-bg/40 transition-colors ${!n.read ? 'bg-brand-primary/5' : ''}`}
-                      >
-                        <p className={`text-xs font-bold ${n.type === 'SLA_BREACH' ? 'text-red-400' : 'text-brand-textPrimary'}`}>{n.title}</p>
-                        <p className="text-[11px] text-brand-textSecondary mt-0.5">{n.message}</p>
-                        <p className="text-[10px] text-brand-textSecondary/60 mt-1">{new Date(n.timestamp).toLocaleTimeString()}</p>
-                      </div>
-                    ))}
-                  </div>
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-brand-surface rounded-xl shadow-lg border border-brand-border py-2 z-50 animate-fade-in">
+                  <button 
+                    onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
+                  >
+                    <User size={16} className="text-brand-primary" />
+                    My Profile
+                  </button>
+                  <button 
+                    onClick={() => { setIsChangePasswordModalOpen(true); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
+                  >
+                    <Lock size={16} className="text-brand-primary" />
+                    Change Password
+                  </button>
+                  <div className="border-t border-brand-border my-1"></div>
+                  <button 
+                    onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-error hover:bg-brand-error/10 transition-colors flex items-center gap-2"
+                  >
+                    <LogOut size={16} />
+                    Sign Out
+                  </button>
                 </div>
               )}
-            </div>
-
-            <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
-                {displayInitials}
-              </div>
-              <div className="hidden md:block text-left">
-                <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
-                  {displayName}
-                </p>
-                <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
-                  {userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
-                </p>
-              </div>
-              <ChevronDown size={16} className="text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block" />
             </div>
           </div>
         </header>
@@ -639,6 +642,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
                 <AppointmentsView userRole={userRole} />
               </div>
             } />
+            <Route path="pending-files" element={
+              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col">
+                <UnassignedDocumentsView />
+              </div>
+            } />
             <Route path="patients" element={
               <div className="animate-slide-up">
                 <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
@@ -657,6 +665,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
                  <AnalyticsView />
                </div>
              } />
+             <Route path="team" element={
+               <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-6">
+                 <TeamManagementView />
+               </div>
+             } />
+             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
@@ -687,6 +701,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole, user }
         show={toast.show}
         message={toast.message}
         onClose={() => setToast(prev => ({ ...prev, show: false }))}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={currentUser}
+        onProfileUpdate={(updatedUser) => setCurrentUser(updatedUser)}
+        showToast={showToast}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        showToast={showToast}
       />
 
       {/* Patient Profile Overlay - Lifted to Dashboard level for z-index fix */}

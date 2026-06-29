@@ -6,7 +6,6 @@ import { PatientProfile } from './PatientProfile';
 import { BookAppointmentModal } from './AppointmentModals';
 import { PatientConversionForm } from './PatientRegistration';
 import { api } from '../services/api';
-import { parseAndMapFile } from '../services/importHelper';
 
 // Mock Data
 // MOCK_PATIENTS removed in favor of API
@@ -141,44 +140,54 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
             fileInputRef.current.click();
         }
     };
+
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        try {
-            const parsedRows = await parseAndMapFile(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            if (!text) return;
+
+            const rows = text.split('\n').map(row => row.split(','));
+            const startIndex = rows[0][0] && (rows[0][0].toLowerCase().includes('uhid') || rows[0][0].toLowerCase().includes('name')) ? 1 : 0;
+
             let successCount = 0;
             let errorCount = 0;
 
-            for (const row of parsedRows) {
-                const name = row.name;
-                const mobile = row.phone || row.mobile;
+            for (let i = startIndex; i < rows.length; i++) {
+                const cols = rows[i].map(c => c.trim().replace(/^"|"$/g, ''));
+                if (cols.length < 2 || !cols[1]) continue; // Skip empty rows or rows without name
 
-                // Basic validation: skip if no name
-                if (!name) continue;
+                const [
+                    uhid, name, gender, mobile, email, dob, age, 
+                    maritalStatus, bloodGroup, aadhar, house, street, 
+                    area, city, district, state, postalCode, regDate, status
+                ] = cols;
 
                 try {
                     const patientData = {
-                        uhid: row.uhid || undefined,
+                        uhid: uhid || undefined,
                         name,
-                        gender: row.gender || 'Female',
-                        mobile: mobile || '',
-                        phone: mobile || '',
-                        email: row.email || undefined,
-                        dob: row.dob || undefined,
-                        age: row.age || undefined,
-                        marital_status: row.maritalStatus || 'Married',
-                        blood_group: row.bloodGroup || undefined,
-                        aadhar: row.aadhar || undefined,
-                        house: row.house || undefined,
-                        street: row.street || undefined,
-                        area: row.area || undefined,
-                        city: row.city || undefined,
-                        district: row.district || undefined,
-                        state: row.state || undefined,
-                        postal_code: row.postalCode || undefined,
-                        registration_date: row.date || new Date().toISOString().split('T')[0],
-                        status: row.status || 'Active'
+                        gender: gender || 'Female',
+                        mobile,
+                        phone: mobile,
+                        email: email || undefined,
+                        dob: dob || undefined,
+                        age: age || undefined,
+                        marital_status: maritalStatus || 'Married',
+                        blood_group: bloodGroup || undefined,
+                        aadhar: aadhar || undefined,
+                        house: house || undefined,
+                        street: street || undefined,
+                        area: area || undefined,
+                        city: city || undefined,
+                        district: district || undefined,
+                        state: state || undefined,
+                        postal_code: postalCode || undefined,
+                        registration_date: regDate || new Date().toISOString().split('T')[0],
+                        status: status || 'Active'
                     };
 
                     console.log('Importing patient:', name, patientData);
@@ -194,13 +203,12 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
             if (successCount > 0) {
                 fetchPatients();
             }
-        } catch (err: any) {
-            console.error('File parsing error:', err);
-            alert(`Failed to parse file: ${err.message || err}`);
-        } finally {
             if (fileInputRef.current) fileInputRef.current.value = ''; // Reset
-        }
+        };
+        reader.readAsText(file);
     };
+
+
     // Booking Modal State
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [patientForBooking, setPatientForBooking] = useState<Patient | null>(null);
@@ -304,7 +312,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
                                         type="file"
                                         ref={fileInputRef}
                                         onChange={handleFileChange}
-                                        accept=".csv,.xlsx,.xls"
+                                        accept=".csv"
                                         className="hidden"
                                     />
                                     <button
