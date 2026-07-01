@@ -17,7 +17,7 @@ export interface AuthUser {
     token: string;
 }
 
-export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings' | 'team';
+export type DashboardView = 'dashboard' | 'leads' | 'appointments' | 'patients' | 'analytics' | 'settings' | 'team' | 'rooms';
 
 export interface Lead {
     id: string;
@@ -154,5 +154,73 @@ export interface TriageDocument {
     previewUrl?: string;
 }
 
+// --- Room Allocation ---
+export interface RoomCategory {
+    id: string;
+    name: string;
+    description?: string;
+    daily_rate: number;
+    is_active: boolean;
+}
 
+export interface Room {
+    id: string;
+    category_id: string;
+    room_number: string;
+    floor?: string;
+    capacity: number;
+    is_active: boolean;
+    room_categories?: {
+        name: string;
+        daily_rate: number;
+    };
+}
 
+export interface Bed {
+    id: string;
+    room_id: string;
+    bed_identifier: string;
+    status: 'available' | 'occupied' | 'maintenance' | 'reserved';
+    is_active: boolean;
+    rooms?: {
+        room_number: string;
+        clinic_id: string;
+        room_categories?: {
+            id: string;
+            name: string;
+            daily_rate: number;
+        };
+    };
+}
+
+export interface Admission {
+    id: string;
+    patient_id: string;
+    admitting_doctor_id?: string;
+    admission_date: string;
+    discharge_date?: string;
+    status: 'admitted' | 'discharged' | 'cancelled';
+    diagnosis?: string;
+    notes?: string;
+    patient?: {
+        name: string;
+        mobile: string;
+    };
+    bed_assignments?: Array<{
+        id: string;
+        bed_id: string;
+        daily_rate_snapshot: number;
+        assigned_at: string;
+        is_current: boolean;
+        beds?: {
+            bed_identifier: string;
+            room_id: string;
+            rooms?: {
+                room_number: string;
+                room_categories?: {
+                    name: string;
+                };
+            };
+        };
+    }>;
+}

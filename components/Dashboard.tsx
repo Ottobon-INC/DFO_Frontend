@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -9,6 +9,7 @@ import { PatientsView } from './PatientsView';
 import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
+import { RoomsView } from './RoomsView';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
@@ -439,6 +440,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               active={location.pathname === '/dashboard/patients'}
               onClick={() => navigate('/dashboard/patients')}
             />
+            <NavItem
+              icon={<Bed size={22} />}
+              label="Rooms & Admissions"
+              active={location.pathname === '/dashboard/rooms'}
+              onClick={() => navigate('/dashboard/rooms')}
+            />
           </div>
 
           {/* Specialist & Clinical Dashboards */}
@@ -640,6 +647,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="appointments" element={
               <div className="animate-slide-up">
                 <AppointmentsView userRole={userRole} />
+              </div>
+            } />
+            <Route path="rooms" element={
+              <div className="animate-slide-up h-full">
+                <RoomsView />
               </div>
             } />
             <Route path="pending-files" element={

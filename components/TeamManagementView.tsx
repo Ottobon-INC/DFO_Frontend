@@ -95,6 +95,19 @@ export const TeamManagementView: React.FC = () => {
     }
   };
 
+  const handleDeleteMember = async (member: TeamMember) => {
+    if (!window.confirm(`Are you sure you want to completely remove ${member.name} from the clinic? This action cannot be undone.`)) return;
+    
+    try {
+      await api.removeClinicUser(member.id);
+      showToast("Team member removed successfully", "success");
+      fetchMembers();
+    } catch (error: any) {
+      console.error("Failed to remove team member", error);
+      showToast(error.message || "Failed to remove member", "error");
+    }
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'Doctor': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
@@ -196,13 +209,24 @@ export const TeamManagementView: React.FC = () => {
                       )}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => handleOpenEditModal(member)}
-                        className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-bg rounded-lg hover:bg-brand-primary/10 transition-all shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        title="Edit Member"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => handleOpenEditModal(member)}
+                          className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-bg rounded-lg hover:bg-brand-primary/10 transition-all shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          title="Edit Member"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        {!member.is_clinic_admin && (
+                          <button
+                            onClick={() => handleDeleteMember(member)}
+                            className="p-2 text-brand-textSecondary hover:text-red-500 bg-brand-bg rounded-lg hover:bg-red-50 transition-all shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title="Remove Member"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

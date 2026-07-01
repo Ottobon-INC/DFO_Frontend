@@ -279,6 +279,24 @@ export const api = {
         });
     },
 
+    // --- Document Templates ---
+    async getDocumentTemplates() {
+        return fetchJson<{ success: boolean; data: any[] }>(`${API_BASE_URL}/api/v1/clinics/document-templates`, { headers: getHeaders() });
+    },
+    
+    // --- Room Management & Admissions ---
+    async getRoomsAvailable(tier?: string) {
+        const url = tier ? `${API_BASE_URL}/api/v1/clinics/rooms/available?tier=${tier}` : `${API_BASE_URL}/api/v1/clinics/rooms/available`;
+        return fetchJson<{ success: boolean; data: any[] }>(url, { headers: getHeaders() });
+    },
+
+    async cancelAdmission(id: string) {
+        return fetchJson<{ success: boolean }>(`${API_BASE_URL}/api/v1/clinics/admissions/${id}/cancel`, {
+            method: 'POST',
+            headers: getHeaders(),
+        });
+    },
+
     deleteDocument: async (documentId: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}`, {
             method: 'DELETE',
@@ -360,6 +378,93 @@ export const api = {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients?${params.toString()}`, {
             headers: getHeaders()
         });
+    },
+
+    // Room Allocation
+    getRoomCategories: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/room-categories`, { headers: getHeaders() });
+    },
+    createRoomCategory: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/room-categories`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    updateRoomCategory: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/room-categories/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    deleteRoomCategory: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/room-categories/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+    getRooms: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/rooms`, { headers: getHeaders() });
+    },
+    createRoom: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/rooms`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    updateRoom: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/rooms/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    getBeds: async (status?: string) => {
+        const query = status ? `?status=${status}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/beds${query}`, { headers: getHeaders() });
+    },
+    createBed: async (roomId: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/rooms/${roomId}/beds`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    updateBedStatus: async (id: string, status: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/beds/${id}/status`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status })
+        });
+    },
+    getAdmissions: async (status?: string) => {
+        const query = status ? `?status=${status}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/admissions${query}`, { headers: getHeaders() });
+    },
+    createAdmission: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/admissions`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+    dischargeAdmission: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/admissions/${id}/discharge`, {
+            method: 'PATCH',
+            headers: getHeaders()
+        });
+    },
+    transferBed: async (id: string, newBedId: string, reason?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/admissions/${id}/transfer`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ new_bed_id: newBedId, reason })
+        });
+    },
+    getRoomDashboardSummary: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/room-dashboard/summary`, { headers: getHeaders() });
     },
 
     // Dashboard
@@ -446,6 +551,13 @@ export const api = {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
+        });
+    },
+
+    removeClinicUser: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
         });
     },
 
