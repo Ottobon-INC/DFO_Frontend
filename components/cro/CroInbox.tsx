@@ -11,7 +11,7 @@ export const CroInbox: React.FC = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [loading, setLoading] = useState(true);
   const [escalating, setEscating] = useState(false);
-  
+
   // Selection states for target clinicians
   const [selectedDocId, setSelectedDocId] = useState(DOCTORS[0]?.id || '');
   const [selectedNurseId, setSelectedNurseId] = useState('nurse_divya');
@@ -27,7 +27,7 @@ export const CroInbox: React.FC = () => {
       setThreads(unassignedThreads);
     } catch (err) {
       console.error(err);
-      
+
       // Load escalated threads tracker from localStorage fallback db
       const savedThreadsStr = localStorage.getItem('escalated_threads');
       const savedThreads = savedThreadsStr ? JSON.parse(savedThreadsStr) : [];
@@ -58,7 +58,7 @@ export const CroInbox: React.FC = () => {
       setThreadContext(res.data || res);
     } catch (err) {
       console.error(err);
-      
+
       const savedThreadsStr = localStorage.getItem('escalated_threads');
       const savedThreads = savedThreadsStr ? JSON.parse(savedThreadsStr) : [];
       const savedThread = savedThreads.find((t: any) => t.id === id);
@@ -79,13 +79,13 @@ export const CroInbox: React.FC = () => {
     try {
       await api.escalateThread(selectedThreadId, targetStatus, assignedUserId);
       alert(`Successfully escalated thread to ${targetStatus === 'red' ? 'Doctor' : 'Nurse'} queue!`);
-      
+
       // Save escalation state to localStorage as a fallback database trigger for demo routing
       const savedThreadsStr = localStorage.getItem('escalated_threads') || '[]';
       const savedThreads = JSON.parse(savedThreadsStr);
       const existingIdx = savedThreads.findIndex((t: any) => t.id === selectedThreadId);
       const matched = threads.find(t => t.id === selectedThreadId);
-      
+
       const escalationPayload = {
         id: selectedThreadId,
         patient_name: matched?.patient_name || "Patient",
@@ -233,11 +233,10 @@ export const CroInbox: React.FC = () => {
                   <button
                     onClick={() => handleEscalate('red', selectedDocId)}
                     disabled={escalating || threadContext.thread?.status === 'red'}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${
-                      threadContext.thread?.status === 'red'
+                    className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${threadContext.thread?.status === 'red'
                         ? 'bg-red-500/10 text-red-400/50 border border-red-500/10 cursor-not-allowed opacity-50'
                         : 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 active:scale-95 cursor-pointer'
-                    }`}
+                      }`}
                   >
                     <ShieldAlert size={13} /> Escalate to Doctor
                   </button>
@@ -255,11 +254,10 @@ export const CroInbox: React.FC = () => {
                   <button
                     onClick={() => handleEscalate('yellow', selectedNurseId)}
                     disabled={escalating || threadContext.thread?.status === 'yellow'}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${
-                      threadContext.thread?.status === 'yellow'
+                    className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${threadContext.thread?.status === 'yellow'
                         ? 'bg-orange-500/10 text-orange-400/50 border border-orange-500/10 cursor-not-allowed opacity-50'
                         : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 active:scale-95 cursor-pointer'
-                    }`}
+                      }`}
                   >
                     <Activity size={13} /> Escalate to Nurse
                   </button>

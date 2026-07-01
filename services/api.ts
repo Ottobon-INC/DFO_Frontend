@@ -273,7 +273,7 @@ export const api = {
         if (filters.search) queryParams.append('search', filters.search);
         if (filters.start_date) queryParams.append('start_date', filters.start_date);
         if (filters.end_date) queryParams.append('end_date', filters.end_date);
-        
+
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/audit-logs?${queryParams.toString()}`, {
             headers: getHeaders()
         });
@@ -283,7 +283,7 @@ export const api = {
     async getDocumentTemplates() {
         return fetchJson<{ success: boolean; data: any[] }>(`${API_BASE_URL}/api/v1/clinics/document-templates`, { headers: getHeaders() });
     },
-    
+
     // --- Room Management & Admissions ---
     async getRoomsAvailable(tier?: string) {
         const url = tier ? `${API_BASE_URL}/api/v1/clinics/rooms/available?tier=${tier}` : `${API_BASE_URL}/api/v1/clinics/rooms/available`;

@@ -97,7 +97,7 @@ export const TeamManagementView: React.FC = () => {
 
   const handleDeleteMember = async (member: TeamMember) => {
     if (!window.confirm(`Are you sure you want to completely remove ${member.name} from the clinic? This action cannot be undone.`)) return;
-    
+
     try {
       await api.removeClinicUser(member.id);
       showToast("Team member removed successfully", "success");
@@ -250,7 +250,7 @@ export const TeamManagementView: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              
+
               <div>
                 <label className="block text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-2">Full Name</label>
                 <div className="relative">

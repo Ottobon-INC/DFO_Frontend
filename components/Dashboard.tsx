@@ -174,7 +174,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
       if (userStr) {
         setCurrentUser(JSON.parse(userStr));
       }
-    } catch(e) {}
+    } catch (e) { }
   }, []);
 
   const handleGlobalSearch = () => {
@@ -566,7 +566,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
           <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
             <div className="relative">
-              <div 
+              <div
                 className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors"
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               >
@@ -586,14 +586,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
               {isProfileDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-brand-surface rounded-xl shadow-lg border border-brand-border py-2 z-50 animate-fade-in">
-                  <button 
+                  <button
                     onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }}
                     className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
                   >
                     <User size={16} className="text-brand-primary" />
                     My Profile
                   </button>
-                  <button 
+                  <button
                     onClick={() => { setIsChangePasswordModalOpen(true); setIsProfileDropdownOpen(false); }}
                     className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
                   >
@@ -601,7 +601,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                     Change Password
                   </button>
                   <div className="border-t border-brand-border my-1"></div>
-                  <button 
+                  <button
                     onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }}
                     className="w-full text-left px-4 py-2 text-sm font-medium text-brand-error hover:bg-brand-error/10 transition-colors flex items-center gap-2"
                   >
@@ -664,25 +664,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
-             <Route path="doctor" element={<DoctorDashboard />} />
-             <Route path="nurse" element={<NurseDashboard />} />
-             <Route path="control-tower" element={<ControlTowerConsole />} />
-             <Route path="cro-inbox" element={<CroInbox />} />
-             <Route path="cro-analytics" element={<CroAnalytics />} />
-             <Route path="audit-logs" element={<AuditLogsView />} />
-             <Route path="daily-register" element={<DailyRegisterTable />} />
- 
-             <Route path="analytics" element={
-               <div className="animate-slide-up">
-                 <AnalyticsView />
-               </div>
-             } />
-             <Route path="team" element={
-               <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-6">
-                 <TeamManagementView />
-               </div>
-             } />
-             <Route path="audit-logs" element={<AuditLogsView />} />
+            <Route path="doctor" element={<DoctorDashboard />} />
+            <Route path="nurse" element={<NurseDashboard />} />
+            <Route path="control-tower" element={<ControlTowerConsole />} />
+            <Route path="cro-inbox" element={<CroInbox />} />
+            <Route path="cro-analytics" element={<CroAnalytics />} />
+            <Route path="audit-logs" element={<AuditLogsView />} />
+            <Route path="daily-register" element={<DailyRegisterTable />} />
+
+            <Route path="analytics" element={
+              <div className="animate-slide-up">
+                <AnalyticsView />
+              </div>
+            } />
+            <Route path="team" element={
+              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-6">
+                <TeamManagementView />
+              </div>
+            } />
+            <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
