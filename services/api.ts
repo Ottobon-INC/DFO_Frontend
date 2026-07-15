@@ -33,6 +33,15 @@ class ApiError extends Error {
 
 async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(url, { ...options, credentials: 'include' });
+    
+    if (response.status === 401 && !url.includes('/api/auth/login') && !url.includes('/api/v1/superadmin/auth/login')) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+    }
+
     if (!response.ok) {
         let errorMessage = `Request failed ${response.status} ${response.statusText}`;
         let errorData = null;
