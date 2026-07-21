@@ -7,6 +7,10 @@ import {
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
 import { BookAppointmentModal } from './AppointmentModals';
+import { TimelineContainer } from './timeline/TimelineContainer';
+import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
+import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './DashboardWidgets';
+import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 
 interface PatientProfileProps {
     patient: Patient;
@@ -35,6 +39,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [historyNotes, setHistoryNotes] = useState<any[]>([]);
 
+    // Dashboard Data
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
+
     // PIN Reset State
     const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
     const [newPinInput, setNewPinInput] = useState('');
@@ -44,6 +52,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [uploadingDoc, setUploadingDoc] = useState(false);
     const [docTypeToUpload, setDocTypeToUpload] = useState('prescription');
+    
+    // Metrics Entry
+    const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
     const fetchPatientDocuments = async () => {
         try {
@@ -56,6 +67,54 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             console.warn("Failed to fetch documents", e);
         }
     };
+
+    const fetchDashboardMetrics = async () => {
+        setIsLoadingDashboard(true);
+        try {
+            const res = await api.getPatientDashboardData(patient.id);
+            if (res?.data) {
+                setDashboardData(res.data);
+            }
+        } catch (e) {
+            console.warn("Failed to fetch dashboard metrics", e);
+        } finally {
+            setIsLoadingDashboard(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'overview') {
+            fetchDashboardMetrics();
+        }
+    }, [activeTab, patient.id]);
+
+    // Live Supabase Sync for Vitals
+    const handleVitalUpdate = React.useCallback((newVital: any) => {
+        setDashboardData((prev: any) => {
+            if (!prev) return prev;
+            
+            // Check if vital already exists (update vs insert)
+            const exists = prev.vitals?.find((v: any) => v.id === newVital.id);
+            let updatedVitals;
+            if (exists) {
+                updatedVitals = prev.vitals.map((v: any) => v.id === newVital.id ? newVital : v);
+            } else {
+                updatedVitals = [newVital, ...(prev.vitals || [])];
+                // Optional: sort by created_at desc just in case
+                updatedVitals.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            }
+
+            // Cap at 50 records to prevent memory leak
+            updatedVitals = updatedVitals.slice(0, 50);
+
+            return {
+                ...prev,
+                vitals: updatedVitals
+            };
+        });
+    }, []);
+
+    const { isConnected } = useRealtimeVitals(patient.id, handleVitalUpdate, fetchDashboardMetrics);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -320,10 +379,11 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     };
 
     // Determine tabs based on role
-    const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE;
+    const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE || userRole === 'Receptionist';
 
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
+        { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
         { id: 'documents', label: 'Documents', shortLabel: 'Docs' },
@@ -340,7 +400,15 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                             {patient.name.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-brand-textPrimary truncate">{patient.name}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-brand-textPrimary truncate">{patient.name}</h2>
+                                {activeTab === 'overview' && (
+                                    <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full border ${isConnected ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                        {isConnected ? 'Live' : 'Offline'}
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex flex-wrap items-center gap-1 sm:gap-2 lg:gap-4 text-[10px] sm:text-xs lg:text-sm text-brand-textSecondary mt-0.5 sm:mt-1">
                                 <span className="flex items-center"><Phone size={10} className="mr-0.5 sm:mr-1 flex-shrink-0" /> <span className="truncate max-w-[80px] sm:max-w-none">{patient.mobile}</span></span>
                                 <span className="hidden md:flex items-center"><Mail size={10} className="mr-1 flex-shrink-0" /> {patient.email}</span>
@@ -349,6 +417,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         </div>
                     </div>
                     <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                        {isClinical && (
+                            <button
+                                onClick={() => setIsMetricsModalOpen(true)}
+                                className="px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white font-bold rounded-lg transition-all active:scale-95 text-[10px] sm:text-xs lg:text-sm mr-1 sm:mr-2"
+                            >
+                                <span className="flex items-center"><Activity size={14} className="mr-0.5 sm:mr-1" /> Update Metrics</span>
+                            </button>
+                        )}
                         {onCompleteConsultation && !isConsultationComplete && (
                             <button
                                 onClick={handleComplete}
@@ -410,11 +486,15 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     ) : (
                         <>
 
+                            {activeTab === 'timeline' && (
+                                <TimelineContainer patientId={patient.id} />
+                            )}
+
                             {activeTab === 'overview' && (
-                                <div className="space-y-4 sm:space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                                        {/* Personal Details - Editable */}
-                                        <div className="md:col-span-2 bg-brand-surface p-3 sm:p-4 lg:p-6 rounded-xl lg:rounded-2xl border border-brand-border shadow-sm">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* COLUMN 1: Demographics & Context */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
                                             <div className="flex justify-between items-center mb-6">
                                                 <h3 className="font-bold text-brand-textPrimary flex items-center">
                                                     <User size={18} className="mr-2 text-brand-primary" /> Demographics
@@ -424,7 +504,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         onClick={() => setIsEditing(true)}
                                                         className="text-xs font-bold text-brand-primary hover:bg-brand-primary/10 px-3 py-1.5 rounded-lg transition-colors"
                                                     >
-                                                        Edit Details
+                                                        Edit
                                                     </button>
                                                 ) : (
                                                     <div className="flex space-x-2">
@@ -438,14 +518,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             onClick={handleSaveDemographics}
                                                             className="text-xs font-bold text-white bg-brand-primary hover:bg-brand-secondary px-3 py-1.5 rounded-lg transition-colors shadow-sm"
                                                         >
-                                                            Save Changes
+                                                            Save
                                                         </button>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {isEditing ? (
-                                                <div className="grid grid-cols-2 gap-y-6 gap-x-8 animate-fade-in">
+                                                <div className="grid grid-cols-1 gap-y-4 animate-fade-in">
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
                                                         <input name="name" defaultValue={patient.name} id="edit-name" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
@@ -497,7 +577,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                                                <div className="grid grid-cols-1 gap-y-4">
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
                                                         <p className="text-sm font-bold text-brand-textPrimary">{patient.name}</p>
@@ -537,7 +617,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             <div className="mt-8 pt-6 border-t border-brand-border">
                                                 <h4 className="text-sm font-bold text-brand-textPrimary mb-4">Registration & Referral</h4>
                                                 {isEditing ? (
-                                                    <div className="grid grid-cols-3 gap-6 animate-fade-in">
+                                                    <div className="grid grid-cols-1 gap-4 animate-fade-in">
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
                                                             <input name="uhid" defaultValue={patient.uhid} id="edit-uhid" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
@@ -569,7 +649,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="grid grid-cols-3 gap-6">
+                                                    <div className="grid grid-cols-1 gap-4">
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
                                                             <p className="text-sm font-bold text-brand-textPrimary">{patient.uhid || 'N/A'}</p>
@@ -600,62 +680,58 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                         </div>
 
                                         {/* Assigned Staff */}
-                                        <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm h-fit">
+                                        <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
                                             <h3 className="font-bold text-brand-textPrimary mb-6 flex items-center">
-                                                <Stethoscope size={18} className="mr-2 text-brand-primary" /> Assigned Care Team
+                                                <Stethoscope size={18} className="mr-2 text-brand-primary" /> Care Team
                                             </h3>
-                                            <div className="space-y-6">
+                                            <div className="space-y-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-sm">DS</div>
+                                                    <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">DS</div>
                                                     <div>
                                                         <p className="text-sm font-bold text-brand-textPrimary">Dr. Sharma</p>
-                                                        <p className="text-xs text-brand-textSecondary">Primary Consultant</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 font-bold text-sm">NS</div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">Nurse Sarah</p>
-                                                        <p className="text-xs text-brand-textSecondary">Care Coordinator</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold text-sm">CA</div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">CRO Anjali</p>
-                                                        <p className="text-xs text-brand-textSecondary">Patient Relations</p>
+                                                        <p className="text-xs text-brand-textSecondary">Consultant</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Admin Actions / Danger Zone */}
-                                    <div className="bg-brand-error/5 p-6 rounded-2xl border border-brand-error/20">
-                                        <h3 className="font-bold text-brand-error mb-2 flex items-center">
-                                            <AlertCircle size={18} className="mr-2" /> Administrative Actions
-                                        </h3>
-                                        <p className="text-sm text-brand-error/80 mb-4">
-                                            Archiving a patient record will move it to the inactive registry. This action should only be performed when a patient has officially dropped out or completed their journey.
-                                        </p>
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('Are you sure you want to archive this patient record?')) {
-                                                    console.log('Archiving patient:', patient.id);
-                                                    alert('Patient record archived.');
-                                                    onClose();
-                                                }
-                                            }}
-                                            className="px-4 py-2 bg-brand-surface border border-brand-error/30 text-brand-error text-sm font-bold rounded-lg hover:bg-brand-error hover:text-brand-bg transition-colors shadow-sm"
-                                        >
-                                            Archive Patient Record
-                                        </button>
-                                        <button
-                                            onClick={() => setIsResetPinModalOpen(true)}
-                                            className="px-4 py-2 ml-4 bg-brand-surface border border-brand-primary/30 text-brand-primary text-sm font-bold rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-sm"
-                                        >
-                                            Reset Portal Access PIN
-                                        </button>
+                                    {/* COLUMN 2: Vitals & Conditions */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <DynamicTrendChart vitals={dashboardData?.vitals} />
+                                        <ConditionsWidget conditions={dashboardData?.medicalHistory} />
+                                    </div>
+
+                                    {/* COLUMN 3: Allergies & Treatments */}
+                                    <div className="space-y-6 lg:col-span-1">
+                                        <ClinicalAlertsWidget alerts={dashboardData?.allergies} />
+                                        <TreatmentsWidget treatments={dashboardData?.ongoingTreatments} />
+                                        
+                                        {/* Admin Actions */}
+                                        <div className="bg-brand-error/5 p-6 rounded-2xl border border-brand-error/20">
+                                            <h3 className="font-bold text-brand-error mb-2 flex items-center">
+                                                <AlertCircle size={18} className="mr-2" /> Admin Actions
+                                            </h3>
+                                            <div className="flex flex-col space-y-2 mt-4">
+                                                <button
+                                                    onClick={() => setIsResetPinModalOpen(true)}
+                                                    className="w-full py-2 bg-brand-surface border border-brand-primary/30 text-brand-primary text-sm font-bold rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-sm"
+                                                >
+                                                    Reset PIN
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Are you sure you want to archive this patient?')) {
+                                                            alert('Patient record archived.');
+                                                            onClose();
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 bg-brand-surface border border-brand-error/30 text-brand-error text-sm font-bold rounded-lg hover:bg-brand-error hover:text-brand-bg transition-colors shadow-sm"
+                                                >
+                                                    Archive Record
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -924,6 +1000,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     )}
                 </div>
             </div >
+            
             {/* Appointment Modal */}
             <BookAppointmentModal
                 isOpen={isBookingModalOpen}
@@ -940,6 +1017,18 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 }}
                 doctors={doctors}
             />
+
+            {/* Health Metrics Modal */}
+            {isMetricsModalOpen && (
+                <HealthMetricsEntryModal
+                    patientId={patient.id}
+                    onClose={() => setIsMetricsModalOpen(false)}
+                    onSuccess={() => {
+                        setIsMetricsModalOpen(false);
+                        fetchDashboardMetrics();
+                    }}
+                />
+            )}
 
             {/* Reset PIN Modal */}
             {isResetPinModalOpen && (
