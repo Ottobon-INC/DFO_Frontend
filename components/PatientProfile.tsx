@@ -9,7 +9,7 @@ import { api } from '../services/api';
 import { BookAppointmentModal } from './AppointmentModals';
 import { TimelineContainer } from './timeline/TimelineContainer';
 import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
-import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './DashboardWidgets';
+import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 
 interface PatientProfileProps {
