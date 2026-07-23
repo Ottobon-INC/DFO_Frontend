@@ -212,6 +212,16 @@ export const api = {
         });
     },
 
+    getPatientTimeline: async (id: string, page: number = 1, limit: number = 20, types: string[] = []) => {
+        let url = `${API_BASE_URL}/api/v1/clinics/patients/${id}/timeline?page=${page}&limit=${limit}`;
+        if (types.length > 0) {
+            url += `&types=${encodeURIComponent(types.join(','))}`;
+        }
+        return fetchJson<any>(url, {
+            headers: getHeaders()
+        });
+    },
+
     getPatientAppointments: async (id: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/appointments`, {
             headers: getHeaders()
@@ -240,6 +250,65 @@ export const api = {
         });
     },
 
+    getPatientDashboardData: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/dashboard-metrics`, {
+            headers: getHeaders()
+        });
+    },
+
+    addPatientVitals: async (patientId: string, vitalsData: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/vitals`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(vitalsData)
+        });
+    },
+
+    deletePatientVitals: async (patientId: string, vitalId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/vitals/${vitalId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+
+    addPatientAllergy: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/allergies`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    updatePatientAllergy: async (patientId: string, allergyId: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/allergies/${allergyId}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    deletePatientAllergy: async (patientId: string, allergyId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/allergies/${allergyId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+
+    addPatientMedicalHistory: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/medical-history`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    deletePatientMedicalHistory: async (patientId: string, historyId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${patientId}/medical-history/${historyId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+
     getDocumentUploadTicket: async (filename: string, fileSize: number, documentType?: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/upload-ticket`, {
             method: 'POST',
@@ -250,6 +319,18 @@ export const api = {
 
     getUnassignedDocuments: async (page: number = 1, limit: number = 10) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/unassigned?page=${page}&limit=${limit}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getSecureAssetUrl: async (documentId: string) => {
+        return fetchJson<{ success: boolean, data: { url: string, expiresIn: number } }>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/resolve`, {
+            headers: getHeaders()
+        });
+    },
+
+    getPatientSecureAssetUrl: async (documentId: string) => {
+        return fetchJson<{ success: boolean, data: { url: string, expiresIn: number } }>(`${API_BASE_URL}/api/patient-portal/documents/${documentId}/resolve`, {
             headers: getHeaders()
         });
     },
@@ -698,6 +779,70 @@ export const api = {
                 body: JSON.stringify(payload)
             });
         }
+    },
+
+    // Workspace Threads
+    getWorkspaceThreads: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads`, {
+            headers: getHeaders()
+        });
+    },
+
+    getWorkspaceClinicians: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/clinicians`, {
+            headers: getHeaders()
+        });
+    },
+
+    getWorkspaceThreadById: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getWorkspaceThreadMessages: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/messages`, {
+            headers: getHeaders()
+        });
+    },
+
+    assignWorkspaceThread: async (threadId: string, payload: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/assign`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
+    escalateWorkspaceThread: async (threadId: string, payload: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/escalate`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
+    replyToWorkspaceThread: async (threadId: string, payload: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/reply`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
+    resolveWorkspaceThread: async (threadId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/resolve`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+    },
+
+    refreshWorkspaceSummary: async (threadId: string, payload?: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/refresh-summary`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: payload ? JSON.stringify(payload) : undefined
+        });
     }
 };
 

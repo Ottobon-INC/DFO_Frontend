@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, Send, ShieldAlert, Activity, UserCheck, CheckCircle, Clock, 
+import {
+  Search, Send, ShieldAlert, Activity, UserCheck, CheckCircle, Clock,
   MessageSquare, AlertTriangle, RefreshCw, AlertCircle, ChevronDown, ChevronUp,
   User, Database, BrainCircuit
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { api } from '../services/api';
+import { TimelineContainer } from './timeline/TimelineContainer';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL || '',
@@ -26,6 +27,7 @@ export const ControlTowerWorkspace: React.FC = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showEarlier, setShowEarlier] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'timeline'>('overview');
 
   // Modals state
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
@@ -84,7 +86,7 @@ export const ControlTowerWorkspace: React.FC = () => {
     try {
       const threadRes = await api.getWorkspaceThreadById(threadId);
       const msgRes = await api.getWorkspaceThreadMessages(threadId);
-      
+
       setThreadDetails(threadRes.data || threadRes);
       setMessages(msgRes.data || msgRes || []);
     } catch (err) {
@@ -121,19 +123,19 @@ export const ControlTowerWorkspace: React.FC = () => {
   // Subscribe to messages when selectedThreadId changes
   useEffect(() => {
     if (!selectedThreadId) return;
-    
+
     const loadContext = async () => {
       try {
         const threadRes = await api.getWorkspaceThreadById(selectedThreadId);
         const msgRes = await api.getWorkspaceThreadMessages(selectedThreadId);
-        
+
         const fetchedThread = threadRes.data || threadRes;
         const fetchedMsgs = msgRes.data || msgRes || [];
-        
+
         setThreadDetails(fetchedThread);
         setMessages(fetchedMsgs);
         msgCountRef.current = fetchedMsgs.length;
-        
+
         // Scroll to bottom on initial load
         setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       } catch (err) {
@@ -149,7 +151,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         const msgRes = await api.getWorkspaceThreadMessages(selectedThreadId);
         const fetchedMsgs = msgRes.data || msgRes || [];
         setMessages(fetchedMsgs);
-        
+
         if (fetchedMsgs.length > msgCountRef.current) {
           msgCountRef.current = fetchedMsgs.length;
           setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -162,11 +164,11 @@ export const ControlTowerWorkspace: React.FC = () => {
     // Subscribe to messages (will fail on self-hosted but acts as backup)
     const msgsSubscription = orgSupabase
       .channel(`messages-${selectedThreadId}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
         table: 'sakhi_conversations_new',
-        filter: `user_id=eq.${threadDetails?.user_id || ''}` 
+        filter: `user_id=eq.${threadDetails?.user_id || ''}`
       }, (payload) => {
         let sender_type = 'HUMAN';
         if (payload.new.message_type === 'user') {
@@ -276,9 +278,9 @@ export const ControlTowerWorkspace: React.FC = () => {
   const handleSummarySubmit = async () => {
     if (!selectedThreadId) return;
     try {
-      await api.refreshWorkspaceSummary(selectedThreadId, { 
-        clinicalSummary: summaryText, 
-        handoffSummary: handoffText 
+      await api.refreshWorkspaceSummary(selectedThreadId, {
+        clinicalSummary: summaryText,
+        handoffSummary: handoffText
       });
       await fetchThreadContext(selectedThreadId);
       setShowSummaryModal(false);
@@ -302,8 +304,8 @@ export const ControlTowerWorkspace: React.FC = () => {
     return lowValueKeywords.some(kw => msg.toLowerCase().trim() === kw);
   };
 
-  const filteredMessages = showEarlier 
-    ? messages 
+  const filteredMessages = showEarlier
+    ? messages
     : messages.filter(m => !isGreetingMessage(m.message));
 
   const getFilteredThreads = () => {
@@ -339,7 +341,7 @@ export const ControlTowerWorkspace: React.FC = () => {
 
   return (
     <div className="flex gap-6 overflow-hidden h-[calc(100vh-200px)] animate-slide-up bg-brand-surface border border-brand-border rounded-2xl p-4">
-      
+
       {/* LEFT PANEL - Thread List */}
       <div className="w-80 bg-brand-bg/20 border border-brand-border rounded-2xl flex flex-col overflow-hidden">
         <div className="p-4 border-b border-brand-border bg-brand-surface">
@@ -355,9 +357,8 @@ export const ControlTowerWorkspace: React.FC = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`text-[9px] font-bold px-2 py-1 rounded transition-colors ${
-                  filter === f ? 'bg-brand-primary text-white' : 'bg-brand-bg hover:bg-brand-border text-brand-textSecondary'
-                }`}
+                className={`text-[9px] font-bold px-2 py-1 rounded transition-colors ${filter === f ? 'bg-brand-primary text-white' : 'bg-brand-bg hover:bg-brand-border text-brand-textSecondary'
+                  }`}
               >
                 {f.replace('_', ' ')}
               </button>
@@ -377,9 +378,8 @@ export const ControlTowerWorkspace: React.FC = () => {
                 <div
                   key={thread.id}
                   onClick={() => setSelectedThreadId(thread.id)}
-                  className={`p-4 cursor-pointer hover:bg-brand-bg/50 transition-colors ${
-                    selectedThreadId === thread.id ? 'bg-brand-primary/10 border-l-4 border-brand-primary' : ''
-                  }`}
+                  className={`p-4 cursor-pointer hover:bg-brand-bg/50 transition-colors ${selectedThreadId === thread.id ? 'bg-brand-primary/10 border-l-4 border-brand-primary' : ''
+                    }`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-bold text-xs text-brand-textPrimary flex items-center gap-1.5">
@@ -405,9 +405,8 @@ export const ControlTowerWorkspace: React.FC = () => {
                       {thread.channel}
                     </span>
                     {sla && (
-                      <span className={`font-bold px-1.5 py-0.5 rounded ${
-                        sla === 'SLA Expired' ? 'bg-red-500/10 text-red-400' : 'bg-brand-primary/10 text-brand-primary'
-                      }`}>
+                      <span className={`font-bold px-1.5 py-0.5 rounded ${sla === 'SLA Expired' ? 'bg-red-500/10 text-red-400' : 'bg-brand-primary/10 text-brand-primary'
+                        }`}>
                         {sla}
                       </span>
                     )}
@@ -418,7 +417,7 @@ export const ControlTowerWorkspace: React.FC = () => {
           )}
         </div>
       </div>
-      
+
       {/* RIGHT PANEL - Unified Workspace */}
       <div className="flex-1 bg-brand-bg/10 border border-brand-border rounded-2xl flex flex-col overflow-hidden">
         {selectedThreadId && threadDetails ? (
@@ -432,7 +431,7 @@ export const ControlTowerWorkspace: React.FC = () => {
                     {threadDetails.channel}
                   </span>
                 </h3>
-                 <p className="text-xs text-brand-textSecondary mt-1">
+                <p className="text-xs text-brand-textSecondary mt-1">
                   Status: <span className="font-bold capitalize">{threadDetails.status?.toLowerCase().replace('_', ' ')}</span> • Assigned to: <span className="font-bold">{getAssignedClinicianName() || 'None'}</span>
                 </p>
               </div>
@@ -447,7 +446,7 @@ export const ControlTowerWorkspace: React.FC = () => {
                     >
                       <ShieldAlert size={14} /> Escalate Case
                     </button>
-                    
+
                     <div className="flex items-center bg-brand-bg border border-brand-border rounded-xl p-1 gap-1">
                       <select
                         onChange={(e) => handleAssign(e.target.value, 'DOCTOR')}
@@ -476,173 +475,207 @@ export const ControlTowerWorkspace: React.FC = () => {
                 {((threadDetails.current_owner_type === 'DOCTOR' && userRole === 'DOCTOR' && threadDetails.current_owner_id === userId) ||
                   (threadDetails.current_owner_type === 'NURSE' && userRole === 'NURSE' && threadDetails.current_owner_id === userId) ||
                   userRole === 'CRO' || userRole === 'ADMIN') && (
-                  <button
-                    onClick={() => setShowResolveConfirm(true)}
-                    className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
-                  >
-                    <CheckCircle size={14} /> Resolve & Return to AI
-                  </button>
-                )}
+                    <button
+                      onClick={() => setShowResolveConfirm(true)}
+                      className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
+                    >
+                      <CheckCircle size={14} /> Resolve & Return to AI
+                    </button>
+                  )}
               </div>
+            </div>
+
+            {/* Custom Tabs */}
+            <div className="flex px-6 pt-2 gap-4 border-b border-brand-border bg-brand-surface">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`pb-2 text-xs font-bold transition-all border-b-2 ${activeTab === 'overview' ? 'text-brand-primary border-brand-primary' : 'text-brand-textSecondary border-transparent hover:text-brand-textPrimary'}`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className={`pb-2 text-xs font-bold transition-all border-b-2 ${activeTab === 'timeline' ? 'text-brand-primary border-brand-primary' : 'text-brand-textSecondary border-transparent hover:text-brand-textPrimary'}`}
+              >
+                Clinical Timeline
+              </button>
             </div>
 
             {/* Scrollable details view */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-              
-              {/* 2. AI Handoff Summary */}
-              <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
-                    <BrainCircuit size={15} /> AI Clinical Handoff Report
-                  </h4>
-                  <button
-                    onClick={handleRefreshSummary}
-                    className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
-                    title="Update or Add summary"
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                </div>
-
-                {threadDetails.handoff_summary ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
-                      <div>
-                        <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
-                        <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
-                      </div>
-                      {threadDetails.escalation_reason && (
-                        <div>
-                          <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
-                          <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
-                        </div>
-                      )}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-brand-surface">
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* 2. AI Handoff Summary */}
+                  <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                        <BrainCircuit size={15} /> AI Clinical Handoff Report
+                      </h4>
+                      <button
+                        onClick={handleRefreshSummary}
+                        className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
+                        title="Update or Add summary"
+                      >
+                        <RefreshCw size={13} />
+                      </button>
                     </div>
 
-                    <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
-                      {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
-                        if (line.includes(':')) {
-                          const parts = line.split(':');
+                    {threadDetails.handoff_summary ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
+                          <div>
+                            <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
+                            <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
+                          </div>
+                          {threadDetails.escalation_reason && (
+                            <div>
+                              <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
+                              <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
+                          {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
+                            if (line.includes(':')) {
+                              const parts = line.split(':');
+                              return (
+                                <div key={i} className="mt-1">
+                                  <span className="font-extrabold text-brand-textPrimary">{parts[0]}:</span>
+                                  <span>{parts.slice(1).join(':')}</span>
+                                </div>
+                              );
+                            }
+                            return <p key={i}>{line}</p>;
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-xs text-brand-textSecondary text-center py-6 italic font-medium">
+                        No clinical summary generated for this thread yet.<br />
+                        Click the refresh icon above to generate or write one manually.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Complete Chat Timeline */}
+                  <div className="border-t border-brand-border pt-6 space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Conversation Log</h4>
+                      <button
+                        onClick={() => setShowEarlier(!showEarlier)}
+                        className="text-[10px] font-bold text-brand-primary hover:text-brand-secondary flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none"
+                      >
+                        {showEarlier ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {showEarlier ? 'Hide Greetings' : 'Show Earlier Messages'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {filteredMessages.map((msg) => {
+                        const isPatient = msg.sender_type === 'PATIENT' || msg.sender_type === 'USER';
+                        const isAI = msg.sender_type === 'AI';
+                        const isSystem = msg.sender_type === 'SYSTEM';
+
+                        if (isSystem) {
                           return (
-                            <div key={i} className="mt-1">
-                              <span className="font-extrabold text-brand-textPrimary">{parts[0]}:</span>
-                              <span>{parts.slice(1).join(':')}</span>
+                            <div key={msg.id} className="flex justify-center my-2">
+                              <span className="bg-brand-bg text-[10px] font-bold px-3 py-1 rounded-full text-brand-textSecondary border border-brand-border">
+                                {msg.message}
+                              </span>
                             </div>
                           );
                         }
-                        return <p key={i}>{line}</p>;
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-xs text-brand-textSecondary text-center py-6 italic font-medium">
-                    No clinical summary generated for this thread yet.<br/>
-                    Click the refresh icon above to generate or write one manually.
-                  </div>
-                )}
-              </div>
 
-              {/* 3. Complete Chat Timeline */}
-              <div className="border-t border-brand-border pt-6 space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Conversation Log</h4>
-                  <button
-                    onClick={() => setShowEarlier(!showEarlier)}
-                    className="text-[10px] font-bold text-brand-primary hover:text-brand-secondary flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none"
-                  >
-                    {showEarlier ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    {showEarlier ? 'Hide Greetings' : 'Show Earlier Messages'}
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredMessages.map((msg) => {
-                    const isPatient = msg.sender_type === 'PATIENT' || msg.sender_type === 'USER';
-                    const isAI = msg.sender_type === 'AI';
-                    const isSystem = msg.sender_type === 'SYSTEM';
-                    
-                    if (isSystem) {
-                      return (
-                        <div key={msg.id} className="flex justify-center my-2">
-                          <span className="bg-brand-bg text-[10px] font-bold px-3 py-1 rounded-full text-brand-textSecondary border border-brand-border">
-                            {msg.message}
-                          </span>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={msg.id} className={`flex ${isPatient ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-md p-3.5 rounded-2xl text-xs font-medium border ${
-                          isPatient 
-                            ? 'bg-brand-bg text-brand-textPrimary border-brand-border rounded-tl-none' 
-                            : isAI
-                              ? 'bg-brand-primary/10 text-brand-textPrimary border-brand-primary/20 rounded-tr-none'
-                              : 'bg-brand-primary text-white border-brand-primary/30 rounded-tr-none'
-                        }`}>
-                          <div className="flex justify-between items-center gap-4 mb-1 text-[9px] opacity-75">
-                            <span className="font-extrabold uppercase">
-                              {isPatient ? 'Patient' : isAI ? 'AI Assistant' : msg.sender_type}
-                            </span>
-                            <span>
-                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                        return (
+                          <div key={msg.id} className={`flex ${isPatient ? 'justify-start' : 'justify-end'}`}>
+                            <div className={`max-w-md p-3.5 rounded-2xl text-xs font-medium border ${isPatient
+                                ? 'bg-brand-bg text-brand-textPrimary border-brand-border rounded-tl-none'
+                                : isAI
+                                  ? 'bg-brand-primary/10 text-brand-textPrimary border-brand-primary/20 rounded-tr-none'
+                                  : 'bg-brand-primary text-white border-brand-primary/30 rounded-tr-none'
+                              }`}>
+                              <div className="flex justify-between items-center gap-4 mb-1 text-[9px] opacity-75">
+                                <span className="font-extrabold uppercase">
+                                  {isPatient ? 'Patient' : isAI ? 'AI Assistant' : msg.sender_type}
+                                </span>
+                                <span>
+                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className="leading-relaxed">{msg.message}</p>
+                            </div>
                           </div>
-                          <p className="leading-relaxed">{msg.message}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={chatEndRef} />
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Reply Composer */}
-            <div className="p-4 border-t border-brand-border bg-brand-surface">
-              {isAssigned ? (
-                <div className="space-y-3">
-                  <div className="w-full bg-brand-bg/50 border border-brand-border p-3.5 rounded-xl text-xs text-center text-brand-textSecondary font-semibold">
-                    🔒 Thread has been locked to {getAssignedClinicianName()} ({threadDetails.assigned_role}).
+                        );
+                      })}
+                      <div ref={chatEndRef} />
+                    </div>
                   </div>
-                  <div className="flex gap-3 opacity-50">
-                    <input
-                      disabled
-                      value=""
-                      placeholder="Type your response to the patient..."
-                      className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none cursor-not-allowed"
-                    />
-                    <button
-                      disabled
-                      className="bg-brand-primary text-white rounded-xl px-5 py-3 flex items-center justify-center transition-all cursor-not-allowed"
-                    >
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </div>
-              ) : (!threadDetails.current_owner_type || threadDetails.current_owner_type === 'AI' || threadDetails.current_owner_id === userId || userRole === 'CRO' || userRole === 'ADMIN' || (threadDetails.current_owner_id === 'dr_sireesha' && userId === '24efa0aa-16d8-4b59-8c1b-91847d7b5599') || (threadDetails.current_owner_id === 'nurse_divya' && userId === 'adf72781-93d8-4827-ad1f-607d40c0edf3')) ? (
-                <div className="flex gap-3">
-                  <input
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
-                    placeholder="Type your response to the patient..."
-                    className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:ring-1 focus:ring-brand-primary"
-                  />
-                  <button
-                    onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
-                    className="bg-brand-primary hover:bg-brand-secondary text-white rounded-xl px-5 py-3 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    <Send size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="w-full bg-brand-bg/50 border border-brand-border p-3.5 rounded-xl text-xs text-center text-brand-textSecondary font-semibold">
-                  🔒 Only the assigned clinician ({threadDetails.current_owner_type} - {threadDetails.current_owner_id}) can reply to this thread.
                 </div>
               )}
+
+              {activeTab === 'timeline' && (
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-brand-surface h-full">
+                  {threadDetails.patient_id || threadDetails.patient_id_ref ? (
+                    <TimelineContainer patientId={threadDetails.patient_id || threadDetails.patient_id_ref} />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-brand-textSecondary text-center opacity-70">
+                      <p className="font-bold text-sm">No Patient Associated</p>
+                      <p className="text-xs mt-1">This thread is not yet associated with a specific patient profile.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
+
+              {/* 4. Reply Composer */}
+              {activeTab === 'overview' && (
+                <div className="p-4 border-t border-brand-border bg-brand-surface">
+                  {isAssigned ? (
+                    <div className="space-y-3">
+                      <div className="w-full bg-brand-bg/50 border border-brand-border p-3.5 rounded-xl text-xs text-center text-brand-textSecondary font-semibold">
+                        🔒 Thread has been locked to {getAssignedClinicianName()} ({threadDetails.assigned_role}).
+                      </div>
+                      <div className="flex gap-3 opacity-50">
+                        <input
+                          disabled
+                          value=""
+                          placeholder="Type your response to the patient..."
+                          className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none cursor-not-allowed"
+                        />
+                        <button
+                          disabled
+                          className="bg-brand-primary text-white rounded-xl px-5 py-3 flex items-center justify-center transition-all cursor-not-allowed"
+                        >
+                          <Send size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (!threadDetails.current_owner_type || threadDetails.current_owner_type === 'AI' || threadDetails.current_owner_id === userId || userRole === 'CRO' || userRole === 'ADMIN' || (threadDetails.current_owner_id === 'dr_sireesha' && userId === '24efa0aa-16d8-4b59-8c1b-91847d7b5599') || (threadDetails.current_owner_id === 'nurse_divya' && userId === 'adf72781-93d8-4827-ad1f-607d40c0edf3')) ? (
+                    <div className="flex gap-3">
+                      <input
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendReply()}
+                        placeholder="Type your response to the patient..."
+                        className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:ring-1 focus:ring-brand-primary"
+                      />
+                      <button
+                        onClick={handleSendReply}
+                        disabled={sendingReply || !replyText.trim()}
+                        className="bg-brand-primary hover:bg-brand-secondary text-white rounded-xl px-5 py-3 flex items-center justify-center transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        <Send size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-full bg-brand-bg/50 border border-brand-border p-3.5 rounded-xl text-xs text-center text-brand-textSecondary font-semibold">
+                      🔒 Only the assigned clinician ({threadDetails.current_owner_type} - {threadDetails.current_owner_id}) can reply to this thread.
+                    </div>
+                  )}
+                </div>
+              )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-brand-textSecondary p-8">
@@ -651,97 +684,97 @@ export const ControlTowerWorkspace: React.FC = () => {
             <p className="text-xs mt-1">Select a patient thread from the left pane to view details and reply.</p>
           </div>
         )}
+          </div>
+
+        {/* Modals */}
+        {showResolveConfirm && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-brand-border">
+                <h3 className="font-bold text-sm text-brand-textPrimary">Resolve Thread?</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-xs text-brand-textSecondary">Are you sure you want to resolve this thread? It will be returned to AI automation and marked as resolved.</p>
+              </div>
+              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end">
+                <button onClick={() => setShowResolveConfirm(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-bg border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+                <button onClick={handleResolve} className="px-4 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all">Yes, Resolve</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showEscalateModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-red-500/10">
+                <h3 className="font-bold text-sm text-red-500 flex items-center gap-2"><ShieldAlert size={16} /> Escalate Thread</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Escalate To Queue</label>
+                  <select
+                    value={escalateRole}
+                    onChange={(e) => setEscalateRole(e.target.value)}
+                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400 font-bold"
+                  >
+                    <option value="DOCTOR">Doctor / Specialist (Red Queue)</option>
+                    <option value="NURSE">Nurse / Triage (Yellow Queue)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Reason for Escalation</label>
+                  <textarea
+                    value={escalateReason}
+                    onChange={(e) => setEscalateReason(e.target.value)}
+                    placeholder="Provide clinical context for the clinician..."
+                    rows={3}
+                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400"
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+                <button onClick={() => setShowEscalateModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+                <button onClick={handleEscalateSubmit} disabled={!escalateReason.trim()} className="px-4 py-2 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50">Escalate Now</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSummaryModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center">
+                <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2"><BrainCircuit size={16} /> Edit AI Context Summary</h3>
+              </div>
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Clinical Summary</label>
+                  <textarea
+                    value={summaryText}
+                    onChange={(e) => setSummaryText(e.target.value)}
+                    rows={4}
+                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Handoff Bullet Points</label>
+                  <textarea
+                    value={handoffText}
+                    onChange={(e) => setHandoffText(e.target.value)}
+                    rows={6}
+                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary font-mono text-[10px]"
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+                <button onClick={() => setShowSummaryModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+                <button onClick={handleSummarySubmit} className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all">Save Summary</button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-
-      {/* Modals */}
-      {showResolveConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-brand-border">
-              <h3 className="font-bold text-sm text-brand-textPrimary">Resolve Thread?</h3>
-            </div>
-            <div className="p-6">
-              <p className="text-xs text-brand-textSecondary">Are you sure you want to resolve this thread? It will be returned to AI automation and marked as resolved.</p>
-            </div>
-            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end">
-              <button onClick={() => setShowResolveConfirm(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-bg border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-              <button onClick={handleResolve} className="px-4 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all">Yes, Resolve</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showEscalateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-red-500/10">
-              <h3 className="font-bold text-sm text-red-500 flex items-center gap-2"><ShieldAlert size={16} /> Escalate Thread</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Escalate To Queue</label>
-                <select 
-                  value={escalateRole} 
-                  onChange={(e) => setEscalateRole(e.target.value)}
-                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400 font-bold"
-                >
-                  <option value="DOCTOR">Doctor / Specialist (Red Queue)</option>
-                  <option value="NURSE">Nurse / Triage (Yellow Queue)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Reason for Escalation</label>
-                <textarea 
-                  value={escalateReason} 
-                  onChange={(e) => setEscalateReason(e.target.value)}
-                  placeholder="Provide clinical context for the clinician..."
-                  rows={3}
-                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
-              <button onClick={() => setShowEscalateModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-              <button onClick={handleEscalateSubmit} disabled={!escalateReason.trim()} className="px-4 py-2 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50">Escalate Now</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showSummaryModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center">
-              <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2"><BrainCircuit size={16} /> Edit AI Context Summary</h3>
-            </div>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Clinical Summary</label>
-                <textarea 
-                  value={summaryText} 
-                  onChange={(e) => setSummaryText(e.target.value)}
-                  rows={4}
-                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Handoff Bullet Points</label>
-                <textarea 
-                  value={handoffText} 
-                  onChange={(e) => setHandoffText(e.target.value)}
-                  rows={6}
-                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary font-mono text-[10px]"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
-              <button onClick={() => setShowSummaryModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-              <button onClick={handleSummarySubmit} className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all">Save Summary</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
+      );
 };
