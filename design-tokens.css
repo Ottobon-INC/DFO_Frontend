@@ -1,28 +1,39 @@
-/* Design Tokens */
+/* Premium Clinical Light Tokens */
 :root {
-  /* Primary and Accent */
-  --color-primary: #0A84FF; /* blue-ish */
-  --color-primary-dark: #0766cc;
-  --color-accent: #FF9F0A; /* amber */
+  /* Vibrant Accents */
+  --color-primary: #0052CC; /* Deep Azure Blue */
+  --color-primary-dark: #0747A6; /* Navy Slate */
+  --color-accent: #FF5630; /* Vibrant Coral */
 
-  /* Backgrounds */
-  --color-bg: #F0F4F8; 
-  --color-surface: rgba(255, 255, 255, 0.6); /* glass effect */
-  --color-surface-light: rgba(255, 255, 255, 0.8);
+  /* Clean Backgrounds */
+  --color-bg: #F4F7FA; /* Icy Blue-Grey */
+  --color-surface: #FFFFFF; /* Pure White */
+  --color-surface-light: #F8FAFC; 
 
-  /* Text */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #334155;
+  /* Crisp Text */
+  --color-text-primary: #091E42; /* Deep Ink */
+  --color-text-secondary: #5E6C84; /* Cool Slate */
 
-  /* Borders & Highlights */
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-hover: rgba(0, 0, 0, 0.05);
+  /* Subtle Borders & Soft Shadows */
+  --color-border: rgba(9, 30, 66, 0.08);
+  --color-hover: rgba(9, 30, 66, 0.04);
 }
 
-/* Utility classes */
-.bg-brand-bg { background-color: var(--color-bg); }
-.bg-brand-surface { background-color: var(--color-surface); backdrop-filter: blur(12px); }
+/* Base Utility Classes */
+.bg-brand-bg { 
+  background-color: var(--color-bg); 
+}
+
+/* Enhanced Surface Utilities */
+.bg-brand-surface { 
+  background-color: var(--color-surface); 
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 20px rgba(9, 30, 66, 0.04);
+}
+
 .text-brand-primary { color: var(--color-primary); }
 .text-brand-accent { color: var(--color-accent); }
+.text-brand-textPrimary { color: var(--color-text-primary); }
+.text-brand-textSecondary { color: var(--color-text-secondary); }
 .border-brand-border { border-color: var(--color-border); }
 .hover\:bg-brand-hover:hover { background-color: var(--color-hover); }

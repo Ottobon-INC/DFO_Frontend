@@ -84,9 +84,9 @@ export const TransferBed: React.FC<TransferBedProps> = ({ isOpen, admissionId, o
               <p className="text-sm text-brand-textSecondary">Move patient to a different bed/ward</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-brand-textSecondary hover:bg-brand-hover rounded-xl transition-colors">
-            <X size={20} />
-          </button>
+            <button onClick={onClose} className="p-2 text-brand-textSecondary hover:bg-red-100 hover:text-red-600 rounded-xl transition-colors">
+                <X size={20} />
+            </button>
         </div>
 
         {/* Form Body */}

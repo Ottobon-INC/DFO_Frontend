@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
@@ -25,6 +26,13 @@ const MOCK_DOCUMENTS: PatientDocument[] = [];
 export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initialPatient, onClose, userRole, onCompleteConsultation, onPatientUpdate, initialTab = 'overview' }) => {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
     const [isConsultationComplete, setIsConsultationComplete] = useState(false);
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
     const [patientDocuments, setPatientDocuments] = useState<PatientDocument[]>([]);
@@ -329,8 +337,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         { id: 'documents', label: 'Documents', shortLabel: 'Docs' },
     ];
 
-    return (
-        <div className="fixed inset-0 bg-brand-bg/80 backdrop-blur-sm z-50 flex justify-end animate-fade-in">
+    return createPortal(
+        <div className="fixed inset-0 bg-brand-bg/80 z-50 flex justify-end animate-fade-in">
             <div className="w-full max-w-[95vw] sm:max-w-[90vw] lg:max-w-6xl bg-brand-surface h-full shadow-2xl flex flex-col animate-slide-in-right border-l border-brand-border overflow-hidden">
 
                 {/* Header */}
@@ -357,7 +365,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                 <CheckCircle2 size={14} className="mr-0.5 sm:mr-1" /> <span className="hidden sm:inline">Done</span>
                             </button>
                         )}
-                        <button onClick={onClose} className="p-1 sm:p-1.5 lg:p-2 hover:bg-brand-bg rounded-full text-brand-textSecondary hover:text-brand-textPrimary transition-colors">
+                        <button onClick={onClose} className="p-1 sm:p-1.5 lg:p-2 hover:bg-red-100 rounded-full text-brand-textSecondary hover:text-red-600 transition-colors">
                             <X size={16} className="sm:w-5 sm:h-5" />
                         </button>
                     </div>
@@ -381,7 +389,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-brand-bg/30 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto overscroll-contain transform-gpu p-3 sm:p-4 md:p-6 lg:p-8 bg-brand-bg/30 custom-scrollbar">
 
                     {isConsultationComplete ? (
                         <div className="flex flex-col items-center justify-center h-full space-y-6 animate-fade-in">
@@ -639,11 +647,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             Archiving a patient record will move it to the inactive registry. This action should only be performed when a patient has officially dropped out or completed their journey.
                                         </p>
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (confirm('Are you sure you want to archive this patient record?')) {
-                                                    console.log('Archiving patient:', patient.id);
-                                                    alert('Patient record archived.');
-                                                    onClose();
+                                                    try {
+                                                        await api.updatePatient(patient.id, { status: 'Archived' });
+                                                        alert('Patient record archived successfully.');
+                                                        if (onPatientUpdate) onPatientUpdate();
+                                                        onClose();
+                                                    } catch (error: any) {
+                                                        console.error('Failed to archive patient:', error);
+                                                        alert(error?.message || 'Failed to archive patient.');
+                                                    }
                                                 }
                                             }}
                                             className="px-4 py-2 bg-brand-surface border border-brand-error/30 text-brand-error text-sm font-bold rounded-lg hover:bg-brand-error hover:text-brand-bg transition-colors shadow-sm"
@@ -947,9 +961,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     <div className="bg-brand-surface w-full max-w-sm rounded-2xl p-6 shadow-xl border border-brand-border animate-scale-in">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-brand-textPrimary text-lg">Reset Portal Access PIN</h3>
-                            <button onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }} className="text-brand-textSecondary hover:text-brand-textPrimary">
-                                <X size={20} />
-                            </button>
+                                <button onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
                         </div>
                         
                         {!resetPinSuccess ? (
@@ -992,6 +1006,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     </div>
                 </div>
             )}
-        </div >
+        </div >,
+        document.body
     );
 };

@@ -24,7 +24,7 @@ export const OSLayers: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
                         whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.1)', boxShadow: '0 10px 30px -10px rgba(79, 70, 229, 0.2)' }}
-                        className="bg-white/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
+                        className="bg-brand-surface/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
                     >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <h3 className="text-lg font-bold text-white tracking-wide uppercase group-hover:text-indigo-400 transition-colors">Operations Layer</h3>
@@ -44,7 +44,7 @@ export const OSLayers: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.15 }}
                         whileHover={{ scale: 1.02, x: 10, backgroundColor: 'rgba(255,255,255,0.1)', boxShadow: '0 10px 30px -10px rgba(79, 70, 229, 0.2)' }}
-                        className="bg-white/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
+                        className="bg-brand-surface/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
                     >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <h3 className="text-lg font-bold text-white tracking-wide uppercase group-hover:text-indigo-400 transition-colors">Clinical Layer</h3>
@@ -64,7 +64,7 @@ export const OSLayers: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.3 }}
                         whileHover={{ scale: 1.02, x: -10, backgroundColor: 'rgba(255,255,255,0.1)', boxShadow: '0 10px 30px -10px rgba(79, 70, 229, 0.2)' }}
-                        className="bg-white/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
+                        className="bg-brand-surface/5 p-7 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm transition-all duration-300 cursor-default group"
                     >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <h3 className="text-lg font-bold text-white tracking-wide uppercase group-hover:text-indigo-400 transition-colors">Intelligence Layer</h3>

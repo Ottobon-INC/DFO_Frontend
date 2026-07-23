@@ -3,17 +3,17 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-size: 18px; /* Scales up the entire Tailwind rem-based UI */
+}
+
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Product Sans', 'Google Sans', sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  /* Light Grey/Blueish */
-  /* Black/Dark Slate */
-  /* Light Grey/Blueish */
-  /* color will be set via CSS variable */
-  /* Black/Dark Slate */
   overflow-x: hidden;
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Custom Shake Animation */

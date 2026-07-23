@@ -65,7 +65,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                             <Phone size={14} className="mr-1" /> {lead.phone}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary p-2 hover:bg-brand-surface rounded-full transition-colors">
+                    <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 p-2 hover:bg-red-100 rounded-full transition-colors">
                         <X size={20} />
                     </button>
                 </div>

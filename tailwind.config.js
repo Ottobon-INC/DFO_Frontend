@@ -30,7 +30,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"Product Sans"', '"Google Sans"', 'sans-serif'],
       },
       animation: {
         'float-slow': 'float 15s infinite ease-in-out',

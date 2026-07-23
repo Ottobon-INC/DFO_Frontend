@@ -319,9 +319,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                             <h2 className="text-base sm:text-lg lg:text-xl font-bold text-brand-textPrimary truncate">{selectedLead.name}</h2>
                             <p className="text-xs sm:text-sm text-brand-textSecondary mt-1 flex items-center"><Phone size={12} className="mr-1 flex-shrink-0" /> {selectedLead.phone}</p>
                         </div>
-                        <button onClick={() => setSelectedLeadId(null)} className="text-brand-textSecondary hover:text-brand-textPrimary p-1.5 sm:p-2 rounded-full hover:bg-brand-bg transition-colors flex-shrink-0">
-                            <X size={18} />
-                        </button>
+                            <button onClick={() => setSelectedLeadId(null)} className="text-brand-textSecondary hover:text-red-600 p-1.5 sm:p-2 rounded-full hover:bg-red-100 transition-colors flex-shrink-0">
+                                <X size={18} />
+                            </button>
                     </div>
 
 

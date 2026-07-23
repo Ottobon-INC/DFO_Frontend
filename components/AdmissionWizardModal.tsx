@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bed, User, Stethoscope, Calendar, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Patient } from '../types';
@@ -11,6 +12,17 @@ interface AdmissionWizardModalProps {
 
 export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [patients, setPatients] = useState<Patient[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   
@@ -29,15 +41,37 @@ export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOp
 
   const fetchData = async () => {
     setIsLoading(true);
+    setError('');
     try {
-      const [patientsRes, doctorsRes, roomsRes] = await Promise.all([
-        api.getPatients(),
-        api.getDoctors(),
-        api.getRoomsAvailable()
-      ]);
-      setPatients(patientsRes?.data?.items || []);
-      setDoctors(doctorsRes?.data || []);
-      setRooms(roomsRes?.data || []);
+      let pData: any[] = [];
+      let dData: any[] = [];
+      let rData: any[] = [];
+
+      try {
+        const pRes = await api.getPatients();
+        pData = pRes?.data?.items || pRes?.data || pRes?.items || (Array.isArray(pRes) ? pRes : []);
+        if (!Array.isArray(pData)) pData = [];
+      } catch (e) { console.warn('Failed to fetch patients for admission', e); }
+
+      try {
+        const dRes = await api.getDoctors();
+        dData = dRes?.data || (Array.isArray(dRes) ? dRes : []);
+        if (!Array.isArray(dData)) dData = [];
+      } catch (e) { console.warn('Failed to fetch doctors for admission', e); }
+
+      try {
+        const rRes = await api.getRoomsAvailable();
+        rData = rRes?.data || (Array.isArray(rRes) ? rRes : []);
+        if (!Array.isArray(rData)) rData = [];
+      } catch (e) { console.warn('Failed to fetch rooms for admission', e); }
+
+      setPatients(pData);
+      setDoctors(dData);
+      setRooms(rData);
+
+      if (pData.length === 0 && rData.length === 0) {
+         setError('Warning: No patients or rooms could be fetched. Ensure backend is running.');
+      }
     } catch (err: any) {
       console.error(err);
       setError('Failed to fetch required data for admission.');
@@ -82,7 +116,7 @@ export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOp
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative bg-brand-surface border border-brand-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
@@ -98,7 +132,7 @@ export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOp
               <p className="text-sm text-brand-textSecondary">Assign a patient to an available bed</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-brand-textSecondary hover:bg-brand-hover rounded-xl transition-colors">
+          <button onClick={onClose} className="p-2 text-brand-textSecondary hover:bg-red-100 hover:text-red-600 rounded-xl transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -199,6 +233,7 @@ export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOp
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

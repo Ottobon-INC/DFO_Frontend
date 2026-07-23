@@ -21,7 +21,7 @@ export const WhyClinicsTrust: React.FC = () => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         whileHover={{ scale: 1.05 }}
-                        className="absolute top-0 px-8 py-4 bg-white/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
+                        className="absolute top-0 px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
                     >
                         Reliable
                     </motion.div>
@@ -34,7 +34,7 @@ export const WhyClinicsTrust: React.FC = () => {
                             viewport={{ once: true }}
                             transition={{ delay: 0.1 }}
                             whileHover={{ scale: 1.05 }}
-                            className="px-8 py-4 bg-white/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
+                            className="px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
                         >
                             Accurate
                         </motion.div>
@@ -44,7 +44,7 @@ export const WhyClinicsTrust: React.FC = () => {
                             viewport={{ once: true }}
                             transition={{ delay: 0.1 }}
                             whileHover={{ scale: 1.05 }}
-                            className="px-8 py-4 bg-white/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
+                            className="px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
                         >
                             Secure
                         </motion.div>
@@ -69,7 +69,7 @@ export const WhyClinicsTrust: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ delay: 0.3 }}
                         whileHover={{ scale: 1.05 }}
-                        className="absolute bottom-0 px-8 py-4 bg-white/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
+                        className="absolute bottom-0 px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
                     >
                         Patient-First
                     </motion.div>

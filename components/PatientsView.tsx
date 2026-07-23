@@ -1,34 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Search, Filter, UserPlus, List, FileText, ClipboardList, ArrowRight, Upload, Download } from 'lucide-react';
+import { Search, Filter, UserPlus, FileText, Upload, Download, Activity, Users, Calendar, Eye, CalendarPlus, ArrowLeft } from 'lucide-react';
 import { Patient, Doctor } from '../types';
 import { PatientProfile } from './PatientProfile';
 import { BookAppointmentModal } from './AppointmentModals';
 import { PatientConversionForm } from './PatientRegistration';
 import { api } from '../services/api';
 
-// Mock Data
-// MOCK_PATIENTS removed in favor of API
-const MOCK_PATIENTS: Patient[] = [];
-
 interface PatientsViewProps {
     onNavigateToLeads: () => void;
 }
 
-type PatientTab = 'list' | 'conversion';
-
 export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads }) => {
-    const location = useLocation();
-    const leadToConvert = location.state?.leadToConvert;
-
-    // Set initial tab based on navigation state
-    const [activeTab, setActiveTab] = useState<PatientTab>(leadToConvert ? 'conversion' : 'list');
-
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All Patients');
     const [filterGender, setFilterGender] = useState('All Genders');
     const [filterMonth, setFilterMonth] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+    const [isNewPatientMode, setIsNewPatientMode] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
 
     const fetchPatients = async () => {
@@ -208,20 +197,20 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
         reader.readAsText(file);
     };
 
-
     // Booking Modal State
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [patientForBooking, setPatientForBooking] = useState<Patient | null>(null);
 
     const filteredPatients = patients.filter(patient => {
         const matchesSearch = (
-            patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (patient.id && patient.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (patient.mobile && patient.mobile.includes(searchTerm))
+            (patient.name && String(patient.name).toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (patient.id && String(patient.id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (patient.mobile && String(patient.mobile).includes(searchTerm)) ||
+            (patient.uhid && String(patient.uhid).toLowerCase().includes(searchTerm.toLowerCase()))
         );
-        const matchesStatus = filterStatus === 'All Patients' || patient.status === filterStatus;
-        const matchesGender = filterGender === 'All Genders' || patient.gender === filterGender;
-        const matchesMonth = !filterMonth || patient.registrationDate.startsWith(filterMonth);
+        const matchesStatus = filterStatus === 'All Patients' || (patient.status && String(patient.status).toLowerCase() === filterStatus.toLowerCase());
+        const matchesGender = filterGender === 'All Genders' || (patient.gender && String(patient.gender).toLowerCase() === filterGender.toLowerCase());
+        const matchesMonth = !filterMonth || (patient.registrationDate && String(patient.registrationDate).startsWith(filterMonth));
 
         return matchesSearch && matchesStatus && matchesGender && matchesMonth;
     });
@@ -232,172 +221,212 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
         setPatientForBooking(null);
     };
 
-    const handleConversionSuccess = () => {
-        fetchPatients();
-        setActiveTab('list');
-    };
+    // Calculate Summary Metrics
+    const totalPatients = patients.length;
+    const activePatients = patients.filter(p => p.status === 'Active').length;
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const newThisMonth = patients.filter(p => p.registrationDate && p.registrationDate.startsWith(currentMonth)).length;
 
     return (
         <div className="flex flex-col h-full gap-4 lg:gap-6 relative">
-
-            {/* Top Navigation Tabs */}
-            <div className="flex space-x-2 sm:space-x-4 border-b border-brand-border pb-1 overflow-x-auto">
-                <button
-                    onClick={() => setActiveTab('list')}
-                    className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeTab === 'list' ? 'border-brand-primary text-brand-primary font-bold' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
-                >
-                    <List size={16} />
-                    <span>Patients</span>
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('conversion')}
-                    className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 border-b-2 transition-colors whitespace-nowrap text-xs sm:text-sm ${activeTab === 'conversion' ? 'border-brand-primary text-brand-primary font-bold' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
-                >
-                    <ClipboardList size={16} />
-                    <span>Convert</span>
-                </button>
+            
+            {/* Summary Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Total Patients</p>
+                        <h3 className="text-2xl font-bold text-brand-textPrimary">{totalPatients}</h3>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <Users size={20} />
+                    </div>
+                </div>
+                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Active Cases</p>
+                        <h3 className="text-2xl font-bold text-brand-textPrimary">{activePatients}</h3>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-600">
+                        <Activity size={20} />
+                    </div>
+                </div>
+                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">New This Month</p>
+                        <h3 className="text-2xl font-bold text-brand-textPrimary">+{newThisMonth}</h3>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
+                        <Calendar size={20} />
+                    </div>
+                </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-hidden">
-                {activeTab === 'list' && (
-                    <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-6">
-                        {/* Filters Sidebar - Hidden on mobile */}
-                        <div className="hidden lg:flex w-64 flex-shrink-0 flex-col gap-6">
-                            <div className="bg-brand-surface p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-sm border border-brand-border h-full overflow-y-auto custom-scrollbar">
-                                <div className="flex items-center space-x-2 mb-4 lg:mb-6 text-brand-textPrimary">
-                                    <Filter size={18} className="text-brand-primary" />
-                                    <h3 className="font-bold text-base lg:text-lg">Filters</h3>
-                                </div>
-                                <div className="space-y-4 lg:space-y-6">
-                                    <div>
-                                        <label className="block text-[10px] lg:text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-2 lg:mb-3">Status</label>
-                                        <div className="space-y-1 lg:space-y-2">
-                                            <button onClick={() => setFilterStatus('All Patients')} className={`w-full text-left px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-bold transition-colors ${filterStatus === 'All Patients' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-textSecondary hover:bg-brand-bg'}`}>All</button>
-                                            <button onClick={() => setFilterStatus('Active')} className={`w-full text-left px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors ${filterStatus === 'Active' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-textSecondary hover:bg-brand-bg'}`}>Active</button>
-                                            <button onClick={() => setFilterStatus('Discharged')} className={`w-full text-left px-2 lg:px-3 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors ${filterStatus === 'Discharged' ? 'bg-brand-primary/20 text-brand-primary' : 'text-brand-textSecondary hover:bg-brand-bg'}`}>Discharged</button>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] lg:text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-2 lg:mb-3">Gender</label>
-                                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors">
-                                            <option>All Genders</option>
-                                            <option>Female</option>
-                                            <option>Male</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] lg:text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-2 lg:mb-3">Month</label>
-                                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
+            {/* Content Area - Main List */}
+            <div className="flex-1 flex flex-col bg-brand-surface rounded-xl shadow-sm border border-brand-border overflow-hidden min-w-0">
+                {/* Top Action Bar (Merged Filters and Actions) */}
+                <div className="p-4 border-b border-brand-border bg-brand-bg/30 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                    
+                    {/* Horizontal Filters */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center bg-brand-surface px-3 py-2 rounded-lg border border-brand-border focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all shadow-sm w-full sm:w-64">
+                            <Search size={16} className="text-brand-textSecondary mr-2" />
+                            <input
+                                placeholder="Search by name, ID..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
+                            />
                         </div>
 
-                        {/* Main List */}
-                        <div className="flex-1 flex flex-col h-full bg-brand-surface rounded-xl lg:rounded-2xl shadow-sm border border-brand-border overflow-hidden min-w-0">
-                            <div className="p-3 sm:p-4 lg:p-6 border-b border-brand-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-brand-bg/50">
-                                <div className="flex items-center bg-brand-surface px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-brand-border w-full sm:w-auto sm:max-w-xs lg:w-96 focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all shadow-sm">
-                                    <Search size={18} className="text-brand-textSecondary mr-2 sm:mr-3 flex-shrink-0" />
-                                    <input
-                                        placeholder="Search..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
-                                    />
-                                </div>
-                                <div className="flex flex-wrap gap-2 sm:gap-3">
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileChange}
-                                        accept=".csv"
-                                        className="hidden"
-                                    />
-                                    <button
-                                        onClick={handleExportCSV}
-                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
-                                        title="Export to CSV"
-                                    >
-                                        <Download size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Export</span>
-                                    </button>
-                                    <button
-                                        onClick={handleImportClick}
-                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
-                                        title="Import from CSV"
-                                    >
-                                        <Upload size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Import</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setActiveTab('conversion')}
-                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg sm:rounded-xl shadow-lg shadow-brand-primary/20 flex items-center text-xs sm:text-sm transition-all active:scale-95"
-                                    >
-                                        <UserPlus size={16} className="mr-1 sm:mr-2" /> <span className="hidden sm:inline">New Patient</span><span className="sm:hidden">New</span>
-                                    </button>
-                                </div>
-                            </div>
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer">
+                            <option>All Patients</option>
+                            <option>Active</option>
+                            <option>Discharged</option>
+                            <option>Archived</option>
+                        </select>
 
-                            <div className="flex-1 overflow-auto custom-scrollbar">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm">
-                                        <tr>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Patient Name / ID</th>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Contact</th>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Gender</th>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Reg. Date</th>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Status</th>
-                                            <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-brand-border">
-                                        {filteredPatients.map(patient => (
-                                            <tr
-                                                key={patient.id}
-                                                onClick={() => setSelectedPatient(patient)}
-                                                className="hover:bg-brand-bg/50 transition-colors cursor-pointer group"
-                                            >
-                                                <td className="p-4">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-sm border border-brand-primary/20">
-                                                            {patient.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-brand-textPrimary text-sm">{patient.name}</p>
-                                                            <p className="text-xs text-brand-textSecondary font-mono">{patient.uhid}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-sm text-brand-textSecondary">{patient.mobile}</td>
-                                                <td className="p-4 text-sm text-brand-textPrimary">{patient.gender}</td>
-                                                <td className="p-4 text-sm text-brand-textSecondary">{patient.registrationDate}</td>
-                                                <td className="p-4">
-                                                    <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider bg-green-100 text-green-700 border border-green-200">
-                                                        {patient.status}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4">
-                                                    <button className="text-brand-primary hover:bg-brand-primary/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                                                        <ArrowRight size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer">
+                            <option>All Genders</option>
+                            <option>Female</option>
+                            <option>Male</option>
+                        </select>
+
+                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer" />
                     </div>
-                )}
 
+                    {/* Actions */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {!isNewPatientMode && (
+                            <>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    accept=".csv"
+                                    className="hidden"
+                                />
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
+                                    title="Export to CSV"
+                                >
+                                    <Download size={16} className="mr-2" /> Export
+                                </button>
+                                <button
+                                    onClick={handleImportClick}
+                                    className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
+                                    title="Import from CSV"
+                                >
+                                    <Upload size={16} className="mr-2" /> Import
+                                </button>
+                                <button
+                                    onClick={() => setIsNewPatientMode(true)}
+                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg shadow-lg shadow-brand-primary/20 flex items-center text-sm transition-all active:scale-95"
+                                >
+                                    <UserPlus size={16} className="mr-2" /> New Patient
+                                </button>
+                            </>
+                        )}
+                        {isNewPatientMode && (
+                            <button
+                                onClick={() => setIsNewPatientMode(false)}
+                                className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
+                            >
+                                <ArrowLeft size={16} className="mr-2" /> Back to List
+                            </button>
+                        )}
+                    </div>
+                </div>
 
-
-                {activeTab === 'conversion' && (
-                    <PatientConversionForm
-                        initialData={leadToConvert}
-                        onSuccess={handleConversionSuccess}
-                    />
-                )}
+                {/* Table or New Patient Form */}
+                <div className="flex-1 overflow-auto custom-scrollbar">
+                    {isNewPatientMode ? (
+                        <PatientConversionForm
+                            onSuccess={() => {
+                                setIsNewPatientMode(false);
+                                fetchPatients();
+                            }}
+                        />
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm border-b border-brand-border">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Patient Name / ID</th>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Contact</th>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Gender</th>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Reg. Date</th>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-border bg-brand-surface">
+                            {filteredPatients.map((patient, idx) => (
+                                <tr
+                                    key={patient.id}
+                                    className={`hover:bg-brand-hover transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-brand-bg/30'}`}
+                                >
+                                    <td className="px-6 py-4 cursor-pointer" onClick={() => setSelectedPatient(patient)}>
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-sm border border-brand-primary/20 shadow-sm">
+                                                {String(patient.name).charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-brand-textPrimary text-sm group-hover:text-brand-primary transition-colors">{patient.name}</p>
+                                                <p className="text-xs text-brand-textSecondary font-mono mt-0.5">{patient.uhid}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-brand-textSecondary">{patient.mobile}</td>
+                                    <td className="px-6 py-4 text-sm text-brand-textPrimary font-medium">{patient.gender}</td>
+                                    <td className="px-6 py-4 text-sm text-brand-textSecondary font-medium">{patient.registrationDate}</td>
+                                    <td className="px-6 py-4">
+                                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider border ${
+                                             patient.status === 'Active' ? 'bg-green-100 text-green-700 border-green-200' :
+                                             patient.status === 'Discharged' ? 'bg-blue-100 text-brand-primary border-blue-200' :
+                                             'bg-brand-hover text-brand-textSecondary border-brand-border'
+                                         }`}>
+                                             {patient.status}
+                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end space-x-2">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setSelectedPatient(patient); }}
+                                                className="px-3 py-1.5 rounded bg-brand-hover text-brand-textPrimary border border-brand-border hover:bg-brand-bg hover:border-brand-textSecondary transition-all flex items-center space-x-1.5 text-xs font-semibold shadow-sm"
+                                            >
+                                                <FileText size={14} className="text-brand-textSecondary" />
+                                                <span>File</span>
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPatientForBooking(patient);
+                                                    setIsBookingModalOpen(true);
+                                                }}
+                                                className="px-3 py-1.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary hover:text-white transition-all flex items-center space-x-1.5 text-xs font-semibold shadow-sm"
+                                            >
+                                                <CalendarPlus size={14} />
+                                                <span>Book</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredPatients.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-brand-textSecondary">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <Filter size={32} className="opacity-20 mb-3" />
+                                            <p className="font-medium text-sm">No patients found matching the current filters.</p>
+                                            <p className="text-xs mt-1 opacity-70">Try adjusting your search or clearing the filters.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                    )}
+                </div>
             </div>
 
             {/* Patient Profile Overlay */}

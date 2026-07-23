@@ -58,7 +58,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                         <User className="text-brand-primary" size={24} />
                         My Profile
                     </h2>
-                    <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors p-2 hover:bg-brand-hover rounded-xl">
+                    <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 transition-colors p-2 hover:bg-red-100 rounded-xl">
                         <X size={20} />
                     </button>
                 </div>
@@ -180,7 +180,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
                         <Lock className="text-brand-primary" size={24} />
                         Change Password
                     </h2>
-                    <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors p-2 hover:bg-brand-hover rounded-xl">
+                    <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 transition-colors p-2 hover:bg-red-100 rounded-xl">
                         <X size={20} />
                     </button>
                 </div>

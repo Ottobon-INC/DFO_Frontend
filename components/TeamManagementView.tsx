@@ -115,7 +115,7 @@ export const TeamManagementView: React.FC = () => {
       case 'Nurse': return 'bg-teal-500/10 text-teal-500 border-teal-500/20';
       case 'Receptionist':
       case 'Front Desk':
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      default: return 'bg-gray-500/10 text-brand-textSecondary border-gray-500/20';
     }
   };
 

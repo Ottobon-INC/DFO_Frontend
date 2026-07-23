@@ -23,7 +23,7 @@ export const PartnershipSection: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-brand-slate mb-6">
               Medcy IVF: Our Commitment to <span className="text-brand-teal">Families.</span>
             </h2>
-            <p className="text-lg text-gray-600 leading-relaxed mb-6">
+            <p className="text-lg text-brand-textSecondary leading-relaxed mb-6">
               We believe every journey to parenthood deserves world-class science and empathetic support. By partnering with JanmaSethu, we have integrated the latest in AI-driven patient management to ensure no query goes unanswered and every treatment plan is tracked with precision.
             </p>
             <div className="flex items-center space-x-4">
@@ -41,7 +41,7 @@ export const PartnershipSection: React.FC = () => {
                 alt="Clinic Interior" 
                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
               />
-              <div className="absolute bottom-6 left-6 z-20 bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-sm">
+              <div className="absolute bottom-6 left-6 z-20 bg-brand-surface/90 backdrop-blur px-4 py-2 rounded-lg shadow-sm">
                 <p className="text-xs font-bold text-brand-slate">State of the Art Laboratory</p>
               </div>
             </div>

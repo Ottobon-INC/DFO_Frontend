@@ -84,7 +84,7 @@ export const UnassignedDocumentsView: React.FC = () => {
                         {documents.map((doc) => (
                             <div key={doc.id} className="bg-brand-bg border border-brand-border rounded-xl p-5 flex flex-col hover:shadow-md transition-shadow">
                                 <div className="flex items-start gap-4 mb-4">
-                                    <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+                                    <div className="w-12 h-12 rounded-xl bg-brand-surface shadow-sm flex items-center justify-center flex-shrink-0">
                                         {getFileIcon(doc.mime_type)}
                                     </div>
                                     <div className="flex-1 min-w-0">

@@ -172,7 +172,7 @@ export const RoomsView: React.FC = () => {
                       <div className="bg-brand-bg px-4 py-3 border-b border-brand-border flex justify-between items-center">
                         <span className="font-bold text-brand-textPrimary">{room.name || `Room ${room.room_number}`}</span>
                       </div>
-                      <div className="p-4 flex-1 flex flex-col space-y-3 bg-white/5">
+                      <div className="p-4 flex-1 flex flex-col space-y-3 bg-brand-surface/5">
                         {beds.map((bed: any) => {
                           const isOccupied = bed.status === 'occupied';
                           

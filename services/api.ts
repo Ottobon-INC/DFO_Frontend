@@ -35,11 +35,22 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
     const response = await fetch(url, { ...options, credentials: 'include' });
     
     if (response.status === 401 && !url.includes('/api/auth/login') && !url.includes('/api/v1/superadmin/auth/login')) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        window.location.href = '/login';
-        throw new Error('Unauthorized');
+        // Only force-logout if the token itself is expired/invalid.
+        // Parse the error body to distinguish "expired token" from "insufficient permissions".
+        let errorBody: any = null;
+        try { errorBody = await response.clone().json(); } catch {}
+        const errorMsg = (errorBody?.error || errorBody?.message || '').toLowerCase();
+        const isTokenDead = errorMsg.includes('expired') || errorMsg.includes('invalid') || errorMsg.includes('unauthorized');
+
+        if (isTokenDead) {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            window.location.href = '/login';
+            throw new Error('Session expired. Please log in again.');
+        }
+        // Otherwise, throw an ApiError so the calling component can show a "Forbidden" toast
+        throw new ApiError(errorBody?.error || 'Access denied', 401, errorBody);
     }
 
     if (!response.ok) {
@@ -523,6 +534,12 @@ export const api = {
         });
     },
 
+    verifySession: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/me`, {
+            headers: getHeaders()
+        });
+    },
+
     updateProfile: async (data: { name?: string; email?: string }) => {
         return fetchJson<any>(`${API_BASE_URL}/api/auth/profile`, {
             method: 'PATCH',
@@ -610,7 +627,7 @@ export const api = {
     },
 
     getOverviewAnalytics: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/analytics`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/analytics/dashboard`, {
             headers: getHeaders()
         });
     },

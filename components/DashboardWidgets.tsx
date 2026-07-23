@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarDays, Clock, User, Users, Phone, ArrowRight, Activity, CheckCircle2, XCircle, AlertCircle, Plus, FileText, Stethoscope, UserPlus, Baby, Sparkles, ArrowDown } from 'lucide-react';
+import { CalendarDays, Clock, User, Users, Phone, ArrowRight, Activity, CheckCircle2, XCircle, AlertCircle, Plus, FileText, Stethoscope, UserPlus, Baby, Sparkles, ArrowDown, List, Filter } from 'lucide-react';
 import { Appointment, Lead } from '../types';
 
 // --- Appointment Widget ---
@@ -40,7 +40,7 @@ export const AppointmentWidget: React.FC<{
                         <div key={apt.id} className="p-4 rounded-xl bg-brand-bg border border-brand-border hover:border-brand-primary/50 transition-all group/item">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-start space-x-3">
-                                    <div className="p-2 bg-white rounded-lg shadow-sm text-brand-primary font-bold text-xs flex flex-col items-center min-w-[3.5rem] border border-brand-border">
+                                    <div className="p-2 bg-brand-surface rounded-lg shadow-sm text-brand-primary font-bold text-xs flex flex-col items-center min-w-[3.5rem] border border-brand-border">
                                         <span>
                                             {(() => {
                                                 const t = apt.time || '';
@@ -80,7 +80,7 @@ export const AppointmentWidget: React.FC<{
                                 {apt.status !== 'Checked-In' && apt.status !== 'Canceled' && (
                                     <button
                                         onClick={() => onCheckIn(apt.id)}
-                                        className="flex-1 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center"
+                                        className="flex-1 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center"
                                     >
                                         <CheckCircle2 size={12} className="mr-1" /> Check In
                                     </button>
@@ -89,13 +89,13 @@ export const AppointmentWidget: React.FC<{
                                     <>
                                         <button
                                             onClick={() => onReschedule(apt.id)}
-                                            className="flex-1 py-1.5 bg-white border border-brand-border text-brand-textSecondary hover:text-brand-primary hover:bg-brand-bg text-xs font-bold rounded-lg transition-colors flex items-center justify-center"
+                                            className="flex-1 py-1.5 bg-brand-surface border border-brand-border text-brand-textSecondary hover:text-brand-primary hover:bg-brand-bg text-xs font-bold rounded-lg transition-colors flex items-center justify-center"
                                         >
                                             <Clock size={12} className="mr-1" /> Reschedule
                                         </button>
                                         <button
                                             onClick={() => onCancel(apt.id)}
-                                            className="py-1.5 px-3 bg-white border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold rounded-lg transition-colors"
+                                            className="py-1.5 px-3 bg-brand-surface border border-red-200 text-red-500 hover:bg-red-50 text-xs font-bold rounded-lg transition-colors"
                                             title="Cancel Appointment"
                                         >
                                             <XCircle size={12} />
@@ -188,7 +188,7 @@ export const CROStatusWidget: React.FC<{ leadsInQueue: number, leadsConvertedTod
         <h3 className="text-lg font-bold text-brand-textPrimary mb-2">CRO Desk Status</h3>
 
         <div className="flex items-center p-4 bg-red-50 rounded-xl border border-red-100">
-            <div className="p-3 bg-white rounded-full text-red-500 shadow-sm mr-4 border border-red-100">
+            <div className="p-3 bg-brand-surface rounded-full text-red-500 shadow-sm mr-4 border border-red-100">
                 <AlertCircle size={24} />
             </div>
             <div>
@@ -197,87 +197,65 @@ export const CROStatusWidget: React.FC<{ leadsInQueue: number, leadsConvertedTod
             </div>
         </div>
 
-        <div className="flex items-center p-4 bg-green-50 rounded-xl border border-green-100">
-            <div className="p-3 bg-white rounded-full text-green-500 shadow-sm mr-4 border border-green-100">
+        <div className="flex items-center p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
+            <div className="p-3 bg-brand-surface rounded-full text-brand-primary shadow-sm mr-4 border border-brand-primary/10">
                 <CheckCircle2 size={24} />
             </div>
             <div>
                 <p className="text-2xl font-bold text-brand-textPrimary">{leadsConvertedToday}</p>
-                <p className="text-xs font-bold text-green-500 uppercase tracking-wide">Converted Today</p>
+                <p className="text-xs font-bold text-brand-primary uppercase tracking-wide">Converted Today</p>
             </div>
         </div>
     </div>
 );
 
 // --- Intervention Queue Widget (Admin/CRO) ---
-export const InterventionQueueWidget: React.FC<{
-    leads: Lead[],
-    onViewAll: () => void,
-    onViewLead?: (lead: Lead) => void,
-    onReEngage?: (lead: Lead) => void
-}> = ({ leads, onViewAll, onViewLead, onReEngage }) => (
-    <div className="bg-brand-surface p-3 sm:p-4 lg:p-6 rounded-xl lg:rounded-2xl shadow-sm border border-brand-border h-full flex flex-col relative overflow-hidden">
-        {/* Decorative Background */}
-        <div className="absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-brand-primary/5 rounded-bl-full -mr-4 sm:-mr-6 lg:-mr-8 -mt-4 sm:-mt-6 lg:-mt-8 pointer-events-none"></div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 sm:mb-4 lg:mb-6 relative z-10">
-            <div className="min-w-0">
-                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-brand-textPrimary flex items-center">
-                    <AlertCircle className="mr-1.5 sm:mr-2 text-brand-primary flex-shrink-0" size={16} />
-                    <span className="truncate">Intervention Queue</span>
+export const InterventionQueueWidget: React.FC<{ leads: Lead[], onViewAll?: () => void, onViewLead?: (lead: Lead) => void, onReEngage?: (id: string) => void }> = ({ leads, onViewAll, onViewLead, onReEngage }) => {
+    return (
+        <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 flex-shrink-0 pr-1">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center">
+                    <List size={16} className="text-brand-primary mr-1.5" /> Pending Interventions
                 </h3>
-                <p className="text-[10px] sm:text-xs text-brand-textSecondary font-medium mt-0.5 sm:mt-1">High priority leads requiring attention.</p>
+                {onViewAll && leads.length > 0 && (
+                    <button onClick={onViewAll} className="text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors">
+                        View All
+                    </button>
+                )}
             </div>
-            <button onClick={onViewAll} className="text-[10px] sm:text-xs font-bold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg transition-all active:scale-95 border border-brand-primary/20 whitespace-nowrap flex-shrink-0">
-                View All
-            </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 sm:space-y-3 relative z-10 pr-1 sm:pr-2">
-            {leads.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-brand-textSecondary space-y-2 sm:space-y-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-brand-success/10 flex items-center justify-center text-brand-success border border-brand-success/20">
-                        <CheckCircle2 size={20} />
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                {leads.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center bg-brand-surface rounded-xl border border-brand-border border-dashed">
+                        <CheckCircle2 size={32} className="text-brand-primary/40 mb-2" />
+                        <p className="text-sm font-bold text-brand-textPrimary">All caught up!</p>
+                        <p className="text-xs text-brand-textSecondary mt-1">No pending interventions right now.</p>
                     </div>
-                    <p className="text-xs sm:text-sm font-medium text-center">All caught up! No stalled leads.</p>
-                </div>
-            ) : (
-                leads.map(lead => (
-                    <div key={lead.id} className="p-2.5 sm:p-3 lg:p-4 rounded-lg lg:rounded-xl bg-brand-bg border border-brand-border hover:border-brand-primary/50 transition-all group shadow-sm hover:shadow-md">
-                        <div className="flex justify-between items-start mb-2 sm:mb-3 gap-2">
-                            <div className="min-w-0 flex-1">
-                                <h4 className="font-bold text-brand-textPrimary text-xs sm:text-sm truncate">{lead.name}</h4>
-                                <p className="text-[10px] sm:text-xs text-brand-textSecondary mt-0.5 sm:mt-1 flex items-center">
-                                    <Clock size={10} className="mr-1 flex-shrink-0" /> Stalled: <span className="font-semibold text-brand-textPrimary ml-1">2 Days</span>
-                                </p>
+                ) : (
+                    leads.slice(0, 5).map(lead => (
+                        <div key={lead.id} onClick={() => onViewLead && onViewLead(lead)} className="flex items-center justify-between p-3 rounded-xl hover:bg-brand-bg border border-transparent hover:border-brand-border transition-all group cursor-pointer">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs border border-brand-primary/20">
+                                    {lead.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-brand-textPrimary text-sm">{lead.name}</p>
+                                    <p className="text-xs text-brand-textSecondary">{lead.phone} • <span className="text-brand-primary">{lead.inquiry || 'Follow-up required'}</span></p>
+                                </div>
                             </div>
-                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[8px] sm:text-[10px] font-bold bg-brand-error/10 text-brand-error border border-brand-error/20 flex-shrink-0">
-                                Priority
-                            </span>
+                            {onReEngage && (
+                                <button onClick={(e) => { e.stopPropagation(); onReEngage(lead.id); }} className="opacity-0 group-hover:opacity-100 p-1.5 sm:p-2 text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-all text-xs font-bold shadow-sm">
+                                    Action
+                                </button>
+                            )}
                         </div>
-
-                        <div className="flex gap-1.5 sm:gap-2">
-                            <button
-                                onClick={() => onViewLead && onViewLead(lead)}
-                                className="flex-1 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-bold text-brand-textPrimary bg-brand-surface border border-brand-border rounded-md sm:rounded-lg hover:border-brand-primary transition-colors flex items-center justify-center"
-                            >
-                                View Details
-                            </button>
-                            <button
-                                onClick={() => onReEngage ? onReEngage(lead) : (onViewLead && onViewLead(lead))}
-                                className="flex-1 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-bold text-white bg-brand-primary rounded-md sm:rounded-lg hover:bg-brand-secondary transition-colors shadow-sm shadow-brand-primary/20"
-                            >
-                                Re-Engage
-                            </button>
-                        </div>
-                    </div>
-                ))
-            )}
+                    ))
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
-// --- Financial Snapshot Widget (Admin/CRO) ---
 // --- Financial Snapshot Widget (Admin/CRO) - Removed
 export const FinancialSnapshotWidget: React.FC = () => null;
 
@@ -300,7 +278,7 @@ export const ActiveCaseloadWidget: React.FC = () => (
                 <span className="text-lg font-bold text-brand-textPrimary">5</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-brand-bg rounded-xl border border-brand-border">
-                <span className="text-sm font-medium text-brand-textSecondary">Beta HCG Wait</span>
+                <span className="text-sm font-medium text-brand-textSecondary">Pending Lab Results</span>
                 <span className="text-lg font-bold text-brand-textPrimary">8</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-brand-bg rounded-xl border border-brand-border">
@@ -356,31 +334,21 @@ export const KPIWidget: React.FC<{ data?: KPIData; loading?: boolean }> = ({ dat
         return `${rounded}${suffix}`;
     };
 
-    const formatTrend = (val: number | undefined | null, suffix: string = ''): string => {
-        const num = safeNum(val);
-        const prefix = num >= 0 ? '+' : '';
-        return `${prefix}${num}${suffix}`;
-    };
-
     // Default fallback values if no data
     const kpis = {
         conversionRate: safeNum(data?.conversionRate),
         croSuccessRate: safeNum(data?.croSuccessRate),
         avgTimeToConversion: safeNum(data?.avgTimeToConversion),
         patientChurn: safeNum(data?.patientChurn),
-        conversionRateTrend: safeNum(data?.conversionRateTrend),
-        croSuccessRateTrend: safeNum(data?.croSuccessRateTrend),
-        avgTimeToConversionTrend: safeNum(data?.avgTimeToConversionTrend),
-        patientChurnTrend: safeNum(data?.patientChurnTrend),
     };
 
     if (loading) {
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 h-full">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 h-full">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="p-3 sm:p-4 lg:p-5 rounded-xl sm:rounded-2xl border bg-brand-surface border-brand-border animate-pulse">
-                        <div className="h-3 bg-brand-bg rounded w-1/2 mb-2"></div>
-                        <div className="h-8 bg-brand-bg rounded w-3/4"></div>
+                    <div key={i} className="p-5 rounded-xl bg-brand-surface shadow-sm border border-brand-border animate-pulse">
+                        <div className="h-3 bg-brand-hover rounded w-1/2 mb-4"></div>
+                        <div className="h-6 bg-brand-hover rounded w-3/4"></div>
                     </div>
                 ))}
             </div>
@@ -388,57 +356,42 @@ export const KPIWidget: React.FC<{ data?: KPIData; loading?: boolean }> = ({ dat
     }
 
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 h-full overflow-y-auto custom-scrollbar pr-1">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 h-full overflow-y-auto custom-scrollbar pb-1">
             <KPICard
                 label="Conversion Rate"
                 value={formatValue(kpis.conversionRate, '%')}
-                trend={kpis.conversionRateTrend >= 0 ? 'up' : 'down'}
-                trendValue={formatTrend(kpis.conversionRateTrend, '%')}
-                color="bg-brand-surface border-brand-border"
-                valueColor="text-brand-textPrimary"
+                subtitle="Patient journey success rate"
+                colorClass="border-gray-800"
             />
             <KPICard
-                label="CRO Success Rate"
+                label="Follow-up Success Rate"
                 value={formatValue(kpis.croSuccessRate, '%')}
-                trend={kpis.croSuccessRateTrend >= 0 ? 'up' : 'down'}
-                trendValue={formatTrend(kpis.croSuccessRateTrend, '%')}
-                color="bg-brand-surface border-brand-border"
-                valueColor="text-brand-textPrimary"
+                subtitle="Intervention conversions"
+                colorClass="border-brand-primary"
             />
             <KPICard
                 label="Avg. Time to Conv."
                 value={formatValue(kpis.avgTimeToConversion, ' Days')}
-                trend={kpis.avgTimeToConversionTrend <= 0 ? 'up' : 'down'}
-                trendValue={formatTrend(kpis.avgTimeToConversionTrend, ' Days')}
-                color="bg-brand-surface border-brand-border"
-                valueColor="text-brand-textPrimary"
+                subtitle="Mean turnaround time"
+                colorClass="border-brand-primary"
             />
             <KPICard
                 label="Patient Churn"
                 value={formatValue(kpis.patientChurn, '%')}
-                trend={kpis.patientChurnTrend <= 0 ? 'up' : 'down'}
-                trendValue={formatTrend(kpis.patientChurnTrend, '%')}
-                color="bg-brand-surface border-brand-border"
-                valueColor="text-brand-textPrimary"
+                subtitle="Total drop-off rate"
+                colorClass="border-red-500"
             />
         </div>
     );
 };
 
-const KPICard: React.FC<{ label: string; value: string; trend: 'up' | 'down' | 'neutral'; trendValue: string; color: string; valueColor?: string }> = ({ label, value, trend, trendValue, color, valueColor = 'text-brand-textPrimary' }) => (
-    <div className={`p-3 sm:p-4 lg:p-5 rounded-xl sm:rounded-2xl border flex flex-col justify-center flex-1 shadow-sm ${color}`}>
-        <p className="text-[8px] sm:text-[9px] lg:text-[10px] font-bold uppercase opacity-60 mb-0.5 sm:mb-1 tracking-wider text-brand-textSecondary">{label}</p>
-        <div className="flex justify-between items-end">
-            <p className={`text-xl sm:text-2xl lg:text-3xl font-bold ${valueColor}`}>{value}</p>
-            <div className="flex items-center mb-0.5 sm:mb-1 bg-brand-bg px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg">
-                <span className={`text-[10px] sm:text-xs font-bold ${trend === 'up' ? 'text-green-500' : trend === 'down' ? 'text-brand-error' : 'text-brand-textSecondary'}`}>
-                    {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '•'} {trendValue}
-                </span>
-            </div>
-        </div>
+const KPICard: React.FC<{ label: string; value: string; subtitle: string; colorClass: string; }> = ({ label, value, subtitle, colorClass }) => (
+    <div className={`p-4 rounded-xl bg-brand-surface border flex flex-col justify-between flex-1 relative ${colorClass}`}>
+        <p className="text-[11px] font-semibold text-brand-textPrimary mb-3">{label}</p>
+        <p className="text-3xl font-bold text-brand-textPrimary tracking-tight mb-3">{value}</p>
+        <p className="text-[9px] text-brand-textSecondary">{subtitle}</p>
     </div>
 );
-
 // --- Conversion Funnel Widget (Center Column) ---
 export const ConversionFunnelWidget: React.FC<{ data?: FunnelData; onViewDropOff: () => void }> = ({ data, onViewDropOff }) => {
     // Default values
@@ -461,155 +414,116 @@ export const ConversionFunnelWidget: React.FC<{ data?: FunnelData; onViewDropOff
     const dropOff3 = calcDropOff(funnel.followUp, funnel.converted);
 
     return (
-        <div className="bg-brand-surface p-5 sm:p-6 rounded-2xl shadow-sm border border-brand-border h-full flex flex-col relative overflow-hidden">
+        <div className="bg-brand-surface p-5 rounded-xl border border-brand-border h-full flex flex-col">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+            <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h3 className="text-xl font-extrabold text-brand-textPrimary flex items-center">
-                        <Activity className="mr-2 text-brand-primary" size={24} />
-                        Conversion Pipeline
-                    </h3>
-                    <p className="text-sm text-brand-textSecondary mt-0.5 font-medium">Tracking patient journey performance.</p>
+                    <h3 className="text-lg font-bold text-brand-textPrimary">Patient Acquisition Funnel</h3>
+                    <p className="text-xs text-brand-textSecondary mt-0.5">30-day rolling window</p>
                 </div>
-                <div className="relative group">
-                    <select className="appearance-none bg-brand-bg pl-3 pr-8 py-2 rounded-lg border border-brand-border text-xs font-bold text-brand-textPrimary outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 cursor-pointer transition-all shadow-sm transform hover:scale-105">
-                        <option>Monthly View</option>
-                        <option>Weekly View</option>
-                        <option>Yearly View</option>
-                    </select>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-brand-textSecondary">
-                        <svg width="8" height="5" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </div>
-                </div>
+                <select className="bg-transparent border-none text-brand-textSecondary text-[11px] font-medium focus:ring-0 cursor-pointer outline-none">
+                    <option>Monthly View</option>
+                    <option>Weekly View</option>
+                    <option>Yearly View</option>
+                </select>
             </div>
 
-            {/* Funnel Stages - Stepper Timeline Vertical Layout */}
-            <div className="flex-1 flex flex-col justify-between relative z-10 px-2 space-y-0">
-
-                {/* --- Lead Stage --- */}
-                <div className="flex items-center group">
-                    {/* Icon Column */}
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-sm group-hover:scale-110 transition-transform duration-300">
+            {/* Funnel Stages - Professional List */}
+            <div className="flex-1 flex flex-col space-y-0.5 bg-brand-hover p-1 rounded-xl border border-brand-border">
+                
+                {/* Stage 1 */}
+                <div className="bg-brand-surface rounded-lg p-3 sm:p-4 border border-brand-border flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                             <UserPlus size={18} />
                         </div>
-                        <div className="h-full w-0.5 bg-gray-100 my-1 group-hover:bg-blue-100 transition-colors"></div>
-                    </div>
-                    {/* Content Card */}
-                    <div className="flex-1 bg-white border border-gray-100 rounded-xl p-3 flex justify-between items-center shadow-sm hover:shadow-md hover:border-blue-100 transition-all cursor-default">
                         <div>
-                            <p className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wider mb-0.5">Stage 1</p>
-                            <h4 className="font-bold text-brand-textPrimary text-sm">New Leads</h4>
+                            <p className="text-[11px] font-semibold text-brand-textSecondary uppercase tracking-wider">Stage 1</p>
+                            <p className="text-sm font-semibold text-brand-textPrimary">New Leads</p>
                         </div>
-                        <div className="text-right">
-                            <span className="text-xl font-black text-brand-textPrimary">{funnel.newLeads.toLocaleString()}</span>
-                        </div>
+                    </div>
+                    <span className="text-lg font-bold text-brand-textPrimary">{funnel.newLeads.toLocaleString()}</span>
+                </div>
+
+                {/* Drop-off 1 */}
+                <div className="flex justify-start pl-[2.25rem] py-1">
+                    <div className="flex items-center gap-2 text-[11px] font-medium text-red-600">
+                        <ArrowDown size={12} />
+                        <span>{dropOff1}% drop-off</span>
                     </div>
                 </div>
 
-                {/* Drop-off Indicator 1 */}
-                <div className="flex justify-start ml-5 pl-[19px] relative -mt-3 -mb-3 z-0">
-                    <span className="text-[9px] font-bold text-red-400 bg-red-50/50 px-2 py-0.5 rounded-full border border-red-50 flex items-center">
-                        <ArrowDown size={10} className="mr-1" /> {dropOff1}% Drop-off
-                    </span>
-                </div>
-
-                {/* --- Consult Stage --- */}
-                <div className="flex items-center group pt-2">
-                    {/* Icon Column */}
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="h-4 w-0.5 bg-gray-100 mb-1 group-hover:bg-indigo-100 transition-colors"></div>
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                {/* Stage 2 */}
+                <div className="bg-brand-surface rounded-lg p-3 sm:p-4 border border-brand-border flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                             <Stethoscope size={18} />
                         </div>
-                        <div className="h-full w-0.5 bg-gray-100 my-1 group-hover:bg-indigo-100 transition-colors"></div>
-                    </div>
-                    {/* Content Card */}
-                    <div className="flex-1 bg-white border border-gray-100 rounded-xl p-3 flex justify-between items-center shadow-sm hover:shadow-md hover:border-indigo-100 transition-all cursor-default">
                         <div>
-                            <p className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wider mb-0.5">Stage 2</p>
-                            <h4 className="font-bold text-brand-textPrimary text-sm">1st Consult</h4>
+                            <p className="text-[11px] font-semibold text-brand-textSecondary uppercase tracking-wider">Stage 2</p>
+                            <p className="text-sm font-semibold text-brand-textPrimary">1st Consult</p>
                         </div>
-                        <div className="text-right">
-                            <span className="text-xl font-black text-brand-textPrimary">{funnel.firstConsult.toLocaleString()}</span>
-                        </div>
+                    </div>
+                    <span className="text-lg font-bold text-brand-textPrimary">{funnel.firstConsult.toLocaleString()}</span>
+                </div>
+
+                {/* Drop-off 2 */}
+                <div className="flex justify-start pl-[2.25rem] py-1">
+                    <div className="flex items-center gap-2 text-[11px] font-medium text-red-600">
+                        <ArrowDown size={12} />
+                        <span>{dropOff2}% drop-off</span>
                     </div>
                 </div>
 
-                {/* Drop-off Indicator 2 */}
-                <div className="flex justify-start ml-5 pl-[19px] relative -mt-3 -mb-3 z-0">
-                    <span className="text-[9px] font-bold text-red-400 bg-red-50/50 px-2 py-0.5 rounded-full border border-red-50 flex items-center">
-                        <ArrowDown size={10} className="mr-1" /> {dropOff2}% Drop-off
-                    </span>
-                </div>
-
-                {/* --- Retention Stage (Hero) --- */}
-                <div className="flex items-center group pt-2">
-                    {/* Icon Column */}
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="h-4 w-0.5 bg-gray-100 mb-1 group-hover:bg-amber-100 transition-colors"></div>
-                        <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shadow-sm shadow-amber-100 group-hover:scale-110 transition-transform duration-300">
+                {/* Stage 3 */}
+                <div className="bg-brand-surface rounded-lg p-3 sm:p-4 border border-brand-accent/20 flex items-center justify-between shadow-sm relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-accent"></div>
+                    <div className="flex items-center gap-3.5 pl-1">
+                        <div className="p-2 bg-amber-50 text-brand-accent rounded-lg">
                             <Clock size={18} />
                         </div>
-                        <div className="h-full w-0.5 bg-gray-100 my-1 group-hover:bg-amber-100 transition-colors"></div>
-                    </div>
-                    {/* Content Card */}
-                    <div className="flex-1 bg-gradient-to-r from-amber-50/50 to-white border border-amber-100/50 rounded-xl p-3 flex justify-between items-center shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-200 transition-all cursor-default transform scale-[1.02] origin-left z-10">
                         <div>
-                            <div className="flex items-center gap-2 mb-0.5">
-                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Stage 3</p>
-                                <span className="text-[8px] font-black text-white bg-amber-500 px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                                    <Sparkles size={8} /> RETENTION ZONE
-                                </span>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[11px] font-semibold text-brand-textSecondary uppercase tracking-wider">Stage 3</p>
+                                <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 rounded-sm">Retention</span>
                             </div>
-                            <h4 className="font-bold text-brand-textPrimary text-sm">Follow-up / Stalled</h4>
+                            <p className="text-sm font-semibold text-brand-textPrimary">Follow-up / Stalled</p>
                         </div>
-                        <div className="text-right">
-                            <span className="text-xl font-black text-amber-900">{funnel.followUp.toLocaleString()}</span>
-                        </div>
+                    </div>
+                    <span className="text-lg font-bold text-brand-textPrimary">{funnel.followUp.toLocaleString()}</span>
+                </div>
+
+                {/* Drop-off 3 */}
+                <div className="flex justify-start pl-[2.25rem] py-1">
+                    <div className="flex items-center gap-2 text-[11px] font-medium text-red-600">
+                        <ArrowDown size={12} />
+                        <span>{dropOff3}% drop-off</span>
                     </div>
                 </div>
 
-                {/* Drop-off Indicator 3 */}
-                <div className="flex justify-start ml-5 pl-[19px] relative -mt-3 -mb-3 z-0">
-                    <span className="text-[9px] font-bold text-red-400 bg-red-50/50 px-2 py-0.5 rounded-full border border-red-50 flex items-center">
-                        <ArrowDown size={10} className="mr-1" /> {dropOff3}% Drop-off
-                    </span>
-                </div>
-
-                {/* --- Converted Stage --- */}
-                <div className="flex items-center group pt-2">
-                    {/* Icon Column */}
-                    <div className="flex flex-col items-center mr-4">
-                        <div className="h-4 w-0.5 bg-gray-100 mb-1 group-hover:bg-emerald-100 transition-colors"></div>
-                        <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                {/* Stage 4: Converted */}
+                <div className="bg-brand-surface rounded-lg p-3 sm:p-4 border border-brand-primary/20 flex items-center justify-between shadow-sm relative overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary"></div>
+                    <div className="flex items-center gap-3.5 pl-1">
+                        <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg">
                             <Baby size={18} />
                         </div>
-                    </div>
-                    {/* Content Card */}
-                    <div className="flex-1 bg-white border border-gray-100 rounded-xl p-3 flex justify-between items-center shadow-sm hover:shadow-md hover:border-emerald-100 transition-all cursor-default">
                         <div>
-                            <p className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wider mb-0.5">Final Stage</p>
-                            <h4 className="font-bold text-brand-textPrimary text-sm">Converted Patient</h4>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-xl font-black text-emerald-700">{funnel.converted.toLocaleString()}</span>
+                            <p className="text-[11px] font-semibold text-brand-primaryDark uppercase tracking-wider">Final Stage</p>
+                            <p className="text-sm font-semibold text-brand-textPrimary">Converted Patient</p>
                         </div>
                     </div>
+                    <span className="text-lg font-bold text-brand-primary">{funnel.converted.toLocaleString()}</span>
                 </div>
-
             </div>
 
             {/* Footer Action */}
-            <div className="mt-6 flex justify-center">
+            <div className="mt-5 text-center">
                 <button
                     onClick={onViewDropOff}
-                    className="text-xs font-bold text-brand-textSecondary hover:text-brand-primary bg-transparent text-center flex items-center gap-1 group transition-colors"
+                    className="text-sm font-medium text-brand-primary hover:text-brand-primaryDark flex items-center justify-center gap-1.5 w-full py-2"
                 >
-                    <span>View Detail Drop-off Report</span>
-                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    View detailed report <ArrowRight size={14} />
                 </button>
             </div>
         </div>

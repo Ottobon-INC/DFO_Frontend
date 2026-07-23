@@ -9,7 +9,7 @@ const RoleFeatureCard: React.FC<{
   title: string;
   description: string;
 }> = ({ icon, title, description }) => (
-  <div className="flex items-start p-6 bg-white rounded-xl border border-brand-primary/5 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+  <div className="flex items-start p-6 bg-brand-surface rounded-xl border border-brand-primary/5 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-secondary to-brand-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
     <div className="flex-shrink-0 w-12 h-12 bg-brand-soft/30 rounded-lg flex items-center justify-center text-brand-primary group-hover:bg-brand-secondary group-hover:text-white transition-colors">
       {icon}
@@ -44,7 +44,7 @@ export const FeaturesSection: React.FC = () => {
             <button
               onClick={() => setActiveTab('admin')}
               className={`px-6 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'admin'
-                ? 'bg-white text-brand-primary shadow-sm ring-1 ring-black/5'
+                ? 'bg-brand-surface text-brand-primary shadow-sm ring-1 ring-black/5'
                 : 'text-brand-textSecondary hover:text-brand-primary'
                 }`}
             >
@@ -53,7 +53,7 @@ export const FeaturesSection: React.FC = () => {
             <button
               onClick={() => setActiveTab('clinical')}
               className={`px-6 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'clinical'
-                ? 'bg-white text-brand-primary shadow-sm ring-1 ring-black/5'
+                ? 'bg-brand-surface text-brand-primary shadow-sm ring-1 ring-black/5'
                 : 'text-brand-textSecondary hover:text-brand-primary'
                 }`}
             >
@@ -62,7 +62,7 @@ export const FeaturesSection: React.FC = () => {
             <button
               onClick={() => setActiveTab('staff')}
               className={`px-6 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'staff'
-                ? 'bg-white text-brand-primary shadow-sm ring-1 ring-black/5'
+                ? 'bg-brand-surface text-brand-primary shadow-sm ring-1 ring-black/5'
                 : 'text-brand-textSecondary hover:text-brand-primary'
                 }`}
             >

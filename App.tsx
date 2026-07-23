@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginCard } from './components/LoginCard';
 import { Dashboard } from './components/Dashboard';
@@ -17,7 +17,31 @@ const AppContent: React.FC = () => {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
   });
+  const [isVerifying, setIsVerifying] = useState(true);
   const navigate = useNavigate();
+
+  // Verify token health on app mount
+  useEffect(() => {
+    const verifySession = async () => {
+      const savedUser = localStorage.getItem('user');
+      if (!savedUser) {
+        setIsVerifying(false);
+        return;
+      }
+      try {
+        await api.verifySession();
+        setIsVerifying(false);
+      } catch {
+        // Token is dead — silently clear and let route guards handle redirect
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        setUser(null);
+        setIsVerifying(false);
+      }
+    };
+    verifySession();
+  }, []);
 
   const handleLoginSuccess = (role: UserRole, user: any) => {
     localStorage.setItem('userRole', role);
@@ -39,6 +63,14 @@ const AppContent: React.FC = () => {
     setUser(null);
     navigate('/');
   };
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg">
+        <p className="text-brand-textSecondary animate-pulse text-sm font-medium">Verifying session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full font-sans text-brand-textPrimary bg-brand-bg selection:bg-brand-primary selection:text-white flex flex-col transition-colors duration-500">

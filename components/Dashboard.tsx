@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -23,13 +23,21 @@ import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
 import { TeamManagementView } from './TeamManagementView';
 import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
-
+import DoctorScheduleSettings from './settings/DoctorScheduleSettings';
+import { ProfileSettingsModal } from './settings/ProfileSettingsModal';
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [leadsFilter, setLeadsFilter] = useState('All');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<string>('overview');
+
+  // --- Clock State ---
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -68,7 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         }
 
         // Normalize Appointments
-        const apptItems = apptsData?.data?.items ?? [];
+        const apptItems = Array.isArray(apptsData?.data) ? apptsData.data : (apptsData?.data?.items ?? []);
         const mappedAppts: Appointment[] = Array.isArray(apptItems) ? apptItems.map((item: any) => {
           // patient_name might be missing or 'Unknown', so handle explicitly
           let resolvedName = item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
@@ -377,7 +385,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
   // --- Render ---
   return (
-    <div className="min-h-screen bg-brand-bg flex h-screen overflow-hidden font-sans text-brand-textPrimary selection:bg-brand-primary selection:text-brand-bg">
+    <div className="min-h-screen bg-brand-bg flex h-screen overflow-hidden font-sans text-brand-textPrimary selection:bg-brand-primary selection:text-white">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
@@ -387,19 +395,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-56 md:w-52 lg:w-64 xl:w-72 bg-brand-surface flex-shrink-0 flex flex-col border-r border-brand-border fixed h-full z-50 shadow-lg transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-        <div className="p-4 md:p-5 lg:p-6 xl:p-8 flex items-center space-x-2 md:space-x-3 lg:space-x-4 border-b border-brand-border">
-          <div className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-xl bg-brand-primary flex items-center justify-center font-bold text-brand-bg shadow-lg shadow-brand-primary/20 text-base md:text-lg lg:text-xl">J</div>
+      <aside className={`w-64 md:w-60 lg:w-72 xl:w-[280px] bg-brand-surface flex-shrink-0 flex flex-col border-r border-brand-border fixed h-full z-50 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        {/* Logo Area */}
+        <div className="p-5 flex items-center space-x-4">
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+            <img src="/logo.png" alt="Medcy Logo" className="w-full h-full object-contain" />
+          </div>
           <div>
-            <span className="font-bold tracking-tight text-base md:text-lg lg:text-xl block text-brand-textPrimary">JanmaSethu</span>
-            <span className="text-[8px] md:text-[9px] lg:text-[10px] text-brand-textSecondary font-bold tracking-widest uppercase">Clinical OS v2.0</span>
+            <h1 className="text-sm font-extrabold tracking-tight text-brand-textPrimary">Medcy Health Tech</h1>
+            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest mt-0.5">CLINICAL PLATFORM</p>
           </div>
         </div>
 
-        <nav className="flex-1 px-3 md:px-4 lg:px-6 py-4 space-y-5 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto custom-scrollbar">
           {/* Operations Section */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-2">Operations</div>
+            <div className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest px-3 mb-3">Operations</div>
             <NavItem
               icon={<LayoutDashboard size={20} />}
               label="Dashboard"
@@ -423,7 +434,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             )}
             <NavItem
-              icon={<CalendarDays size={22} />}
+              icon={<CalendarDays size={20} />}
               label="Appointments"
               active={location.pathname === '/dashboard/appointments'}
               onClick={() => navigate('/dashboard/appointments')}
@@ -435,47 +446,50 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               onClick={() => navigate('/dashboard/pending-files')}
             />
             <NavItem
-              icon={<UserCheck size={22} />}
+              icon={<UserCheck size={20} />}
               label="Patients"
               active={location.pathname === '/dashboard/patients'}
               onClick={() => navigate('/dashboard/patients')}
             />
             <NavItem
-              icon={<Bed size={22} />}
+              icon={<Bed size={20} />}
               label="Rooms & Admissions"
               active={location.pathname === '/dashboard/rooms'}
               onClick={() => navigate('/dashboard/rooms')}
+            />
+            <NavItem
+              icon={<Clock size={20} />}
+              label="Doctor Schedules"
+              active={location.pathname === '/dashboard/settings/schedules'}
+              onClick={() => navigate('/dashboard/settings/schedules')}
             />
           </div>
 
           {/* Specialist & Clinical Dashboards */}
           <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-brand-accent uppercase tracking-widest px-4 mb-2 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></span>
-              Live Control Towers
+            <div className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest px-3 mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+              Operations Dashboards
             </div>
             {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
               <>
                 <NavItem
                   icon={<Activity size={20} />}
-                  label="Control Tower"
+                  label="Admin Overview"
                   active={location.pathname === '/dashboard/control-tower'}
                   onClick={() => navigate('/dashboard/control-tower')}
-                  highlighted
                 />
                 <NavItem
                   icon={<MessageSquare size={20} />}
-                  label="CRO Inbox"
+                  label="Follow-up Tasks"
                   active={location.pathname === '/dashboard/cro-inbox'}
                   onClick={() => navigate('/dashboard/cro-inbox')}
-                  highlighted
                 />
                 <NavItem
                   icon={<TrendingUp size={20} />}
-                  label="CRO Analytics"
+                  label="Performance Reports"
                   active={location.pathname === '/dashboard/cro-analytics'}
                   onClick={() => navigate('/dashboard/cro-analytics')}
-                  highlighted
                 />
               </>
             )}
@@ -485,7 +499,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 label="Doctor Dashboard"
                 active={location.pathname === '/dashboard/doctor'}
                 onClick={() => navigate('/dashboard/doctor')}
-                highlighted
               />
             )}
             {userRole === UserRole.NURSE && (
@@ -494,7 +507,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 label="Nurse Dashboard"
                 active={location.pathname === '/dashboard/nurse'}
                 onClick={() => navigate('/dashboard/nurse')}
-                highlighted
               />
             )}
             {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
@@ -503,7 +515,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 label="Audit Logs"
                 active={location.pathname === '/dashboard/audit-logs'}
                 onClick={() => navigate('/dashboard/audit-logs')}
-                highlighted
               />
             )}
           </div>
@@ -516,7 +527,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               if (user?.is_clinic_admin) {
                 return (
                   <div className="space-y-1.5">
-                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest px-4 mb-2 mt-4 flex items-center gap-1.5">
+                    <div className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest px-3 mb-3 mt-6 flex items-center gap-1.5">
                       Administration
                     </div>
                     <NavItem
@@ -533,81 +544,84 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           })()}
         </nav>
 
-        <div className="p-6 border-t border-brand-border">
-          <button onClick={onLogout} className="flex items-center space-x-3 text-brand-textSecondary hover:text-brand-error hover:bg-brand-error/10 transition-all w-full px-4 py-3 rounded-xl font-bold group">
-            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-            <span>Sign Out</span>
-          </button>
+        {/* System Status Pill */}
+        <div className="p-4 bg-brand-surface">
+          <div className="bg-brand-hover rounded-lg p-3.5 flex flex-col justify-center">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-brand-accent animate-pulse"></span>
+              <span className="text-xs font-bold text-brand-textPrimary uppercase tracking-widest">System Online</span>
+            </div>
+            <p className="text-[10px] text-brand-textSecondary">All systems operational</p>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8 overflow-y-auto overflow-x-hidden md:ml-52 lg:ml-64 xl:ml-72 flex flex-col relative z-10 bg-brand-bg">
-        {/* Top Bar */}
-        <header className="bg-brand-surface/80 backdrop-blur-md border-b border-brand-border sticky top-0 z-20 px-3 sm:px-4 md:px-6 lg:px-8 py-3 lg:py-4 flex justify-between items-center flex-shrink-0 gap-3">
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 rounded-lg bg-brand-bg border border-brand-border text-brand-textSecondary hover:text-brand-primary transition-colors"
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <LayoutDashboard size={20} />
-          </button>
-
-          <div className="flex items-center bg-brand-bg px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl border border-brand-border flex-1 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg focus-within:ring-2 focus-within:ring-brand-primary/50 focus-within:border-brand-primary transition-all">
-            <Search size={18} className="text-brand-textSecondary mr-2 lg:mr-3 flex-shrink-0" />
-            <input
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch()}
-              placeholder="Global Search (Patients, Leads...)"
-              className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
-            />
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden md:ml-60 lg:ml-72 xl:ml-[280px] flex flex-col relative z-10 bg-brand-bg`}>
+        {/* Top Bar - Styled like the screenshot */}
+        <header className="bg-brand-surface border-b border-brand-border px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center flex-shrink-0 gap-4">
+          
+          {/* Search Bar - Top Center/Left */}
+          <div className="flex-1 max-w-xl hidden md:flex items-center">
+            <div className="flex items-center bg-brand-bg px-4 py-2 rounded-full border border-brand-border w-full focus-within:ring-2 focus-within:ring-brand-primary/30 transition-all">
+              <Search size={16} className="text-brand-textSecondary mr-2" />
+              <input
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch()}
+                placeholder="Search Patient Name, Phone, or ID..."
+                className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary"
+              />
+              <div className="hidden lg:flex items-center gap-1 opacity-60">
+                <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">Ctrl</span>
+                <span className="text-[10px] text-brand-textSecondary">+</span>
+                <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">K</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-8">
-            <div className="relative">
-              <div
-                className="flex items-center space-x-2 sm:space-x-4 cursor-pointer group p-1 rounded-xl hover:bg-brand-bg transition-colors"
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-              >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-xs sm:text-sm border border-brand-primary/20">
-                  {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : (userRole === UserRole.ADMIN ? 'AD' : userRole === UserRole.CRO ? 'CR' : userRole === UserRole.DOCTOR ? 'DR' : 'FD')}
-                </div>
-                <div className="hidden md:block text-left">
-                  <p className="text-xs sm:text-sm font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">
-                    {currentUser?.name || (userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'CRO / Admin' : userRole === UserRole.DOCTOR ? 'Doctor' : 'Front Desk')}
-                  </p>
-                  <p className="text-[10px] sm:text-[11px] text-brand-textSecondary font-bold">
-                    {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? 'Admin Terminal' : 'Main Terminal'}
-                  </p>
-                </div>
-                <ChevronDown size={16} className={`text-brand-textSecondary group-hover:text-brand-textPrimary hidden sm:block transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+          {/* Right Status / Toggles */}
+          <div className="flex items-center space-x-4">
+            {/* Language Toggles */}
+            <div className="hidden sm:flex items-center bg-brand-hover rounded-full p-1 border border-brand-border">
+              <span className="bg-brand-primary text-white text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer">EN</span>
+              <span className="text-brand-textSecondary text-[10px] font-bold px-3 py-1 cursor-pointer">HI</span>
+            </div>
+
+            {/* Time / Date */}
+            <div className="hidden md:flex items-center gap-1.5 bg-brand-hover border border-brand-border rounded-full px-3 py-1.5">
+              <Clock size={12} className="text-brand-primary" />
+              <span className="text-[11px] font-medium text-brand-textSecondary">IST</span>
+              <span className="text-[11px] font-medium text-brand-textPrimary ml-1">
+                {currentTime.toLocaleString('en-GB', {
+                  timeZone: 'Asia/Kolkata',
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                }).replace(',', '')}
+              </span>
+            </div>
+
+            {/* User Profile */}
+            <div className="flex items-center space-x-3 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+              <div className="text-right hidden sm:block mr-2">
+                <p className="text-sm font-semibold text-brand-textPrimary leading-tight">
+                  {currentUser?.name || 'Suresh (Admin)'}
+                </p>
+                <p className="text-xs text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : 'Main Terminal'}</p>
+              </div>
+              <div className="w-9 h-9 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-sm">
+                S(
               </div>
 
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-brand-surface rounded-xl shadow-lg border border-brand-border py-2 z-50 animate-fade-in">
-                  <button
-                    onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
-                  >
-                    <User size={16} className="text-brand-primary" />
-                    My Profile
-                  </button>
-                  <button
-                    onClick={() => { setIsChangePasswordModalOpen(true); setIsProfileDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-textPrimary hover:bg-brand-bg transition-colors flex items-center gap-2"
-                  >
-                    <Lock size={16} className="text-brand-primary" />
-                    Change Password
-                  </button>
-                  <div className="border-t border-brand-border my-1"></div>
-                  <button
-                    onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm font-medium text-brand-error hover:bg-brand-error/10 transition-colors flex items-center gap-2"
-                  >
-                    <LogOut size={16} />
-                    Sign Out
-                  </button>
+                <div className="absolute right-0 top-full mt-2 w-48 bg-brand-surface rounded-lg shadow-xl border border-brand-border py-1 z-50">
+                  <button onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover">Profile Settings</button>
+                  <button onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-brand-hover">Sign Out</button>
                 </div>
               )}
             </div>
@@ -615,7 +629,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-6 lg:p-8'}`}>
           <Routes>
             <Route index element={
               <DashboardHome
@@ -634,7 +648,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             } />
             <Route path="leads" element={
-              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col">
+              <div className="absolute inset-0 bg-brand-surface overflow-hidden animate-slide-up flex flex-col">
                 <LeadsView
                   leads={leads}
                   onUpdateLead={handleUpdateLead}
@@ -645,22 +659,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </div>
             } />
             <Route path="appointments" element={
-              <div className="animate-slide-up">
+              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
                 <AppointmentsView userRole={userRole} />
               </div>
             } />
             <Route path="rooms" element={
-              <div className="animate-slide-up h-full">
+              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
                 <RoomsView />
               </div>
             } />
             <Route path="pending-files" element={
-              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col">
-                <UnassignedDocumentsView />
+              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+                <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden h-full flex flex-col">
+                  <UnassignedDocumentsView />
+                </div>
               </div>
             } />
             <Route path="patients" element={
-              <div className="animate-slide-up">
+              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
                 <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
@@ -671,6 +687,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="cro-analytics" element={<CroAnalytics />} />
             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="daily-register" element={<DailyRegisterTable />} />
+            <Route path="settings/schedules" element={<DoctorScheduleSettings userRole={userRole} currentUser={currentUser} />} />
 
             <Route path="analytics" element={
               <div className="animate-slide-up">
@@ -682,7 +699,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <TeamManagementView />
               </div>
             } />
-            <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
@@ -715,12 +731,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         onClose={() => setToast(prev => ({ ...prev, show: false }))}
       />
 
-      <UserProfileModal
+      <ProfileSettingsModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        user={currentUser}
-        onProfileUpdate={(updatedUser) => setCurrentUser(updatedUser)}
-        showToast={showToast}
+        currentUser={currentUser}
+        onUpdate={(updatedUser) => setCurrentUser(updatedUser)}
       />
 
       <ChangePasswordModal
@@ -747,23 +762,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   );
 };
 
-const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean; highlighted?: boolean; onClick?: () => void }> = ({ icon, label, active, highlighted, onClick }) => (
+const NavItem: React.FC<{ 
+  icon: React.ReactNode; 
+  label: string; 
+  active?: boolean; 
+  highlighted?: boolean;
+  onClick?: () => void;
+  rightIcon?: React.ReactNode;
+  isSubItem?: boolean;
+  customClass?: string;
+}> = ({ icon, label, active, highlighted, onClick, rightIcon, isSubItem, customClass }) => (
   <div
     onClick={onClick}
     className={`
-      flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 group
-      ${active
-        ? highlighted
-          ? 'bg-brand-accent/20 text-brand-accent font-bold translate-x-1 border-r-4 border-brand-accent shadow-lg shadow-brand-accent/10'
-          : 'bg-brand-primary/20 text-brand-primary font-bold translate-x-1 border-r-4 border-brand-primary'
-        : highlighted
-          ? 'text-brand-textSecondary hover:bg-brand-accent/10 hover:text-brand-accent font-medium hover:translate-x-1'
-          : 'text-brand-textSecondary hover:bg-brand-hover hover:text-brand-textPrimary font-medium hover:translate-x-1'}
+      flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors duration-200 group mb-0.5
+      ${isSubItem ? 'pl-8' : ''}
+      ${customClass ? customClass : active
+        ? 'bg-brand-primary text-white shadow-sm'
+        : 'text-brand-textSecondary hover:bg-brand-hover'}
     `}
   >
-    <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
-      {icon}
+    <div className="flex items-center space-x-3.5">
+        <div className={`transition-transform duration-200 flex-shrink-0 ${active || customClass ? '' : 'text-brand-textSecondary group-hover:text-brand-textSecondary'}`}>
+          {icon}
+        </div>
+        <span className={`text-sm tracking-wide ${active || (customClass && customClass.includes('font-medium')) ? 'font-semibold' : 'font-medium'}`}>{label}</span>
     </div>
-    <span className="text-sm tracking-wide">{label}</span>
+    {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
   </div>
 );

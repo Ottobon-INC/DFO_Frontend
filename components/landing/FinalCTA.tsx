@@ -36,7 +36,7 @@ export const FinalCTA: React.FC<FinalCTAProps> = ({ onLoginClick }) => {
                         <span className="relative z-10 flex items-center gap-3">
                             Access Clinic Portal <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                         </span>
-                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute inset-0 bg-brand-surface/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </button>
                     <p className="mt-6 text-brand-textSecondary font-medium text-sm">
                         For existing clinics & registered staff only.

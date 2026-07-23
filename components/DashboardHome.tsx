@@ -111,20 +111,21 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     }, [userRole, leads, leadsInCROQueue, leadsConvertedToday]); // Refetch when data changes
 
     return (
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 max-w-[1600px] mx-auto animate-fade-in overflow-hidden">
+        <div className="flex flex-col gap-4 md:gap-5 lg:gap-6 animate-fade-in overflow-hidden w-full">
 
             {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? (
                 // --- Admin / CRO Layout ---
-                <div className="flex flex-col gap-3 sm:gap-4 lg:gap-6 xl:gap-8 overflow-hidden">
+                <div className="flex flex-col gap-4 md:gap-5 lg:gap-6 overflow-hidden">
+
                     {/* Top Row: KPIs */}
-                    <div className="min-h-[90px] sm:min-h-[100px] lg:min-h-[120px] xl:h-40 flex-shrink-0 overflow-x-auto">
+                    <div className="min-h-[90px] sm:min-h-[100px] flex-shrink-0 overflow-x-auto">
                         <KPIWidget data={kpiData || undefined} loading={kpiLoading} />
                     </div>
 
                     {/* Bottom Row: Main Content - Stack on mobile/tablet, side-by-side on lg+ */}
-                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 min-h-0 overflow-hidden">
+                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 lg:gap-6 min-h-0 overflow-hidden">
                         {/* Funnel */}
-                        <div className="lg:col-span-8 min-h-[300px] sm:min-h-[350px] lg:min-h-[400px] xl:min-h-[450px]">
+                        <div className="lg:col-span-8 min-h-[300px] lg:min-h-[350px] xl:min-h-[380px]">
                             <ConversionFunnelWidget
                                 data={funnelData || undefined}
                                 onViewDropOff={() => onNavigateToLeads('Stalling - Sent to CRO')}
@@ -133,7 +134,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
                         {/* Right Side: Queue */}
                         <div className="lg:col-span-4 flex flex-col">
-                            <div className="h-full min-h-[400px]">
+                            <div className="h-full min-h-[350px]">
                                 <InterventionQueueWidget
                                     leads={leads.filter(l => l.status === 'Stalling - Sent to CRO' && !hiddenLeadIds.has(l.id))}
                                     onViewAll={() => onNavigateToLeads('Stalling - Sent to CRO')}
@@ -154,9 +155,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                 </div>
             ) : (
                 // --- Front Desk Layout - Stack on mobile/tablet, side-by-side on lg+ ---
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 lg:gap-6 overflow-hidden">
                     {/* Left Column: Appointments (Wider) */}
-                    <div className="lg:col-span-8 flex flex-col gap-3 sm:gap-4 lg:gap-6 xl:gap-8">
+                    <div className="lg:col-span-8 flex flex-col gap-4 md:gap-5 lg:gap-6">
                         <div className="min-h-[320px] sm:min-h-[400px] lg:min-h-[500px] xl:h-[600px]">
                             <AppointmentWidget
                                 appointments={appointments}
@@ -171,7 +172,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                     </div>
 
                     {/* Right Column: Tools & Stats (Narrower) */}
-                    <div className="lg:col-span-4 flex flex-col gap-3 sm:gap-4 lg:gap-6 xl:gap-8">
+                    <div className="lg:col-span-4 flex flex-col gap-4 md:gap-5 lg:gap-6">
                         <div className="min-h-[220px] sm:min-h-[280px] lg:min-h-[320px] xl:h-[350px] flex-shrink-0">
                             <QuickLeadWidget onOpenAddModal={onOpenAddLeadModal} />
                         </div>

@@ -158,9 +158,9 @@ export const CroInbox: React.FC = () => {
   }
 
   return (
-    <div className="flex gap-6 overflow-hidden min-h-[500px] h-[calc(100vh-230px)] animate-slide-up bg-brand-surface border border-brand-border rounded-2xl p-4">
+    <div className="flex-1 h-full flex overflow-hidden animate-slide-up bg-brand-surface">
       {/* Threads List */}
-      <div className="w-80 bg-brand-bg/20 border border-brand-border rounded-2xl flex flex-col overflow-hidden">
+      <div className="w-80 bg-brand-surface border-r border-brand-border flex flex-col overflow-hidden">
         <div className="p-4 border-b border-brand-border">
           <div className="relative flex items-center bg-brand-bg rounded-xl px-3 py-2 border border-brand-border">
             <Search size={16} className="text-brand-textSecondary mr-2" />
@@ -200,7 +200,7 @@ export const CroInbox: React.FC = () => {
       </div>
 
       {/* Active Conversation Area */}
-      <div className="flex-1 bg-brand-bg/10 border border-brand-border rounded-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-brand-surface flex flex-col overflow-hidden">
         {selectedThreadId && threadContext ? (
           <>
             <div className="px-6 py-4 border-b border-brand-border bg-brand-bg/30 flex justify-between items-center gap-4">

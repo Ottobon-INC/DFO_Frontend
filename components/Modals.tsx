@@ -290,7 +290,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
       <div className="relative bg-brand-surface w-full max-w-2xl rounded-2xl shadow-2xl animate-scale-in overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-bg flex-shrink-0">
           <h3 className="text-lg font-bold text-brand-textPrimary">Add New Lead</h3>
-          <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary">
+          <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
             <X size={20} />
           </button>
         </div>

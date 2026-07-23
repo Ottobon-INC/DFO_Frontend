@@ -20,7 +20,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCtaClick }) => {
 
         {/* Trust Badge */}
         <div className="inline-block mb-8 animate-slide-in-left" style={{ animationDelay: '0.1s' }}>
-          <span className="text-brand-primary font-bold tracking-wider text-xs uppercase border border-brand-primary/10 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm flex items-center">
+          <span className="text-brand-primary font-bold tracking-wider text-xs uppercase border border-brand-primary/10 px-4 py-2 rounded-full bg-brand-surface/80 backdrop-blur-sm shadow-sm flex items-center">
             <Heart size={14} className="mr-2 text-brand-accent" fill="currentColor" />
             Advanced Fertility & Maternity Care OS
           </span>
@@ -46,7 +46,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCtaClick }) => {
           <span className="relative z-10 flex items-center text-lg tracking-wide">
             Access Clinic Portal <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </span>
-          <div className="absolute inset-0 bg-white/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+          <div className="absolute inset-0 bg-brand-surface/10 transform -skew-x-12 -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
         </button>
 
         {/* Dynamic SVG Visualization - Warm & Caring */}
@@ -117,7 +117,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCtaClick }) => {
                   <FileText size={24} />
                 </div>
               </foreignObject>
-              <text x="400" y="35" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-white/90 px-3 py-1 rounded shadow-sm">Maternity EMR</text>
+              <text x="400" y="35" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-brand-surface/90 px-3 py-1 rounded shadow-sm">Maternity EMR</text>
             </g>
 
             {/* Left Node (Vitals) */}
@@ -128,7 +128,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCtaClick }) => {
                   <Activity size={24} />
                 </div>
               </foreignObject>
-              <text x="150" y="455" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-white/90 px-3 py-1 rounded shadow-sm">Fetal Monitoring</text>
+              <text x="150" y="455" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-brand-surface/90 px-3 py-1 rounded shadow-sm">Fetal Monitoring</text>
             </g>
 
             {/* Right Node (Labs) */}
@@ -139,7 +139,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onCtaClick }) => {
                   <Database size={24} />
                 </div>
               </foreignObject>
-              <text x="650" y="455" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-white/90 px-3 py-1 rounded shadow-sm">Lab & Genetics</text>
+              <text x="650" y="455" textAnchor="middle" className="text-xs font-bold fill-brand-textSecondary bg-brand-surface/90 px-3 py-1 rounded shadow-sm">Lab & Genetics</text>
             </g>
 
           </svg>

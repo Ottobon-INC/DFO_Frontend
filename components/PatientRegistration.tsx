@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Save, ArrowRight, FileText, UserPlus, Calendar } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Save, ArrowRight, FileText, UserPlus, Calendar, X } from 'lucide-react';
 import { Patient } from '../types';
 import { api } from '../services/api';
 
@@ -7,6 +8,13 @@ import { api } from '../services/api';
 export const DailyRegisterTable: React.FC = () => {
     const [registerData, setRegisterData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal state for Add Walk-In (simplified to Name & Phone only)
+    const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+    const [walkInName, setWalkInName] = useState('');
+    const [walkInPhone, setWalkInPhone] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     const fetchRegisterData = async () => {
         try {
@@ -17,7 +25,7 @@ export const DailyRegisterTable: React.FC = () => {
                 api.getDoctors()
             ]);
 
-            const apptItems = apptsData?.data?.items ?? [];
+            const apptItems = Array.isArray(apptsData?.data) ? apptsData.data : (apptsData?.data?.items ?? []);
             const patientItems = patientsData?.data?.items ?? (Array.isArray(patientsData?.data) ? patientsData.data : (Array.isArray(patientsData) ? patientsData : []));
             const doctorsList = doctorsData?.data ?? [];
 
@@ -59,28 +67,48 @@ export const DailyRegisterTable: React.FC = () => {
         fetchRegisterData();
     }, []);
 
-    const handleAddWalkIn = async () => {
-        const name = prompt("Enter Patient Name:");
-        const phone = prompt("Enter Patient Phone Number (10 digits):");
-        if (name && phone) {
-            try {
-                const payload = {
-                    patient_name_snapshot: name,
-                    patient_phone_snapshot: phone,
-                    name: name,
-                    phone: phone,
-                    appointment_date: new Date().toISOString().split('T')[0],
-                    start_time: '10:00',
-                    type: 'Consultation',
-                    status: 'Scheduled',
-                    visit_reason: 'Walk-In'
-                };
-                await api.createAppointment(payload);
-                fetchRegisterData();
-            } catch (e: any) {
-                console.error("Failed to add walk-in", e);
-                alert(e?.message || e?.error || "Failed to add walk-in.");
-            }
+    const handleAddWalkIn = () => {
+        setWalkInName('');
+        setWalkInPhone('');
+        setModalError(null);
+        setIsWalkInModalOpen(true);
+    };
+
+    const handleModalSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!walkInName.trim()) {
+            setModalError("Patient name is required.");
+            return;
+        }
+        
+        if (!walkInPhone || walkInPhone.length < 10) {
+            setModalError("Phone number must be exactly 10 digits.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        setModalError(null);
+        try {
+            const payload = {
+                patient_name_snapshot: walkInName.trim(),
+                patient_phone_snapshot: walkInPhone,
+                name: walkInName.trim(),
+                phone: walkInPhone,
+                appointment_date: new Date().toISOString().split('T')[0],
+                start_time: '10:00',
+                type: 'Consultation',
+                status: 'Scheduled',
+                visit_reason: 'Walk-In'
+            };
+            await api.createAppointment(payload);
+            setIsWalkInModalOpen(false);
+            fetchRegisterData();
+        } catch (err: any) {
+            console.error("Failed to add walk-in", err);
+            setModalError(err?.message || err?.error || "Failed to add walk-in. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -148,6 +176,100 @@ export const DailyRegisterTable: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {isWalkInModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-scale-in">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm transition-opacity"
+                        onClick={() => {
+                            if (!isSubmitting) setIsWalkInModalOpen(false);
+                        }}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative bg-brand-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
+                        <div className="bg-brand-bg p-5 flex justify-between items-center border-b border-brand-border flex-shrink-0">
+                            <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                    <UserPlus size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-brand-textPrimary text-base font-bold">Add Walk-In Patient</h3>
+                                    <p className="text-brand-textSecondary text-[10px] font-medium">Create a new registration & appointment</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsWalkInModalOpen(false)}
+                                disabled={isSubmitting}
+                                className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors disabled:opacity-50"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleModalSubmit} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                            {modalError && (
+                                <div className="p-3 bg-brand-error/10 border border-brand-error/20 text-brand-error rounded-xl text-xs font-semibold">
+                                    {modalError}
+                                </div>
+                            )}
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Patient Name *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Enter full name"
+                                    value={walkInName}
+                                    onChange={(e) => setWalkInName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Phone Number (10 digits) *</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    pattern="[0-9]{10}"
+                                    placeholder="e.g. 9876543210"
+                                    value={walkInPhone}
+                                    onChange={(e) => setWalkInPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                                    className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all font-mono"
+                                />
+                            </div>
+
+                            <div className="pt-3 flex justify-end space-x-2 flex-shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWalkInModalOpen(false)}
+                                    disabled={isSubmitting}
+                                    className="px-4 py-2 text-xs font-bold text-brand-textSecondary hover:bg-brand-bg rounded-lg transition-colors border border-transparent hover:border-brand-border disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="px-6 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Registering...</span>
+                                        </>
+                                    ) : (
+                                        <span>Register Walk-In</span>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
@@ -313,7 +435,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
     };
 
     return (
-        <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden flex flex-col h-full">
+        <div className="flex flex-col h-full bg-brand-surface">
             <div className="p-6 border-b border-brand-border bg-brand-bg/50">
                 <h3 className="text-lg font-bold text-brand-textPrimary flex items-center">
                     <UserPlus className="mr-2 text-brand-primary" size={20} /> New Patient Registration (Conversion)
@@ -327,7 +449,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                 <form className="space-y-8 max-w-5xl mx-auto" onSubmit={handleSubmit}>
 
                     {/* Section 1: Basic Demographics */}
-                    <div className="bg-brand-bg/30 p-6 rounded-xl border border-brand-border">
+                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
                         <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
                             <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">1</span>
                             Demographics
@@ -335,15 +457,15 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Patient Name</label>
-                                <input name="name" value={formData.name} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
+                                <input name="name" value={formData.name} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">S/D/H/W of</label>
-                                <input name="relation" value={formData.relation} onChange={handleChange} placeholder="Relation Name" className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="relation" value={formData.relation} onChange={handleChange} placeholder="Relation Name" className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Marital Status</label>
-                                <select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
+                                <select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
                                     <option value="Married">Married</option>
                                     <option value="Single">Single</option>
                                     <option value="Divorced">Divorced</option>
@@ -353,7 +475,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
 
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Gender</label>
-                                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
+                                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
                                     <option value="Female">Female</option>
                                     <option value="Male">Male</option>
                                     <option value="Other">Other</option>
@@ -361,26 +483,26 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Date of Birth</label>
-                                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Age</label>
-                                <input name="age" value={formData.age} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="age" value={formData.age} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
 
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Aadhar Number</label>
-                                <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Blood Group</label>
-                                <input name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                         </div>
                     </div>
 
                     {/* Section 2: Contact Information */}
-                    <div className="bg-brand-bg/30 p-6 rounded-xl border border-brand-border">
+                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
                         <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
                             <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">2</span>
                             Contact Information
@@ -388,47 +510,47 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">House / Apt</label>
-                                <input name="house" value={formData.house} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="house" value={formData.house} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Street / Road</label>
-                                <input name="street" value={formData.street} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="street" value={formData.street} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Area / Sector</label>
-                                <input name="area" value={formData.area} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="area" value={formData.area} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
 
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">City / Town</label>
-                                <input name="city" value={formData.city} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="city" value={formData.city} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">District</label>
-                                <input name="district" value={formData.district} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="district" value={formData.district} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">State</label>
-                                <input name="state" value={formData.state} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="state" value={formData.state} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
 
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Postal Code</label>
-                                <input name="postalCode" value={formData.postalCode} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="postalCode" value={formData.postalCode} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Email Address</label>
-                                <input name="email" value={formData.email} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="email" value={formData.email} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div className="md:col-span-1">
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Mobile Number</label>
-                                <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
+                                <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
                             </div>
                         </div>
                     </div>
 
                     {/* Section 3: Referral & Admin */}
-                    <div className="bg-brand-bg/30 p-6 rounded-xl border border-brand-border">
+                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
                         <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
                             <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">3</span>
                             Referral & Admin
@@ -436,19 +558,19 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Referral Doctor Name</label>
-                                <input name="referralDoctor" value={formData.referralDoctor} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="referralDoctor" value={formData.referralDoctor} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Hospital Address</label>
-                                <input name="hospitalAddress" value={formData.hospitalAddress} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="hospitalAddress" value={formData.hospitalAddress} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">UHID</label>
-                                <input name="uhid" value={formData.uhid} onChange={handleChange} placeholder="Enter UHID manually" className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input name="uhid" value={formData.uhid} onChange={handleChange} placeholder="Enter UHID manually" className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Registration Date</label>
-                                <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full mt-1 bg-white border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
+                                <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                             </div>
                         </div>
                     </div>

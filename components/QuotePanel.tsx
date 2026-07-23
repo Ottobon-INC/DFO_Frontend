@@ -18,7 +18,7 @@ export const QuotePanel: React.FC = () => {
         <div className="mb-8">
            {/* Abstract Logo Placeholder */}
            <div className="w-16 h-16 border-4 border-white/30 rounded-full flex items-center justify-center mb-6">
-              <div className="w-8 h-8 bg-white/80 rounded-full animate-pulse" />
+              <div className="w-8 h-8 bg-brand-surface/80 rounded-full animate-pulse" />
            </div>
         </div>
         

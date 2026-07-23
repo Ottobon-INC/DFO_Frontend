@@ -32,7 +32,7 @@ export const TeamExperiencePanels: React.FC = () => {
                             viewport={{ once: true }}
                             transition={{ duration: 0.7, delay: panel.delay }}
                             whileHover={{ y: -8, boxShadow: '0 20px 40px -10px rgba(79, 70, 229, 0.15)' }}
-                            className="bg-white/5 p-8 rounded-3xl shadow-lg border border-white/10 flex flex-col h-full transition-all duration-300 backdrop-blur-sm"
+                            className="bg-brand-surface/5 p-8 rounded-3xl shadow-lg border border-white/10 flex flex-col h-full transition-all duration-300 backdrop-blur-sm"
                         >
                             <h3 className="text-2xl font-bold text-white mb-8 pb-4 border-b border-white/10">
                                 {panel.role}

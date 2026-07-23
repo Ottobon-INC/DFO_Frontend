@@ -127,7 +127,7 @@ export const DoctorDashboard: React.FC<{ appointments?: Appointment[]; onPatient
                                 {appt.status === 'Completed' ? (
                                     <button
                                         disabled
-                                        className="px-6 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-400 font-bold flex items-center cursor-not-allowed"
+                                        className="px-6 py-3 rounded-xl bg-brand-hover border border-brand-border text-brand-textSecondary font-bold flex items-center cursor-not-allowed"
                                     >
                                         <CheckCircle2 size={18} className="mr-2" /> Completed
                                     </button>

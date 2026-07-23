@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, User, Phone, UserPlus } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -12,6 +13,13 @@ interface AssignDocumentModalProps {
 export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ documentId, documentName, onClose, onSuccess }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [patients, setPatients] = useState<any[]>([]);
+
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
     const [isSearching, setIsSearching] = useState(false);
     const [isAssigning, setIsAssigning] = useState(false);
     const [documentType, setDocumentType] = useState('other');
@@ -89,7 +97,7 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
         }
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-brand-bg/80 backdrop-blur-sm z-[100] flex items-center justify-center animate-fade-in p-4">
             <div className="bg-brand-surface w-full max-w-md rounded-2xl shadow-xl border border-brand-border flex flex-col overflow-hidden animate-slide-up">
                 
@@ -99,7 +107,7 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
                         <h3 className="font-bold text-lg text-brand-textPrimary">Assign Document</h3>
                         <p className="text-xs text-brand-textSecondary mt-0.5 truncate max-w-[250px]">{documentName}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-brand-bg rounded-full text-brand-textSecondary transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-red-100 rounded-full text-brand-textSecondary hover:text-red-600 transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -233,6 +241,7 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

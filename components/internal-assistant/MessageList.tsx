@@ -66,8 +66,8 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, on
                                 w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors text-left
                                 border shadow-sm
                                 ${option.type === 'cancel'
-                                    ? 'bg-white border-red-200 text-red-600 hover:bg-red-50'
-                                    : 'bg-white border-brand-border text-brand-primary hover:bg-brand-surface hover:border-brand-primary'}
+                                    ? 'bg-brand-surface border-red-200 text-red-600 hover:bg-red-50'
+                                    : 'bg-brand-surface border-brand-border text-brand-primary hover:bg-brand-surface hover:border-brand-primary'}
                             `}
                         >
                             {option.label}

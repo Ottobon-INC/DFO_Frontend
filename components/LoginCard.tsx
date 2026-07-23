@@ -65,10 +65,10 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
 
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-brand-surface border border-brand-border flex items-center justify-center shadow-lg">
-              <Heart size={24} className="text-brand-primary" fill="currentColor" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src="/logo.png" alt="Medcy Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-brand-textPrimary">JanmaSethu</span>
+            <span className="text-2xl font-bold tracking-tight text-brand-textPrimary">Medcy Health Tech</span>
           </div>
 
           <h2 className="text-4xl font-bold leading-tight mb-6 text-brand-textPrimary">
@@ -190,7 +190,7 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
 
           <div className="mt-8 text-center border-t border-brand-border pt-6">
             <p className="text-sm text-brand-textSecondary">
-              {isLoginMode ? "New to JanmaSethu? " : "Already have an account? "}
+              {isLoginMode ? "New to Medcy Health Tech? " : "Already have an account? "}
               <button
                 onClick={() => setIsLoginMode(!isLoginMode)}
                 className="font-bold text-brand-primary hover:text-brand-secondary transition-colors focus:outline-none ml-1"

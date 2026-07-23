@@ -201,9 +201,9 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                             {activeTab === 'new' ? 'Register new patient and book slot.' : 'Search existing patient and book slot.'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors">
-                        <X size={24} />
-                    </button>
+                        <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
+                            <X size={24} />
+                        </button>
                 </div>
 
                 {/* Tabs */}
@@ -243,14 +243,14 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                                     setShowResults(true);
                                                 }}
                                                 placeholder="Search by Patient Name, Mobile Number or UHID..."
-                                                className="w-full pl-12 pr-4 py-3 bg-white border border-brand-border rounded-xl text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all shadow-sm"
+                                                className="w-full pl-12 pr-4 py-3 bg-brand-surface border border-brand-border rounded-xl text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all shadow-sm"
                                                 autoFocus
                                             />
                                         </div>
 
                                         {/* Search Results Dropdown */}
                                         {showResults && searchQuery && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-brand-border z-50 overflow-hidden max-h-60 overflow-y-auto">
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-brand-surface rounded-xl shadow-xl border border-brand-border z-50 overflow-hidden max-h-60 overflow-y-auto">
                                                 {searchResults.length > 0 ? (
                                                     searchResults.map((p: any) => (
                                                         <div
@@ -278,7 +278,7 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
 
                                         {/* Selected Patient Feedback */}
                                         {formData.name && (formData as any).patientId && (
-                                            <div className="mt-4 p-4 bg-white border border-brand-success/30 rounded-xl flex items-center justify-between text-brand-success">
+                                            <div className="mt-4 p-4 bg-brand-surface border border-brand-success/30 rounded-xl flex items-center justify-between text-brand-success">
                                                 <div className="flex items-center">
                                                     <CheckCircle2 size={20} className="mr-2" />
                                                     <div>
@@ -483,7 +483,7 @@ export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ ap
                                 <Clock size={14} className="mr-1" /> {appointment.time} • {appointment.type}
                             </p>
                         </div>
-                        <button onClick={onClose} className="text-brand-textSecondary hover:text-brand-textPrimary">
+                        <button onClick={onClose} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
                             <X size={20} />
                         </button>
                     </div>

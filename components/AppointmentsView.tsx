@@ -79,7 +79,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 let mapped: Appointment[] = [];
 
                 if (apptsResult.status === 'fulfilled') {
-                    const items = apptsResult.value?.data?.items ?? [];
+                    const items = Array.isArray(apptsResult.value?.data) ? apptsResult.value.data : (apptsResult.value?.data?.items ?? []);
 
                     // Create lookup maps
                     let patientItems: any[] = [];

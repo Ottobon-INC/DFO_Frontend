@@ -35,7 +35,7 @@ const ShowcaseItem: React.FC<{ image: string; title: string; subtitle: string; d
 
 export const VisualShowcase: React.FC = () => {
   return (
-    <section className="py-20 bg-white border-t border-brand-border">
+    <section className="py-20 bg-brand-surface border-t border-brand-border">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-brand-textPrimary mb-4">Integrated Care Environments</h2>
