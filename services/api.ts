@@ -107,6 +107,16 @@ const getHeaders = () => {
     return headers;
 };
 
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
+
 export const api = {
     // Appointments
     getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
@@ -825,6 +835,48 @@ export const api = {
             method: 'POST',
             headers: getHeaders(),
             body: payload ? JSON.stringify(payload) : undefined
+        });
+    },
+
+    // ==========================================
+    // SUPER ADMIN SYSTEM OPERATIONS
+    // ==========================================
+    superAdminLogin: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/auth/login`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    getSuperAdminAnalytics: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/analytics`, {
+            headers: getHeaders()
+        });
+    },
+
+    getSuperAdminClinics: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/clinics`, {
+            headers: getHeaders()
+        });
+    },
+
+    createClinic: async (data: any) => {
+        // Automatically inject request_id for idempotency on the backend
+        const payload = {
+            ...data,
+            request_id: data.request_id || generateUUID()
+        };
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/clinics`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
+    deleteClinic: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/clinics/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
         });
     }
 };

@@ -224,3 +224,16 @@ export interface Admission {
         };
     }>;
 }
+export interface SuperAdminAnalytics {
+    total_clinics: number;
+    total_patients: number;
+    total_files: number;
+}
+
+export interface Clinic {
+    id: string;
+    name: string;
+    is_active: boolean;
+    created_at: string;
+    users_count?: number;
+}

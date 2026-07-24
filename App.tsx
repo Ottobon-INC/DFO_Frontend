@@ -4,6 +4,8 @@ import { LoginCard } from './components/LoginCard';
 import { Dashboard } from './components/Dashboard';
 import { ControlTower } from './components/ControlTower';
 import { LandingPage } from './components/LandingPage';
+import { SystemLogin } from './components/superadmin/SystemLogin';
+import { SuperAdminDashboard } from './components/superadmin/SuperAdminDashboard';
 
 import { UserRole } from './types';
 
@@ -25,6 +27,13 @@ const AppContent: React.FC = () => {
     setUserRole(role);
     setUser(user);
     navigate('/dashboard');
+  };
+
+  const handleSystemLoginSuccess = (user: any) => {
+    localStorage.setItem('userRole', UserRole.CRO); // Super admin might not fit perfectly into UserRole, but CRO is close or we can just use ADMIN
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    navigate('/system/dashboard');
   };
 
   const handleLogout = async () => {
@@ -62,6 +71,16 @@ const AppContent: React.FC = () => {
         } />
         <Route path="/control-tower" element={user ? <ControlTower onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
         <Route path="/dashboard/*" element={user ? <Dashboard onLogout={handleLogout} userRole={userRole} /> : <Navigate to="/login" replace />} />
+        
+        {/* Super Admin Routes */}
+        <Route path="/system" element={<SystemLogin onLoginSuccess={handleSystemLoginSuccess} />} />
+        <Route path="/system/dashboard" element={
+          user && user.is_super_admin ? 
+            <SuperAdminDashboard onLogout={handleLogout} /> 
+          : 
+            <Navigate to="/system" replace />
+        } />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
