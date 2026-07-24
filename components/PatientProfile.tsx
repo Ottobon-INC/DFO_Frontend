@@ -12,6 +12,7 @@ import { TimelineContainer } from './timeline/TimelineContainer';
 import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
 import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
+import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
 
 interface PatientProfileProps {
     patient: Patient;
@@ -43,6 +44,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [doctors, setDoctors] = useState<any[]>([]);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isDigitalPrescriptionModalOpen, setIsDigitalPrescriptionModalOpen] = useState(false);
     const [consultationNote, setConsultationNote] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [historyNotes, setHistoryNotes] = useState<any[]>([]);
@@ -66,11 +68,31 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
     const fetchPatientDocuments = async () => {
         try {
+            // Fetch manually uploaded docs
             const response = await api.getPatientDocuments(patient.id);
-            const docs = response?.data || (Array.isArray(response) ? response : []);
-            if (Array.isArray(docs)) {
-                setPatientDocuments(docs);
+            const manualDocs = response?.data || (Array.isArray(response) ? response : []);
+            
+            // Fetch system-generated docs (prescriptions, summaries)
+            let generatedDocs = [];
+            try {
+                const genResponse = await api.getGeneratedDocuments(patient.id);
+                if (Array.isArray(genResponse)) {
+                    generatedDocs = genResponse.map(d => ({
+                        id: d.id,
+                        patientId: patient.id,
+                        type: d.type === 'prescription' ? 'Prescription' : d.type,
+                        name: d.file_name,
+                        url: d.signed_url, 
+                        uploadDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Just now',
+                        generation_status: d.generation_status
+                    }));
+                }
+            } catch (err) {
+                console.warn("Could not fetch generated docs", err);
             }
+
+            const combined = [...(Array.isArray(manualDocs) ? manualDocs : []), ...generatedDocs];
+            setPatientDocuments(combined);
         } catch (e) {
             console.warn("Failed to fetch documents", e);
         }
@@ -387,7 +409,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     };
 
     // Determine tabs based on role
-    const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE || userRole === 'Receptionist';
+    const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE || userRole === 'Receptionist' || userRole === UserRole.ADMIN;
 
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
@@ -585,30 +607,30 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-1 gap-y-4">
+                                                <div className="grid grid-cols-2 gap-4 gap-y-6">
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">{patient.name}</p>
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.name}</p>
                                                     </div>
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">{patient.relation || 'N/A'}</p>
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.relation || 'N/A'}</p>
                                                     </div>
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">{patient.dob || 'Not Provided'} ({patient.age ? `${patient.age} Yrs` : '-'})</p>
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.dob || 'Not Provided'} ({patient.age ? `${patient.age} Yrs` : '-'})</p>
                                                     </div>
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">{patient.gender || 'Female'}</p>
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.gender || 'Female'}</p>
                                                     </div>
                                                     <div>
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">{patient.bloodGroup || 'N/A'}</p>
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.bloodGroup || 'N/A'}</p>
                                                     </div>
                                                     <div className="col-span-2">
                                                         <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">
+                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">
                                                             {[
                                                                 patient.house,
                                                                 patient.street,
@@ -657,30 +679,30 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="grid grid-cols-1 gap-4">
+                                                    <div className="grid grid-cols-2 gap-4 gap-y-6">
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.uhid || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.uhid || 'N/A'}</p>
                                                         </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.aadhar || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.aadhar || 'N/A'}</p>
                                                         </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.maritalStatus || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.maritalStatus || 'N/A'}</p>
                                                         </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.referralDoctor || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.referralDoctor || 'N/A'}</p>
                                                         </div>
                                                         <div className="col-span-2">
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Hospital Address</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.hospitalAddress || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.hospitalAddress || 'N/A'}</p>
                                                         </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{patient.registrationDate || 'N/A'}</p>
+                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.registrationDate || 'N/A'}</p>
                                                         </div>
                                                     </div>
                                                 )}
@@ -751,7 +773,6 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             </div>
                                         </div>
                                     </div>
-                                    </div>
                                 </div>
                             )}
 
@@ -763,7 +784,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                 <FileText size={18} className="mr-2 text-brand-primary" /> Clinical Note
                                             </h3>
                                             {isClinical && (
-                                                <button className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm">
+                                                <button 
+                                                    onClick={() => setIsDigitalPrescriptionModalOpen(true)}
+                                                    className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm"
+                                                >
                                                     <Pill size={14} className="mr-1" /> Prescription Generator
                                                 </button>
                                             )}
@@ -1100,6 +1124,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     </div>
                 </div>
             )}
+            <DigitalPrescriptionModal
+                isOpen={isDigitalPrescriptionModalOpen}
+                onClose={() => setIsDigitalPrescriptionModalOpen(false)}
+                onSave={async (data) => {
+                    await api.addPrescription({
+                        ...data,
+                        patient_id: patient.id
+                    } as any);
+                    alert("Prescription generated successfully! It will appear in the patient's timeline.");
+                }}
+            />
         </div >,
         document.body
     );

@@ -677,7 +677,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             } />
             <Route path="patients" element={
               <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
-                <PatientsView onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
+                <PatientsView userRole={userRole} onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
             <Route path="doctor" element={<DoctorDashboard />} />

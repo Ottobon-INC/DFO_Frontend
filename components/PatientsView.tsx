@@ -9,9 +9,10 @@ import { api } from '../services/api';
 
 interface PatientsViewProps {
     onNavigateToLeads: () => void;
+    userRole?: string;
 }
 
-export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads }) => {
+export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, userRole }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All Patients');
     const [filterGender, setFilterGender] = useState('All Genders');
@@ -397,17 +398,6 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
                                                 <FileText size={14} className="text-brand-textSecondary" />
                                                 <span>File</span>
                                             </button>
-                                            <button 
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setPatientForBooking(patient);
-                                                    setIsBookingModalOpen(true);
-                                                }}
-                                                className="px-3 py-1.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20 hover:bg-brand-primary hover:text-white transition-all flex items-center space-x-1.5 text-xs font-semibold shadow-sm"
-                                            >
-                                                <CalendarPlus size={14} />
-                                                <span>Book</span>
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -435,6 +425,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads })
                     patient={selectedPatient}
                     onClose={() => setSelectedPatient(null)}
                     onPatientUpdate={fetchPatients}
+                    userRole={userRole}
                 />
             )}
 

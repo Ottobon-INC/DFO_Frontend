@@ -436,14 +436,6 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
 
     return (
         <div className="flex flex-col h-full bg-brand-surface">
-            <div className="p-6 border-b border-brand-border bg-brand-bg/50">
-                <h3 className="text-lg font-bold text-brand-textPrimary flex items-center">
-                    <UserPlus className="mr-2 text-brand-primary" size={20} /> New Patient Registration (Conversion)
-                </h3>
-                <p className="text-sm text-brand-textSecondary mt-1">
-                    {initialData ? `Converting Lead: ${initialData.name}` : 'Complete patient profile for admission/treatment.'}
-                </p>
-            </div>
 
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                 <form className="space-y-8 max-w-5xl mx-auto" onSubmit={handleSubmit}>

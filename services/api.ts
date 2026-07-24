@@ -236,6 +236,14 @@ export const api = {
         });
     },
 
+    addPrescription: async (data: { consultation_id?: string; patient_id: string; medications: any[] }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/consultations/prescription`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
     updatePatient: async (id: string, data: any) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
             method: 'PATCH',
@@ -246,6 +254,12 @@ export const api = {
 
     getPatientDocuments: async (id: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
+            headers: getHeaders()
+        });
+    },
+
+    getGeneratedDocuments: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/janmasethu/documents/patient/${id}`, {
             headers: getHeaders()
         });
     },
