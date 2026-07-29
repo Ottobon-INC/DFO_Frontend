@@ -15,6 +15,7 @@ export const CroInbox: React.FC = () => {
   // Selection states for target clinicians
   const [selectedDocId, setSelectedDocId] = useState(DOCTORS[0]?.id || '');
   const [selectedNurseId, setSelectedNurseId] = useState('nurse_divya');
+  const [patientLocation, setPatientLocation] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -22,9 +23,8 @@ export const CroInbox: React.FC = () => {
     try {
       const res = await api.getInboxThreads();
       const allThreads = res.data || res || [];
-      // Filter out threads that have an assigned user (only display unassigned threads to CRO)
-      const unassignedThreads = allThreads.filter((t: any) => !t.assigned_user_id);
-      setThreads(unassignedThreads);
+      // Display all threads in the CRO inbox list so escalated/assigned threads don't disappear
+      setThreads(allThreads);
     } catch (err) {
       console.error(err);
 
@@ -55,7 +55,30 @@ export const CroInbox: React.FC = () => {
   const fetchThreadDetails = async (id: string) => {
     try {
       const res = await api.getThreadContext(id);
-      setThreadContext(res.data || res);
+      const ctx = res.data || res;
+      const matched = threads.find(t => t.id === id);
+      setThreadContext({
+        thread: {
+          id: ctx.threadId || id,
+          patient_name: matched?.patient_name || "Patient",
+          status: ctx.status || matched?.status || "green"
+        },
+        messages: ctx.messages || []
+      });
+
+      // Fetch patient location/city dynamically to filter clinician lists
+      if (ctx.patientId) {
+        try {
+          const patRes = await api.getPatientById(ctx.patientId);
+          const pat = patRes.data || patRes;
+          const loc = pat.location || pat.city || pat.district || null;
+          setPatientLocation(loc);
+        } catch {
+          setPatientLocation(null);
+        }
+      } else {
+        setPatientLocation(null);
+      }
     } catch (err) {
       console.error(err);
 
@@ -70,8 +93,23 @@ export const CroInbox: React.FC = () => {
           { id: "m-1", sender_type: "PATIENT", content: matched?.latest_message || "Hello", created_at: new Date().toISOString() }
         ]
       });
+      setPatientLocation(null);
     }
   };
+
+  // Auto-select first doctor of filtered list when location changes
+  useEffect(() => {
+    const filtered = DOCTORS.filter(doc => {
+      if (!patientLocation) return true;
+      return doc.location.toLowerCase().includes(patientLocation.toLowerCase()) || 
+             patientLocation.toLowerCase().includes(doc.location.toLowerCase()) || 
+             doc.location === 'Medcy Hospitals';
+    });
+    const toShow = filtered.length > 0 ? filtered : DOCTORS;
+    if (toShow.length > 0) {
+      setSelectedDocId(toShow[0].id);
+    }
+  }, [patientLocation]);
 
   const handleEscalate = async (targetStatus: 'red' | 'yellow', assignedUserId: string) => {
     if (!selectedThreadId) return;
@@ -218,7 +256,6 @@ export const CroInbox: React.FC = () => {
                 </div>
               </div>
 
-              {/* Escalation Actions */}
               <div className="flex items-center gap-3">
                 <div className="flex items-center bg-brand-bg border border-brand-border rounded-xl p-1.5 gap-1.5">
                   <select
@@ -226,9 +263,18 @@ export const CroInbox: React.FC = () => {
                     onChange={(e) => setSelectedDocId(e.target.value)}
                     className="bg-transparent text-[11px] text-brand-textPrimary outline-none font-bold border-none px-2 cursor-pointer max-w-[130px] rounded-lg"
                   >
-                    {DOCTORS.map(doc => (
-                      <option key={doc.id} value={doc.id} className="bg-brand-bg text-brand-textPrimary font-semibold">{doc.name}</option>
-                    ))}
+                    {(() => {
+                      const filtered = DOCTORS.filter(doc => {
+                        if (!patientLocation) return true;
+                        return doc.location.toLowerCase().includes(patientLocation.toLowerCase()) || 
+                               patientLocation.toLowerCase().includes(doc.location.toLowerCase()) || 
+                               doc.location === 'Medcy Hospitals';
+                      });
+                      const doctorsToShow = filtered.length > 0 ? filtered : DOCTORS;
+                      return doctorsToShow.map(doc => (
+                        <option key={doc.id} value={doc.id} className="bg-brand-bg text-brand-textPrimary font-semibold">{doc.name}</option>
+                      ));
+                    })()}
                   </select>
                   <button
                     onClick={() => handleEscalate('red', selectedDocId)}

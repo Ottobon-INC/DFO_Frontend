@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Send, ShieldAlert, Activity, UserCheck, CheckCircle, Clock,
   MessageSquare, AlertTriangle, RefreshCw, AlertCircle, ChevronDown, ChevronUp,
-  User, Database, BrainCircuit
+  User, Database, BrainCircuit, Calendar
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { api } from '../services/api';
@@ -18,6 +18,8 @@ const orgSupabase = createClient(
   import.meta.env.VITE_ORG_SUPABASE_KEY || import.meta.env.VITE_SUPABASE_KEY || ''
 );
 
+import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
+
 export const ControlTowerWorkspace: React.FC = () => {
   const [threads, setThreads] = useState<any[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -28,6 +30,19 @@ export const ControlTowerWorkspace: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showEarlier, setShowEarlier] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'timeline'>('overview');
+
+  // Lead & Appointments state
+  const [lead, setLead] = useState<any>(null);
+  const [loadingLead, setLoadingLead] = useState(false);
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [showActionCard, setShowActionCard] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
+
+  // Gap 6 + Gap 7: Booking Context Panel state
+  const [bookingContext, setBookingContext] = useState<any>(null);
+  const [loadingBookingContext, setLoadingBookingContext] = useState(false);
+  const [showBookingPanel, setShowBookingPanel] = useState(true);
 
   // Modals state
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
@@ -44,6 +59,101 @@ export const ControlTowerWorkspace: React.FC = () => {
   const [clinicians, setClinicians] = useState<any[]>([]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch lead and appointments whenever selected thread details update
+  useEffect(() => {
+    if (!threadDetails?.user_id) return;
+    const loadLeadAndAppointments = async () => {
+      try {
+        setLoadingLead(true);
+        const res = await api.getLeads({ phone: threadDetails.user_id });
+        if (res && res.success && res.data && res.data.items && res.data.items.length > 0) {
+          setLead(res.data.items[0]);
+        } else if (res && res.data && res.data.length > 0) {
+          setLead(res.data[0]);
+        } else {
+          setLead(null);
+        }
+
+        if (threadDetails.patient_id) {
+          const apptRes = await api.getPatientAppointments(threadDetails.patient_id);
+          setAppointments(apptRes.data || apptRes || []);
+        } else {
+          setAppointments([]);
+        }
+      } catch (err) {
+        console.error('Failed to load lead/appointments:', err);
+      } finally {
+        setLoadingLead(false);
+      }
+    };
+    loadLeadAndAppointments();
+  }, [threadDetails]);
+
+  // Lead status updates
+  const handleUpdateLeadStatus = async (status: string) => {
+    if (!lead?.id) return;
+    try {
+      await api.updateLead(lead.id, { status });
+      const res = await api.getLeads({ phone: threadDetails.user_id });
+      if (res && res.success && res.data && res.data.items && res.data.items.length > 0) {
+        setLead(res.data.items[0]);
+      } else if (res && res.data && res.data.length > 0) {
+        setLead(res.data[0]);
+      }
+    } catch (err) {
+      alert('Failed to update lead status');
+    }
+  };
+
+  // Appointment creation
+  const handleBookConfirm = async (formData: any) => {
+    try {
+      const payload = {
+        patient_id: threadDetails?.patient_id || lead?.id || undefined,
+        name: formData.name,
+        phone: formData.phone,
+        appointment_date: formData.date,
+        start_time: formData.time,
+        doctor_id: formData.consultant || 'dr_sireesha',
+        type: formData.visit_reason || 'In-Person',
+        visit_reason: formData.problem || 'Routine consultation',
+        status: 'Scheduled'
+      };
+      await api.createAppointment(payload);
+      if (lead?.id) {
+        await api.updateLead(lead.id, { status: 'Appointment Booked' });
+      }
+      setShowBookModal(false);
+      
+      // Refresh context
+      if (threadDetails?.patient_id) {
+        const apptRes = await api.getPatientAppointments(threadDetails.patient_id);
+        setAppointments(apptRes.data || apptRes || []);
+      }
+      const res = await api.getLeads({ phone: threadDetails?.user_id });
+      if (res && res.success && res.data && res.data.items && res.data.items.length > 0) {
+        setLead(res.data.items[0]);
+      }
+    } catch (e: any) {
+      alert('Failed to book appointment: ' + e.message);
+    }
+  };
+
+  // Appointment cancellation
+  const handleCancelAppointment = async () => {
+    if (!selectedAppointment?.id) return;
+    try {
+      await api.updateAppointmentStatus(selectedAppointment.id, { status: 'Canceled' });
+      setShowActionCard(false);
+      if (threadDetails?.patient_id) {
+        const apptRes = await api.getPatientAppointments(threadDetails.patient_id);
+        setAppointments(apptRes.data || apptRes || []);
+      }
+    } catch (e: any) {
+      alert('Failed to cancel appointment: ' + e.message);
+    }
+  };
 
   // Load user from localStorage
   useEffect(() => {
@@ -86,11 +196,40 @@ export const ControlTowerWorkspace: React.FC = () => {
     try {
       const threadRes = await api.getWorkspaceThreadById(threadId);
       const msgRes = await api.getWorkspaceThreadMessages(threadId);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
       setThreadDetails(threadRes.data || threadRes);
       setMessages(msgRes.data || msgRes || []);
     } catch (err) {
       console.error('Failed to load thread details:', err);
+    }
+  };
+
+  // Gap 6 + Gap 7: Fetch booking context for Operator/Doctor workspace
+  const fetchBookingContext = async (threadId: string) => {
+    try {
+      setLoadingBookingContext(true);
+      const res = await fetch(`/api/threads/${threadId}/booking-context`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': (() => {
+            try {
+              const u = JSON.parse(localStorage.getItem('user') || '{}');
+              return u.token ? `Bearer ${u.token}` : '';
+            } catch { return ''; }
+          })(),
+        }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setBookingContext(json.data || null);
+      }
+    } catch (err) {
+      console.error('Failed to load booking context:', err);
+    } finally {
+      setLoadingBookingContext(false);
     }
   };
 
@@ -135,6 +274,12 @@ export const ControlTowerWorkspace: React.FC = () => {
         setThreadDetails(fetchedThread);
         setMessages(fetchedMsgs);
         msgCountRef.current = fetchedMsgs.length;
+<<<<<<< Updated upstream
+=======
+        
+        // Load booking context dynamically
+        fetchBookingContext(selectedThreadId);
+>>>>>>> Stashed changes
 
         // Scroll to bottom on initial load
         setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -218,6 +363,18 @@ export const ControlTowerWorkspace: React.FC = () => {
       await fetchThreadContext(selectedThreadId);
     } catch (e) {
       alert('Assignment failed: ' + (e as any).message);
+    }
+  };
+
+  // Handle doctor takeover
+  const handleDoctorTakeover = async () => {
+    if (!selectedThreadId) return;
+    try {
+      await api.assignWorkspaceThread(selectedThreadId, { assignTo: userId, role: 'DOCTOR' });
+      await api.takeControl(selectedThreadId);
+      await fetchThreadContext(selectedThreadId);
+    } catch (e: any) {
+      alert('Takeover failed: ' + e.message);
     }
   };
 
@@ -475,6 +632,7 @@ export const ControlTowerWorkspace: React.FC = () => {
                 {((threadDetails.current_owner_type === 'DOCTOR' && userRole === 'DOCTOR' && threadDetails.current_owner_id === userId) ||
                   (threadDetails.current_owner_type === 'NURSE' && userRole === 'NURSE' && threadDetails.current_owner_id === userId) ||
                   userRole === 'CRO' || userRole === 'ADMIN') && (
+<<<<<<< Updated upstream
                     <button
                       onClick={() => setShowResolveConfirm(true)}
                       className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
@@ -482,6 +640,24 @@ export const ControlTowerWorkspace: React.FC = () => {
                       <CheckCircle size={14} /> Resolve & Return to AI
                     </button>
                   )}
+=======
+                  <button
+                    onClick={() => setShowResolveConfirm(true)}
+                    className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
+                  >
+                    <CheckCircle size={14} /> Resolve & Return to AI
+                  </button>
+                )}
+
+                {userRole === 'DOCTOR' && threadDetails.status === 'red' && threadDetails.current_owner_id !== userId && (
+                  <button
+                    onClick={handleDoctorTakeover}
+                    className="px-3 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-brand-primary/10 cursor-pointer border-none"
+                  >
+                    <UserCheck size={14} /> Accept Case & Take Control
+                  </button>
+                )}
+>>>>>>> Stashed changes
               </div>
             </div>
 
@@ -502,6 +678,7 @@ export const ControlTowerWorkspace: React.FC = () => {
             </div>
 
             {/* Scrollable details view */}
+<<<<<<< Updated upstream
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-brand-surface">
               {activeTab === 'overview' && (
                 <div className="space-y-6">
@@ -518,6 +695,175 @@ export const ControlTowerWorkspace: React.FC = () => {
                       >
                         <RefreshCw size={13} />
                       </button>
+=======
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              
+              {/* Gap 6 + Gap 7: Booking & Active Patient Context Card */}
+              {bookingContext && (
+                <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-brand-border/30">
+                    <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity size={15} /> Janmasethu Care Context
+                    </h4>
+                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Stage: {bookingContext.booking?.stage || 'UNKNOWN'}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-medium">
+                    <div className="bg-brand-surface p-3 rounded-xl border border-brand-border/60">
+                      <span className="text-[9px] text-brand-textSecondary uppercase font-bold block mb-1">Patient Profile</span>
+                      <div className="space-y-1">
+                        <p className="text-brand-textPrimary font-bold">{bookingContext.patient?.name}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Gender: {bookingContext.patient?.gender || 'N/A'}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Location: {bookingContext.patient?.location || 'N/A'}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Phone: {bookingContext.patient?.phone}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-brand-surface p-3 rounded-xl border border-brand-border/60">
+                      <span className="text-[9px] text-brand-textSecondary uppercase font-bold block mb-1">Booking Details</span>
+                      <div className="space-y-1">
+                        <p className="text-brand-textPrimary font-bold">{bookingContext.booking?.hospital || 'No Hospital Selected'}</p>
+                        {bookingContext.booking?.doctor && (
+                          <p className="text-[10px] text-brand-textSecondary">Doctor: <span className="font-bold">{bookingContext.booking.doctor}</span></p>
+                        )}
+                        {bookingContext.booking?.slot && (
+                          <p className="text-[10px] text-brand-textSecondary">Slot: <span className="font-bold">{bookingContext.booking.date} at {bookingContext.booking.slot}</span></p>
+                        )}
+                        {bookingContext.booking?.appointment_status && (
+                          <p className="text-[10px] text-brand-textSecondary">Appt Status: <span className="font-bold capitalize text-green-600">{bookingContext.booking.appointment_status}</span></p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-brand-surface p-3 rounded-xl border border-brand-border/60">
+                      <span className="text-[9px] text-brand-textSecondary uppercase font-bold block mb-1">Lead Pipeline</span>
+                      <div className="space-y-1">
+                        <p className="text-brand-textPrimary font-bold">Status: {bookingContext.lead?.status || 'No Active Lead'}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Topic: {bookingContext.lead?.problem || 'N/A'}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Source: {bookingContext.lead?.source || 'N/A'}</p>
+                        <p className="text-[10px] text-brand-textSecondary">Router Context: <span className="font-bold text-brand-primary">{bookingContext.conversation_context}</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operator Notes in Doctor view */}
+                  {userRole === 'DOCTOR' && bookingContext.operator_notes?.length > 0 && (
+                    <div className="border-t border-brand-border/30 pt-3">
+                      <span className="text-[9px] text-brand-textSecondary uppercase font-bold block mb-2">Clinical Care / Operator Notes</span>
+                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                        {bookingContext.operator_notes.map((n: any, idx: number) => (
+                          <div key={idx} className="bg-brand-surface p-2.5 rounded-lg border border-brand-border/40 text-[11px]">
+                            <p className="text-brand-textPrimary font-medium">{n.note}</p>
+                            <p className="text-[9px] text-brand-textSecondary mt-1">Added by {n.created_by} on {new Date(n.created_at).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Lead Details & Operations Card */}
+              {lead && (
+                <div className="bg-brand-surface border border-brand-border p-5 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-center pb-3 border-b border-brand-border">
+                    <h4 className="text-xs font-bold text-brand-textPrimary uppercase tracking-wider flex items-center gap-1.5">
+                      <User size={15} className="text-brand-primary" /> Lead Status & Details
+                    </h4>
+                    <select
+                      value={lead.status || 'New'}
+                      onChange={(e) => handleUpdateLeadStatus(e.target.value)}
+                      className="bg-brand-bg text-xs text-brand-textPrimary border border-brand-border rounded-lg px-2 py-1 outline-none font-semibold cursor-pointer"
+                    >
+                      {['New', 'Contacted', 'Interested', 'Appointment Booked', 'Waiting for Patient', 'Escalated to Doctor', 'Closed', 'Lost'].map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-medium">
+                    <div>
+                      <span className="text-[10px] text-brand-textSecondary uppercase font-bold block mb-1">Source</span>
+                      <span className="text-brand-textPrimary">{lead.source || 'WhatsApp'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-brand-textSecondary uppercase font-bold block mb-1">Problem Description</span>
+                      <span className="text-brand-textPrimary">{lead.problem || 'Not specified'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Appointment Operations Card */}
+              <div className="bg-brand-surface border border-brand-border p-5 rounded-2xl space-y-4">
+                <div className="flex justify-between items-center pb-3 border-b border-brand-border">
+                  <h4 className="text-xs font-bold text-brand-textPrimary uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar size={15} className="text-brand-primary" /> Appointment Operations
+                  </h4>
+                  {appointments.filter(a => a.status !== 'Canceled').length === 0 ? (
+                    <button
+                      onClick={() => setShowBookModal(true)}
+                      className="px-3 py-1.5 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all cursor-pointer border-none"
+                    >
+                      Book Appointment
+                    </button>
+                  ) : null}
+                </div>
+                {appointments.filter(a => a.status !== 'Canceled').length > 0 ? (
+                  <div className="space-y-3">
+                    {appointments.filter(a => a.status !== 'Canceled').map(appt => (
+                      <div key={appt.id} className="flex justify-between items-center p-3 bg-brand-bg rounded-xl border border-brand-border">
+                        <div>
+                          <p className="text-xs font-bold text-brand-textPrimary">{appt.appointment_date} @ {appt.start_time}</p>
+                          <p className="text-[10px] text-brand-textSecondary">Doctor ID: {appt.doctor_id} • Status: {appt.status}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedAppointment(appt);
+                            setShowActionCard(true);
+                          }}
+                          className="px-2.5 py-1 text-xs border border-brand-border rounded-lg text-brand-textSecondary hover:bg-brand-hover font-semibold transition-all cursor-pointer"
+                        >
+                          Manage
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-brand-textSecondary italic">No active appointments scheduled.</p>
+                )}
+              </div>
+
+              {/* 2. AI Handoff Summary */}
+              <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <BrainCircuit size={15} /> AI Clinical Handoff Report
+                  </h4>
+                  <button
+                    onClick={handleRefreshSummary}
+                    className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
+                    title="Update or Add summary"
+                  >
+                    <RefreshCw size={13} />
+                  </button>
+                </div>
+
+                {threadDetails.handoff_summary ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
+                      <div>
+                        <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
+                        <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
+                      </div>
+                      {threadDetails.escalation_reason && (
+                        <div>
+                          <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
+                          <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
+                        </div>
+                      )}
+>>>>>>> Stashed changes
                     </div>
 
                     {threadDetails.handoff_summary ? (
@@ -776,5 +1122,125 @@ export const ControlTowerWorkspace: React.FC = () => {
         )}
 
       </div>
-      );
+
+      {/* Modals */}
+      {showResolveConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border">
+              <h3 className="font-bold text-sm text-brand-textPrimary">
+                {userRole === 'DOCTOR' ? 'Conclude Consultation?' : 'Resolve Thread?'}
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-xs text-brand-textSecondary">
+                {userRole === 'DOCTOR' 
+                  ? 'Are you sure you want to conclude this consultation? The thread will be returned to AI automation.'
+                  : 'Are you sure you want to resolve this thread? It will be returned to AI automation and marked as resolved.'}
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end">
+              <button onClick={() => setShowResolveConfirm(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-bg border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleResolve} className="px-4 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all">
+                {userRole === 'DOCTOR' ? 'Yes, Conclude' : 'Yes, Resolve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEscalateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-red-500/10">
+              <h3 className="font-bold text-sm text-red-500 flex items-center gap-2"><ShieldAlert size={16} /> Escalate Thread</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Escalate To Queue</label>
+                <select 
+                  value={escalateRole} 
+                  onChange={(e) => setEscalateRole(e.target.value)}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400 font-bold"
+                >
+                  <option value="DOCTOR">Doctor / Specialist (Red Queue)</option>
+                  <option value="NURSE">Nurse / Triage (Yellow Queue)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Reason for Escalation</label>
+                <textarea 
+                  value={escalateReason} 
+                  onChange={(e) => setEscalateReason(e.target.value)}
+                  placeholder="Provide clinical context for the clinician..."
+                  rows={3}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+              <button onClick={() => setShowEscalateModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleEscalateSubmit} disabled={!escalateReason.trim()} className="px-4 py-2 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50">Escalate Now</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center">
+              <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2"><BrainCircuit size={16} /> Edit AI Context Summary</h3>
+            </div>
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Clinical Summary</label>
+                <textarea 
+                  value={summaryText} 
+                  onChange={(e) => setSummaryText(e.target.value)}
+                  rows={4}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Handoff Bullet Points</label>
+                <textarea 
+                  value={handoffText} 
+                  onChange={(e) => setHandoffText(e.target.value)}
+                  rows={6}
+                  className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary font-mono text-[10px]"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
+              <button onClick={() => setShowSummaryModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
+              <button onClick={handleSummarySubmit} className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all">Save Summary</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBookModal && (
+        <BookAppointmentModal
+          isOpen={showBookModal}
+          onClose={() => setShowBookModal(false)}
+          onConfirm={handleBookConfirm}
+          initialData={{
+            name: lead?.name || threadDetails?.patient_name || '',
+            phone: lead?.phone || threadDetails?.user_id || '',
+            patientId: threadDetails?.patient_id || lead?.id || undefined
+          }}
+        />
+      )}
+
+      {showActionCard && selectedAppointment && (
+        <AppointmentActionCard
+          appointment={selectedAppointment}
+          onClose={() => setShowActionCard(false)}
+          onCancel={handleCancelAppointment}
+        />
+      )}
+
+    </div>
+  );
 };

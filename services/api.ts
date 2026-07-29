@@ -132,13 +132,30 @@ export const api = {
     // Appointments
     getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
+        const res = await fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
             headers: getHeaders()
         });
+        
+        // Map backend schema to frontend expectations
+        const mapAppointment = (appt: any) => ({
+            ...appt,
+            id: appt.appointmentId || appt.id,
+            patientName: appt.patientName || (appt.patient ? `${appt.patient.firstName || ''} ${appt.patient.lastName || ''}`.trim() : 'Unknown'),
+            time: appt.slotTime || appt.time,
+            date: appt.appointmentDate ? appt.appointmentDate.split('T')[0] : appt.date,
+            type: appt.type || (appt.department ? appt.department.name : 'General Consultation')
+        });
+
+        if (res.data && Array.isArray(res.data)) {
+            res.data = res.data.map(mapAppointment);
+        } else if (Array.isArray(res)) {
+            return res.map(mapAppointment);
+        }
+        return res;
     },
 
     getDoctors: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/doctors`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/doctors`, {
             headers: getHeaders()
         });
     },
@@ -174,8 +191,9 @@ export const api = {
     },
 
     // Leads
-    getLeads: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/leads`, {
+    getLeads: async (params?: { phone?: string; status?: string; q?: string }) => {
+        const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/leads${query}`, {
             headers: getHeaders()
         });
     },
@@ -751,6 +769,7 @@ export const api = {
         });
     },
 
+
     getDoctorQueue: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
             headers: getHeaders()
@@ -807,65 +826,65 @@ export const api = {
 
     // Workspace Threads
     getWorkspaceThreads: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads`, {
             headers: getHeaders()
         });
     },
 
     getWorkspaceClinicians: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/clinicians`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/clinicians`, {
             headers: getHeaders()
         });
     },
 
     getWorkspaceThreadById: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}`, {
             headers: getHeaders()
         });
     },
 
     getWorkspaceThreadMessages: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/messages`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/messages`, {
             headers: getHeaders()
         });
     },
 
-    assignWorkspaceThread: async (threadId: string, payload: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/assign`, {
+    assignWorkspaceThread: async (threadId: string, data: { assignTo: string; role: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/assign`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ ownerId: data.assignTo, ownerType: data.role })
         });
     },
 
-    escalateWorkspaceThread: async (threadId: string, payload: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/escalate`, {
+    escalateWorkspaceThread: async (threadId: string, data: { reason: string; status: string; riskScore: number }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/escalate`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(payload)
+            body: JSON.stringify(data)
         });
     },
 
-    replyToWorkspaceThread: async (threadId: string, payload: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/reply`, {
+    replyToWorkspaceThread: async (threadId: string, data: { message: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/reply`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(payload)
+            body: JSON.stringify(data)
         });
     },
 
     resolveWorkspaceThread: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/resolve`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/resolve`, {
             method: 'POST',
             headers: getHeaders()
         });
     },
 
-    refreshWorkspaceSummary: async (threadId: string, payload?: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/control-tower/threads/${threadId}/refresh-summary`, {
+    refreshWorkspaceSummary: async (threadId: string, data: { clinicalSummary: string; handoffSummary: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/threads/${threadId}/refresh-summary`, {
             method: 'POST',
             headers: getHeaders(),
-            body: payload ? JSON.stringify(payload) : undefined
+            body: JSON.stringify(data)
         });
     },
 
@@ -875,6 +894,7 @@ export const api = {
     superAdminLogin: async (data: any) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/auth/login`, {
             method: 'POST',
+            headers: getHeaders(),
             body: JSON.stringify(data)
         });
     },
@@ -911,4 +931,3 @@ export const api = {
         });
     }
 };
-
