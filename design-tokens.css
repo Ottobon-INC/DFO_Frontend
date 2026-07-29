@@ -1,22 +1,28 @@
-/* Premium Clinical Light Tokens */
+/* Mint & Champagne Tokens (from Landing Page) */
 :root {
-  /* Vibrant Accents */
-  --color-primary: #0052CC; /* Deep Azure Blue */
-  --color-primary-dark: #0747A6; /* Navy Slate */
-  --color-accent: #FF5630; /* Vibrant Coral */
+  /* Mint Accents */
+  --color-primary: #0d1f1a; /* Mint 900 */
+  --color-primary-dark: #31524a; /* Mint 700 */
+  --color-accent: #c9b086; /* Champagne */
 
-  /* Clean Backgrounds */
-  --color-bg: #F4F7FA; /* Icy Blue-Grey */
+  /* Mint Backgrounds */
+  --color-bg: #f4fbf9; /* Mint 50 */
   --color-surface: #FFFFFF; /* Pure White */
-  --color-surface-light: #F8FAFC; 
+  --color-surface-light: #e5f5f0; /* Mint 100 */
 
-  /* Crisp Text */
-  --color-text-primary: #091E42; /* Deep Ink */
-  --color-text-secondary: #5E6C84; /* Cool Slate */
+  /* Crisp Mint Text */
+  --color-text-primary: #0d1f1a; /* Mint 900 */
+  --color-text-secondary: #31524a; /* Mint 700 */
 
-  /* Subtle Borders & Soft Shadows */
-  --color-border: rgba(9, 30, 66, 0.08);
-  --color-hover: rgba(9, 30, 66, 0.04);
+  /* Subtle Borders & Interactions */
+  --color-border: #ccebe4; /* Mint 200 */
+  --color-hover: #e5f5f0; /* Mint 100 */
+}
+
+/* Global Selection */
+::selection {
+  background-color: #ccebe4; /* Mint 200 */
+  color: #0d1f1a; /* Mint 900 */
 }
 
 /* Base Utility Classes */
@@ -28,7 +34,7 @@
 .bg-brand-surface { 
   background-color: var(--color-surface); 
   border: 1px solid var(--color-border);
-  box-shadow: 0 4px 20px rgba(9, 30, 66, 0.04);
+  box-shadow: 0 4px 20px rgba(13, 31, 26, 0.05); /* Soft Mint 900 shadow */
 }
 
 .text-brand-primary { color: var(--color-primary); }

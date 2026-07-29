@@ -160,6 +160,34 @@ export const api = {
         });
     },
 
+    getSchedules: async (doctorId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getDoctorSlots: async (doctorId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/slots`, {
+            headers: getHeaders()
+        });
+    },
+
+    updateUserProfile: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/clinic/users/profile`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    saveSchedules: async (doctorId: string, schedules: any[]) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ schedules })
+        });
+    },
+
     getAppointmentById: async (id: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             headers: getHeaders()

@@ -22,6 +22,7 @@ import { AuditLogsView } from './cro/AuditLogsView';
 import { InternalAssistant } from './internal-assistant/InternalAssistant';
 import { DailyRegisterTable } from './PatientRegistration';
 import { TeamManagementView } from './TeamManagementView';
+import { DoctorSchedulesView } from './settings/DoctorSchedulesView';
 import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
 import DoctorScheduleSettings from './settings/DoctorScheduleSettings';
 import { ProfileSettingsModal } from './settings/ProfileSettingsModal';
@@ -395,22 +396,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 md:w-60 lg:w-72 xl:w-[280px] bg-brand-surface flex-shrink-0 flex flex-col border-r border-brand-border fixed h-full z-50 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+      <aside className={`w-56 md:w-52 lg:w-60 xl:w-[240px] bg-brand-surface flex-shrink-0 flex flex-col border-r border-brand-border fixed h-full z-50 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
         {/* Logo Area */}
-        <div className="p-5 flex items-center space-x-4">
-          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+        <div className="p-4 flex items-center space-x-3">
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
             <img src="/logo.png" alt="Medcy Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h1 className="text-sm font-extrabold tracking-tight text-brand-textPrimary">Medcy Health Tech</h1>
-            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest mt-0.5">CLINICAL PLATFORM</p>
+            <h1 className="text-[13px] font-extrabold tracking-tight text-brand-textPrimary">Medcy Health Tech</h1>
+            <p className="text-[9px] font-bold text-brand-textSecondary tracking-widest mt-0.5">CLINICAL PLATFORM</p>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
           {/* Operations Section */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest px-3 mb-3">Operations</div>
+            <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 opacity-80">Operations</div>
             <NavItem
               icon={<LayoutDashboard size={20} />}
               label="Dashboard"
@@ -460,15 +461,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <NavItem
               icon={<Clock size={20} />}
               label="Doctor Schedules"
-              active={location.pathname === '/dashboard/settings/schedules'}
-              onClick={() => navigate('/dashboard/settings/schedules')}
+              active={location.pathname === '/dashboard/settings/schedules' || location.pathname === '/dashboard/schedules/view'}
+              onClick={() => navigate(userRole === 'Front Desk' ? '/dashboard/schedules/view' : '/dashboard/settings/schedules')}
             />
           </div>
 
           {/* Specialist & Clinical Dashboards */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest px-3 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+            <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
+              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse shadow-sm"></span>
               Operations Dashboards
             </div>
             {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
@@ -556,11 +557,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 overflow-y-auto overflow-x-hidden md:ml-60 lg:ml-72 xl:ml-[280px] flex flex-col relative z-10 bg-brand-bg`}>
-        {/* Top Bar - Styled like the screenshot */}
-        <header className="bg-brand-surface border-b border-brand-border px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center flex-shrink-0 gap-4">
-          
+      {/* Main Content Area */}
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden md:ml-52 lg:ml-60 xl:ml-[240px] flex flex-col relative z-10 bg-brand-bg`}>
+        {/* Header */}
+        <header className="bg-brand-surface border-b border-brand-border px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center flex-shrink-0 gap-3">
+
           {/* Search Bar - Top Center/Left */}
           <div className="flex-1 max-w-xl hidden md:flex items-center">
             <div className="flex items-center bg-brand-bg px-4 py-2 rounded-full border border-brand-border w-full focus-within:ring-2 focus-within:ring-brand-primary/30 transition-all">
@@ -688,6 +689,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="daily-register" element={<DailyRegisterTable />} />
             <Route path="settings/schedules" element={<DoctorScheduleSettings userRole={userRole} currentUser={currentUser} />} />
+            <Route path="schedules/view" element={<DoctorSchedulesView userRole={userRole} currentUser={currentUser} />} />
 
             <Route path="analytics" element={
               <div className="animate-slide-up">
@@ -762,10 +764,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   );
 };
 
-const NavItem: React.FC<{ 
-  icon: React.ReactNode; 
-  label: string; 
-  active?: boolean; 
+const NavItem: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
   highlighted?: boolean;
   onClick?: () => void;
   rightIcon?: React.ReactNode;
@@ -775,18 +777,18 @@ const NavItem: React.FC<{
   <div
     onClick={onClick}
     className={`
-      flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors duration-200 group mb-0.5
+      flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group mb-1
       ${isSubItem ? 'pl-8' : ''}
       ${customClass ? customClass : active
-        ? 'bg-brand-primary text-white shadow-sm'
+        ? 'bg-brand-primary text-white shadow-md'
         : 'text-brand-textSecondary hover:bg-brand-hover'}
     `}
   >
-    <div className="flex items-center space-x-3.5">
-        <div className={`transition-transform duration-200 flex-shrink-0 ${active || customClass ? '' : 'text-brand-textSecondary group-hover:text-brand-textSecondary'}`}>
-          {icon}
-        </div>
-        <span className={`text-sm tracking-wide ${active || (customClass && customClass.includes('font-medium')) ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+    <div className="flex items-center space-x-3">
+      <div className={`transition-transform duration-200 flex-shrink-0 ${active || customClass ? '' : 'text-brand-textSecondary group-hover:text-brand-textSecondary'}`}>
+        {icon}
+      </div>
+      <span className={`text-[13px] tracking-wide ${active || (customClass && customClass.includes('font-medium')) ? 'font-semibold' : 'font-medium'}`}>{label}</span>
     </div>
     {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
   </div>

@@ -8,6 +8,9 @@ import {
 import { api } from '../services/api';
 import { Lead } from '../types';
 import { DOCTORS } from '../constants';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface LeadsViewProps {
     leads: Lead[];
@@ -193,17 +196,16 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
 
                 {/* Toolbar */}
                 <div className="p-3 sm:p-4 lg:p-6 border-b border-brand-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-brand-bg/50">
-                    <div className="flex items-center bg-brand-surface px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-brand-border w-full sm:w-auto sm:max-w-xs lg:w-96 focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all shadow-sm">
-                        <Search size={18} className="text-brand-textSecondary mr-2 sm:mr-3 flex-shrink-0" />
-                        <input
+                    <div className="flex items-center w-full sm:w-auto sm:max-w-xs lg:w-96">
+                        <Input
                             placeholder="Search Leads..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-transparent outline-none text-xs sm:text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
+                            className="w-full"
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -211,37 +213,37 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                             accept=".csv"
                             className="hidden"
                         />
-                        <button
+                        <Button
+                            variant="outline"
                             onClick={handleExportCSV}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
                             title="Export to CSV"
                         >
                             <Download size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Export</span>
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="outline"
                             onClick={handleImportClick}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-xs sm:text-sm transition-all active:scale-95"
                             title="Import from CSV"
                         >
                             <Upload size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Import</span>
-                        </button>
+                        </Button>
 
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-2 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border text-brand-textSecondary font-bold rounded-lg sm:rounded-xl hover:bg-brand-bg flex items-center text-xs sm:text-sm outline-none focus:border-brand-primary"
+                            className="px-2 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border text-brand-textSecondary font-bold rounded-xl hover:bg-brand-bg flex items-center text-sm outline-none focus:border-brand-primary h-10"
                         >
                             <option value="All">All</option>
                             <option value="New Inquiry">New</option>
                             <option value="Stalling - Sent to CRO">CRO</option>
                             <option value="Converted - Active Patient">Converted</option>
                         </select>
-                        <button
+                        <Button
+                            variant="primary"
                             onClick={onOpenAddModal}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg sm:rounded-xl shadow-lg shadow-brand-primary/20 flex items-center text-xs sm:text-sm transition-all active:scale-95"
                         >
                             <UserPlus size={16} className="mr-1 sm:mr-2" /> <span className="hidden sm:inline">Add Lead</span><span className="sm:hidden">Add</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -330,104 +332,106 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                         {activeTab === 'intake' && (
                             <div className="space-y-4 sm:space-y-6">
                                 {/* Summary Box */}
-                                <div className="bg-brand-surface p-3 sm:p-4 rounded-lg sm:rounded-xl border border-brand-border shadow-sm">
-                                    <h3 className="text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase mb-3 sm:mb-4">Lead Summary</h3>
-                                    <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                                <Card className="p-4">
+                                    <h3 className="text-xs font-bold text-brand-textSecondary uppercase mb-4">Lead Summary</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
-                                            <p className="text-[9px] sm:text-[10px] font-bold text-brand-textSecondary uppercase">Status</p>
-                                            <span className={`inline-block mt-1 text-[9px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded uppercase tracking-wider border ${selectedLead.status === 'Stalling - Sent to CRO' ? 'bg-brand-error/10 text-brand-error border-brand-error/20' : 'bg-brand-bg text-brand-textSecondary border-brand-border'}`}>
+                                            <p className="text-[10px] font-bold text-brand-textSecondary uppercase">Status</p>
+                                            <span className={`inline-block mt-1 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider border ${selectedLead.status === 'Stalling - Sent to CRO' ? 'bg-brand-error/10 text-brand-error border-brand-error/20' : 'bg-brand-bg text-brand-textSecondary border-brand-border'}`}>
                                                 <span className="hidden sm:inline">{selectedLead.status}</span>
                                                 <span className="sm:hidden">{selectedLead.status.split(' ')[0]}</span>
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="text-[9px] sm:text-[10px] font-bold text-brand-textSecondary uppercase">Created By</p>
-                                            <p className="text-xs sm:text-sm font-bold text-brand-textPrimary mt-1">Front Desk</p>
+                                            <p className="text-[10px] font-bold text-brand-textSecondary uppercase">Created By</p>
+                                            <p className="text-sm font-bold text-brand-textPrimary mt-1">Front Desk</p>
                                         </div>
                                     </div>
 
-                                    <div className="pt-3 sm:pt-4 border-t border-brand-border flex flex-wrap gap-2 sm:gap-3">
-                                        <button
+                                    <div className="pt-4 border-t border-brand-border flex flex-wrap gap-3">
+                                        <Button
+                                            variant="ghost"
                                             onClick={() => onUpdateLead({ ...selectedLead, status: 'Lost' })}
-                                            className="px-2 sm:px-3 py-1.5 sm:py-2 border border-brand-error/20 text-brand-error hover:bg-brand-error/10 font-bold rounded-lg text-[10px] sm:text-xs transition-colors whitespace-nowrap"
+                                            className="text-brand-error hover:bg-brand-error/10 hover:text-brand-error"
                                             title="Mark as Lost"
                                         >
-                                            <Ban size={12} className="inline mr-0.5 sm:mr-1" /><span className="hidden sm:inline">Drop</span>
-                                        </button>
-                                        <button
+                                            <Ban size={14} className="mr-1" /><span className="hidden sm:inline">Drop</span>
+                                        </Button>
+                                        <Button
+                                            variant={selectedLead.status === 'Stalling - Sent to CRO' ? 'primary' : 'outline'}
                                             onClick={() => onUpdateLead({ ...selectedLead, status: selectedLead.status === 'Stalling - Sent to CRO' ? 'Contacted' : 'Stalling - Sent to CRO' })}
-                                            className={`flex-1 py-1.5 sm:py-2 font-bold rounded-lg text-[10px] sm:text-xs transition-colors border ${selectedLead.status === 'Stalling - Sent to CRO'
-                                                ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20'
-                                                : 'bg-brand-warning/10 text-brand-warning border-brand-warning/20 hover:bg-brand-warning/20'}`}
+                                            className="flex-1"
                                         >
                                             <span className="hidden sm:inline">{selectedLead.status === 'Stalling - Sent to CRO' ? 'Return to Front Desk' : 'Send to CRO'}</span>
                                             <span className="sm:hidden">{selectedLead.status === 'Stalling - Sent to CRO' ? 'Return' : 'CRO'}</span>
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
+                                            variant="primary"
                                             onClick={() => {
                                                 navigate('/dashboard/appointments', { state: { leadToAppointment: selectedLead } });
                                             }}
-                                            className="flex-1 py-1.5 sm:py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg text-[10px] sm:text-xs transition-colors shadow-lg shadow-brand-primary/20 flex items-center justify-center"
+                                            className="flex-1"
                                         >
-                                            <Calendar size={12} className="mr-0.5 sm:mr-1" /> <span className="hidden sm:inline">Appointment</span><span className="sm:hidden">Book</span>
-                                        </button>
+                                            <Calendar size={14} className="mr-1" /> <span className="hidden sm:inline">Appointment</span><span className="sm:hidden">Book</span>
+                                        </Button>
                                     </div>
-                                </div>
+                                </Card>
 
-                                <div className="bg-brand-surface p-4 rounded-xl border border-brand-border shadow-sm">
+                                <Card className="p-4">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-xs font-bold text-brand-textSecondary uppercase">Demographics & Clinical</h3>
                                         {!isEditing ? (
-                                            <button
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => setIsEditing(true)}
-                                                className="text-xs font-bold text-brand-primary hover:text-brand-secondary transition-colors"
                                             >
                                                 Edit Details
-                                            </button>
+                                            </Button>
                                         ) : (
                                             <div className="flex space-x-2">
-                                                <button
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
                                                     onClick={() => setIsEditing(false)}
-                                                    className="text-xs font-bold text-brand-textSecondary hover:bg-brand-bg px-2 py-1 rounded border border-brand-border transition-colors"
                                                 >
                                                     Cancel
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
+                                                    variant="primary"
+                                                    size="sm"
                                                     onClick={() => {
                                                         handleSaveChanges();
                                                         setIsEditing(false);
                                                     }}
-                                                    className="text-xs font-bold text-brand-bg bg-brand-primary hover:bg-brand-secondary px-2 py-1 rounded transition-colors shadow-sm"
                                                 >
                                                     Save Changes
-                                                </button>
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
                                     <div className="space-y-3 sm:space-y-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                             <div>
-                                                <label className="block text-[10px] sm:text-xs font-bold text-brand-textSecondary mb-1">Full Name</label>
+                                                <label className="block text-xs font-bold text-brand-textSecondary mb-1">Full Name</label>
                                                 {isEditing ? (
-                                                    <input
+                                                    <Input
                                                         value={editFormData.name || ''}
                                                         onChange={(e) => handleInputChange('name', e.target.value)}
-                                                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
                                                     />
                                                 ) : (
-                                                    <p className="text-xs sm:text-sm font-bold text-brand-textPrimary">{selectedLead.name}</p>
+                                                    <p className="text-sm font-bold text-brand-textPrimary">{selectedLead.name}</p>
                                                 )}
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] sm:text-xs font-bold text-brand-textSecondary mb-1">Phone</label>
+                                                <label className="block text-xs font-bold text-brand-textSecondary mb-1">Phone</label>
                                                 {isEditing ? (
-                                                    <input
+                                                    <Input
                                                         value={editFormData.phone || ''}
                                                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                                                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
                                                     />
                                                 ) : (
-                                                    <p className="text-xs sm:text-sm font-bold text-brand-textPrimary">{selectedLead.phone}</p>
+                                                    <p className="text-sm font-bold text-brand-textPrimary">{selectedLead.phone}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -566,7 +570,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </Card>
                             </div>
                         )}
 
@@ -575,12 +579,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
 
                     {/* Footer Actions (General) */}
                     <div className="p-6 border-t border-brand-border bg-brand-bg">
-                        <button
+                        <Button
+                            variant="primary"
                             onClick={() => handleConvert(selectedLead)}
-                            className="w-full py-3 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center transition-all active:scale-95"
+                            className="w-full"
                         >
                             <CheckCircle2 size={18} className="mr-2" /> Finalize Conversion & Create Patient File
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
