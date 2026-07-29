@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
-    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2
+    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye
 } from 'lucide-react';
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
@@ -62,6 +62,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [uploadingDoc, setUploadingDoc] = useState(false);
     const [docTypeToUpload, setDocTypeToUpload] = useState('prescription');
+    const [previewDoc, setPreviewDoc] = useState<any>(null);
     
     // Metrics Entry
     const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
@@ -92,7 +93,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             }
 
             const combined = [...(Array.isArray(manualDocs) ? manualDocs : []), ...generatedDocs];
-            setPatientDocuments(combined);
+            
+            // Deduplicate by ID, preferring items with a url (from generatedDocs)
+            const uniqueDocsMap = new Map();
+            combined.forEach(doc => {
+                if (!uniqueDocsMap.has(doc.id) || (doc.url && !uniqueDocsMap.get(doc.id).url)) {
+                    uniqueDocsMap.set(doc.id, doc);
+                }
+            });
+            const deduplicatedDocs = Array.from(uniqueDocsMap.values());
+            
+            setPatientDocuments(deduplicatedDocs);
         } catch (e) {
             console.warn("Failed to fetch documents", e);
         }
@@ -975,11 +986,38 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                 </div>
                                                                 <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <button
-                                                                        onClick={() => {
-                                                                            if (doc.url && doc.url !== '#') {
-                                                                                window.open(doc.url, '_blank');
+                                                                        onClick={async () => {
+                                                                            let url = doc.url;
+                                                                            if (!url && doc.id) {
+                                                                                try {
+                                                                                    const res = await api.getSecureAssetUrl(doc.id);
+                                                                                    if (res.success && res.data?.url) url = res.data.url;
+                                                                                } catch (e) {}
+                                                                            }
+                                                                            if (url && url !== '#') {
+                                                                                setPreviewDoc({...doc, url});
                                                                             } else {
-                                                                                alert('Preview not available for this mock document.');
+                                                                                alert('Preview not available for this document.');
+                                                                            }
+                                                                        }}
+                                                                        className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
+                                                                        title="Preview Document"
+                                                                    >
+                                                                        <Eye size={18} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            let url = doc.url;
+                                                                            if (!url && doc.id) {
+                                                                                try {
+                                                                                    const res = await api.getSecureAssetUrl(doc.id);
+                                                                                    if (res.success && res.data?.url) url = res.data.url;
+                                                                                } catch (e) {}
+                                                                            }
+                                                                            if (url && url !== '#') {
+                                                                                window.open(url, '_blank');
+                                                                            } else {
+                                                                                alert('Download not available for this document.');
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
@@ -1103,27 +1141,72 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                 <button 
                                     onClick={handleResetPin}
                                     disabled={isResettingPin}
-                                    className="w-full py-2.5 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg transition-colors flex justify-center items-center"
+                                    className={`w-full py-2.5 bg-brand-primary text-white font-bold rounded-lg shadow-sm hover:bg-brand-secondary transition-all active:scale-95 ${isResettingPin ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {isResettingPin ? 'Resetting...' : 'Reset PIN'}
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-center space-y-4 py-4 animate-fade-in">
-                                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <div className="text-center space-y-4 animate-fade-in">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mx-auto">
                                     <CheckCircle2 size={32} />
                                 </div>
-                                <h4 className="font-bold text-brand-textPrimary text-xl">Success!</h4>
-                                <p className="text-sm text-brand-textSecondary">The new portal PIN is:</p>
-                                <div className="text-3xl font-mono font-bold text-brand-primary tracking-widest bg-brand-bg py-3 rounded-lg border border-brand-border">
-                                    {resetPinSuccess}
+                                <div>
+                                    <h4 className="font-bold text-brand-textPrimary text-lg">PIN Reset Successful</h4>
+                                    <p className="text-sm text-brand-textSecondary mt-1">Please share this new PIN with the patient securely.</p>
                                 </div>
-                                <p className="text-xs text-brand-textSecondary mt-2">Please share this with the patient securely.</p>
+                                <div className="bg-brand-bg border border-brand-border rounded-xl p-4 mt-4">
+                                    <p className="text-xs font-bold text-brand-textSecondary uppercase mb-1">New Portal PIN</p>
+                                    <p className="text-3xl font-black text-brand-primary tracking-widest">{resetPinSuccess}</p>
+                                </div>
+                                <button 
+                                    onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }}
+                                    className="w-full py-2.5 bg-brand-surface border border-brand-border text-brand-textPrimary font-bold rounded-lg hover:bg-brand-bg transition-colors mt-4"
+                                >
+                                    Close
+                                </button>
                             </div>
                         )}
                     </div>
                 </div>
             )}
+
+            {/* Document Preview Modal */}
+            {previewDoc && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-brand-surface w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                        <div className="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/50">
+                            <h3 className="font-bold text-brand-textPrimary text-lg flex items-center gap-2">
+                                <FileText size={20} className="text-brand-primary" />
+                                {previewDoc.name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.open(previewDoc.url, '_blank')}
+                                    className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-surface border border-brand-border rounded-lg transition-colors"
+                                    title="Open in New Tab"
+                                >
+                                    <Download size={18} />
+                                </button>
+                                <button 
+                                    onClick={() => setPreviewDoc(null)} 
+                                    className="p-2 text-brand-textSecondary hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-brand-bg p-4 flex items-center justify-center overflow-auto">
+                            {previewDoc.url.toLowerCase().match(/\.(jpeg|jpg|gif|png)$/) != null ? (
+                                <img src={previewDoc.url} alt={previewDoc.name} className="max-w-full max-h-full object-contain shadow-md rounded-lg" />
+                            ) : (
+                                <iframe src={previewDoc.url} title={previewDoc.name} className="w-full h-full bg-white rounded-lg shadow-md border-0" />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <DigitalPrescriptionModal
                 isOpen={isDigitalPrescriptionModalOpen}
                 onClose={() => setIsDigitalPrescriptionModalOpen(false)}
@@ -1132,7 +1215,11 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         ...data,
                         patient_id: patient.id
                     } as any);
-                    alert("Prescription generated successfully! It will appear in the patient's timeline.");
+                    alert("Prescription generated successfully! It will appear in the documents list shortly.");
+                    
+                    // The backend generates this asynchronously via BullMQ, so we poll for it
+                    setTimeout(fetchPatientDocuments, 2000);
+                    setTimeout(fetchPatientDocuments, 5000);
                 }}
             />
         </div >,

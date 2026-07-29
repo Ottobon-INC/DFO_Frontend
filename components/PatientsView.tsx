@@ -6,6 +6,9 @@ import { PatientProfile } from './PatientProfile';
 import { BookAppointmentModal } from './AppointmentModals';
 import { PatientConversionForm } from './PatientRegistration';
 import { api } from '../services/api';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface PatientsViewProps {
     onNavigateToLeads: () => void;
@@ -233,7 +236,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
             
             {/* Summary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <Card className="p-4 flex items-center justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Total Patients</p>
                         <h3 className="text-2xl font-bold text-brand-textPrimary">{totalPatients}</h3>
@@ -241,8 +244,8 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                     <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                         <Users size={20} />
                     </div>
-                </div>
-                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                </Card>
+                <Card className="p-4 flex items-center justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Active Cases</p>
                         <h3 className="text-2xl font-bold text-brand-textPrimary">{activePatients}</h3>
@@ -250,8 +253,8 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                     <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-600">
                         <Activity size={20} />
                     </div>
-                </div>
-                <div className="bg-brand-surface border border-brand-border rounded-xl p-4 flex items-center justify-between shadow-sm">
+                </Card>
+                <Card className="p-4 flex items-center justify-between">
                     <div>
                         <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">New This Month</p>
                         <h3 className="text-2xl font-bold text-brand-textPrimary">+{newThisMonth}</h3>
@@ -259,7 +262,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
                         <Calendar size={20} />
                     </div>
-                </div>
+                </Card>
             </div>
 
             {/* Content Area - Main List */}
@@ -268,31 +271,30 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                 <div className="p-4 border-b border-brand-border bg-brand-bg/30 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                     
                     {/* Horizontal Filters */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center bg-brand-surface px-3 py-2 rounded-lg border border-brand-border focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary transition-all shadow-sm w-full sm:w-64">
-                            <Search size={16} className="text-brand-textSecondary mr-2" />
-                            <input
+                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                        <div className="flex items-center w-full sm:w-auto sm:min-w-[200px]">
+                            <Input
                                 placeholder="Search by name, ID..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary font-medium"
+                                className="w-full h-9 text-sm"
                             />
                         </div>
 
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer">
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9">
                             <option>All Patients</option>
                             <option>Active</option>
                             <option>Discharged</option>
                             <option>Archived</option>
                         </select>
 
-                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer">
+                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9">
                             <option>All Genders</option>
                             <option>Female</option>
                             <option>Male</option>
                         </select>
 
-                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer" />
+                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9" />
                     </div>
 
                     {/* Actions */}
@@ -306,35 +308,39 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                                     accept=".csv"
                                     className="hidden"
                                 />
-                                <button
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={handleExportCSV}
-                                    className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
                                     title="Export to CSV"
                                 >
-                                    <Download size={16} className="mr-2" /> Export
-                                </button>
-                                <button
+                                    <Download size={14} className="mr-2" /> Export
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={handleImportClick}
-                                    className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
                                     title="Import from CSV"
                                 >
-                                    <Upload size={16} className="mr-2" /> Import
-                                </button>
-                                <button
+                                    <Upload size={14} className="mr-2" /> Import
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
                                     onClick={() => setIsNewPatientMode(true)}
-                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg shadow-lg shadow-brand-primary/20 flex items-center text-sm transition-all active:scale-95"
                                 >
-                                    <UserPlus size={16} className="mr-2" /> New Patient
-                                </button>
+                                    <UserPlus size={14} className="mr-2" /> New Patient
+                                </Button>
                             </>
                         )}
                         {isNewPatientMode && (
-                            <button
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setIsNewPatientMode(false)}
-                                className="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg flex items-center text-sm transition-all shadow-sm active:scale-95"
                             >
-                                <ArrowLeft size={16} className="mr-2" /> Back to List
-                            </button>
+                                <ArrowLeft size={14} className="mr-2" /> Back to List
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -391,13 +397,14 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end space-x-2">
-                                            <button 
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
                                                 onClick={(e) => { e.stopPropagation(); setSelectedPatient(patient); }}
-                                                className="px-3 py-1.5 rounded bg-brand-hover text-brand-textPrimary border border-brand-border hover:bg-brand-bg hover:border-brand-textSecondary transition-all flex items-center space-x-1.5 text-xs font-semibold shadow-sm"
                                             >
-                                                <FileText size={14} className="text-brand-textSecondary" />
+                                                <FileText size={14} className="mr-1.5" />
                                                 <span>File</span>
-                                            </button>
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>

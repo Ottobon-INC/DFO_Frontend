@@ -49,8 +49,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
     setSuccess('');
 
     try {
-      const response = await api.put('/api/clinic/users/profile', formData);
-      if (response.data.success) {
+      const response = await api.updateUserProfile(formData);
+      if (response.data?.success || response.success) {
         setSuccess('Profile updated successfully!');
         // Update the local context with the new user object
         onUpdate(response.data.data);

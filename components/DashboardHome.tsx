@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Appointment, Lead, UserRole, Patient } from '../types';
 import { AppointmentWidget, QuickLeadWidget, LeadsWidget, CROStatusWidget, InterventionQueueWidget, FinancialSnapshotWidget, KPIWidget, ConversionFunnelWidget, KPIData, FunnelData } from './DashboardWidgets';
 import { DoctorDashboard } from './DoctorDashboard';
+import { PremiumDashboard } from './PremiumDashboard';
 import { LeadDetailsModal } from './LeadDetailsModal';
 import { api } from '../services/api';
 
@@ -114,37 +115,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         <div className="flex flex-col gap-4 md:gap-5 lg:gap-6 animate-fade-in overflow-hidden w-full">
 
             {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? (
-                // --- Admin / CRO Layout ---
-                <div className="flex flex-col gap-4 md:gap-5 lg:gap-6 overflow-hidden">
-
-                    {/* Top Row: KPIs */}
-                    <div className="min-h-[90px] sm:min-h-[100px] flex-shrink-0 overflow-x-auto">
-                        <KPIWidget data={kpiData || undefined} loading={kpiLoading} />
-                    </div>
-
-                    {/* Bottom Row: Main Content - Stack on mobile/tablet, side-by-side on lg+ */}
-                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-5 lg:gap-6 min-h-0 overflow-hidden">
-                        {/* Funnel */}
-                        <div className="lg:col-span-8 min-h-[300px] lg:min-h-[350px] xl:min-h-[380px]">
-                            <ConversionFunnelWidget
-                                data={funnelData || undefined}
-                                onViewDropOff={() => onNavigateToLeads('Stalling - Sent to CRO')}
-                            />
-                        </div>
-
-                        {/* Right Side: Queue */}
-                        <div className="lg:col-span-4 flex flex-col">
-                            <div className="h-full min-h-[350px]">
-                                <InterventionQueueWidget
-                                    leads={leads.filter(l => l.status === 'Stalling - Sent to CRO' && !hiddenLeadIds.has(l.id))}
-                                    onViewAll={() => onNavigateToLeads('Stalling - Sent to CRO')}
-                                    onViewLead={(lead) => setSelectedLeadForModal(lead)}
-                                    onReEngage={handleReEngage}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                // --- Premium Admin / CRO Layout ---
+                <PremiumDashboard />
             ) : (userRole === UserRole.DOCTOR) ? (
                 // --- Doctor / Nurse Dashboard ---
                 <div>

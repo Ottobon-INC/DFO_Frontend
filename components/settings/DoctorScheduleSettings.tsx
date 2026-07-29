@@ -21,7 +21,7 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
     const [globalSlotDuration, setGlobalSlotDuration] = useState<number>(15);
 
     useEffect(() => {
-        if (userRole === 'Admin' || userRole === 'CRO') {
+        if (userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk') {
             fetchDoctors();
         } else if (userRole === 'Doctor') {
             // Doctors can only edit their own schedule
@@ -37,10 +37,10 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
 
     const fetchDoctors = async () => {
         try {
-            const res = await api.getClinicUsers();
+            const res = await api.getDoctors();
             if (res.success && res.data) {
-                // Filter only doctors
-                const docs = res.data.filter((u: any) => u.role === 'Doctor');
+                // The backend getDoctors endpoint already filters doctors
+                const docs = res.data;
                 setDoctors(docs);
                 if (docs.length > 0 && !selectedDoctorId) {
                     setSelectedDoctorId(docs[0].id);
@@ -125,16 +125,20 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
             <div className="mb-8">
                 <h2 className="text-2xl font-bold text-brand-textPrimary flex items-center gap-2">
                     <Clock className="text-brand-primary" />
-                    Working Hours Configuration
+                    {userRole === 'Front Desk' ? 'Doctor Schedules Overview' : 'Working Hours Configuration'}
                 </h2>
                 <p className="text-brand-textSecondary mt-2">
-                    Define the weekly schedule for doctors. The system will use these rules to automatically generate bookable slots for the next 30 days.
+                    {userRole === 'Front Desk' 
+                        ? "View the weekly schedule for doctors."
+                        : "Define the weekly schedule for doctors. The system will use these rules to automatically generate bookable slots for the next 30 days."}
                 </p>
             </div>
 
-            {(userRole === 'Admin' || userRole === 'CRO') && (
+            {(userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk') && (
                 <div className="mb-8 p-4 bg-brand-surface border border-brand-border rounded-xl">
-                    <label className="block text-sm font-semibold text-brand-textPrimary mb-2">Select Doctor to Configure</label>
+                    <label className="block text-sm font-semibold text-brand-textPrimary mb-2">
+                        {userRole === 'Front Desk' ? 'Select Doctor to View' : 'Select Doctor to Configure'}
+                    </label>
                     <select 
                         value={selectedDoctorId} 
                         onChange={(e) => setSelectedDoctorId(e.target.value)}
@@ -162,7 +166,8 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
                             <select 
                                 value={globalSlotDuration}
                                 onChange={(e) => handleGlobalDurationChange(Number(e.target.value))}
-                                className="bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-sm text-brand-textPrimary"
+                                disabled={userRole === 'Front Desk'}
+                                className="bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-sm text-brand-textPrimary disabled:opacity-50"
                             >
                                 <option value={10}>10 Minutes</option>
                                 <option value={15}>15 Minutes</option>
@@ -188,8 +193,9 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
                                                     className="sr-only" 
                                                     checked={isActive}
                                                     onChange={() => handleToggleDay(index)}
+                                                    disabled={userRole === 'Front Desk'}
                                                 />
-                                                <div className={`block w-11 h-6 rounded-full transition-colors ${isActive ? 'bg-brand-primary' : 'bg-slate-300 group-hover:bg-slate-400'}`}></div>
+                                                <div className={`block w-11 h-6 rounded-full transition-colors ${isActive ? 'bg-brand-primary' : 'bg-slate-300 group-hover:bg-slate-400'} ${userRole === 'Front Desk' ? 'opacity-60 cursor-not-allowed' : ''}`}></div>
                                                 <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm ${isActive ? 'transform translate-x-5' : ''}`}></div>
                                             </div>
                                             <span className={`ml-3 font-medium ${isActive ? 'text-brand-textPrimary' : 'text-brand-textSecondary'}`}>
@@ -206,7 +212,8 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
                                                     type="time" 
                                                     value={schedule.start_time.substring(0, 5)} // Handle HH:mm:ss vs HH:mm
                                                     onChange={(e) => handleTimeChange(index, 'start_time', e.target.value)}
-                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm"
+                                                    disabled={userRole === 'Front Desk'}
+                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm disabled:opacity-50"
                                                 />
                                             </div>
                                             <span className="text-brand-textSecondary mt-5">-</span>
@@ -216,7 +223,8 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
                                                     type="time" 
                                                     value={schedule.end_time.substring(0, 5)}
                                                     onChange={(e) => handleTimeChange(index, 'end_time', e.target.value)}
-                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm"
+                                                    disabled={userRole === 'Front Desk'}
+                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm disabled:opacity-50"
                                                 />
                                             </div>
                                         </div>
@@ -237,16 +245,18 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
                         </div>
                     )}
 
-                    <div className="mt-8 flex justify-end">
-                        <button 
-                            onClick={handleSave}
-                            disabled={saving || !selectedDoctorId}
-                            className="bg-brand-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-primary/90 transition-colors disabled:opacity-50"
-                        >
-                            <Save size={18} />
-                            {saving ? 'Saving & Generating Slots...' : 'Save Schedule'}
-                        </button>
-                    </div>
+                    {userRole !== 'Front Desk' && (
+                        <div className="mt-8 flex justify-end">
+                            <button 
+                                onClick={handleSave}
+                                disabled={saving || !selectedDoctorId}
+                                className="bg-brand-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-primary/90 transition-colors disabled:opacity-50"
+                            >
+                                <Save size={18} />
+                                {saving ? 'Saving & Generating Slots...' : 'Save Schedule'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
