@@ -196,10 +196,6 @@ export const ControlTowerWorkspace: React.FC = () => {
     try {
       const threadRes = await api.getWorkspaceThreadById(threadId);
       const msgRes = await api.getWorkspaceThreadMessages(threadId);
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
       setThreadDetails(threadRes.data || threadRes);
       setMessages(msgRes.data || msgRes || []);
     } catch (err) {
@@ -274,12 +270,9 @@ export const ControlTowerWorkspace: React.FC = () => {
         setThreadDetails(fetchedThread);
         setMessages(fetchedMsgs);
         msgCountRef.current = fetchedMsgs.length;
-<<<<<<< Updated upstream
-=======
         
         // Load booking context dynamically
         fetchBookingContext(selectedThreadId);
->>>>>>> Stashed changes
 
         // Scroll to bottom on initial load
         setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -632,15 +625,6 @@ export const ControlTowerWorkspace: React.FC = () => {
                 {((threadDetails.current_owner_type === 'DOCTOR' && userRole === 'DOCTOR' && threadDetails.current_owner_id === userId) ||
                   (threadDetails.current_owner_type === 'NURSE' && userRole === 'NURSE' && threadDetails.current_owner_id === userId) ||
                   userRole === 'CRO' || userRole === 'ADMIN') && (
-<<<<<<< Updated upstream
-                    <button
-                      onClick={() => setShowResolveConfirm(true)}
-                      className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
-                    >
-                      <CheckCircle size={14} /> Resolve & Return to AI
-                    </button>
-                  )}
-=======
                   <button
                     onClick={() => setShowResolveConfirm(true)}
                     className="px-3 py-2 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-green-500/10 cursor-pointer"
@@ -657,7 +641,6 @@ export const ControlTowerWorkspace: React.FC = () => {
                     <UserCheck size={14} /> Accept Case & Take Control
                   </button>
                 )}
->>>>>>> Stashed changes
               </div>
             </div>
 
@@ -678,24 +661,7 @@ export const ControlTowerWorkspace: React.FC = () => {
             </div>
 
             {/* Scrollable details view */}
-<<<<<<< Updated upstream
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-brand-surface">
               {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  {/* 2. AI Handoff Summary */}
-                  <div className="bg-brand-primary/5 border border-brand-primary/10 p-5 rounded-2xl relative overflow-hidden">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-xs font-bold text-brand-primary uppercase tracking-wider flex items-center gap-1.5">
-                        <BrainCircuit size={15} /> AI Clinical Handoff Report
-                      </h4>
-                      <button
-                        onClick={handleRefreshSummary}
-                        className="p-1.5 rounded-lg hover:bg-brand-primary/10 text-brand-textSecondary hover:text-brand-primary transition-colors cursor-pointer"
-                        title="Update or Add summary"
-                      >
-                        <RefreshCw size={13} />
-                      </button>
-=======
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               
               {/* Gap 6 + Gap 7: Booking & Active Patient Context Card */}
@@ -863,7 +829,6 @@ export const ControlTowerWorkspace: React.FC = () => {
                           <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
                         </div>
                       )}
->>>>>>> Stashed changes
                     </div>
 
                     {threadDetails.handoff_summary ? (

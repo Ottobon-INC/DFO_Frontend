@@ -69,26 +69,10 @@ export interface Appointment {
 export interface Patient {
     id: string;
     uhid: string;
-    name: string;
-    relation?: string; // S/D/H/W of
-    maritalStatus?: 'Single' | 'Married';
-    gender: 'Male' | 'Female' | 'Other';
-    dob?: string;
-    age?: string;
-    aadhar?: string;
-    bloodGroup?: string;
-    treatmentStatus?: string;
-
-    // Contact Info
-    house?: string;
-    street?: string;
-    area?: string;
-    city?: string;
-    district?: string;
-    state?: string;
-    postalCode?: string;
-    email?: string;
-    mobile: string;
+    fullname: string;
+    age?: number;
+    phone: string;
+    location?: string;
     assignedDoctorId?: string;
 
     referralDoctor?: string;

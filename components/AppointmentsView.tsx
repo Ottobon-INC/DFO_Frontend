@@ -170,6 +170,13 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
         };
 
         fetchAppointments();
+        
+        // Polling every 15 seconds for real-time queue updates
+        const intervalId = setInterval(() => {
+            fetchAppointments();
+        }, 15000);
+        
+        return () => clearInterval(intervalId);
     }, []);
 
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Mail, Send, MessageSquare, ShieldAlert, Activity } from 'lucide-react';
+import { Search, Mail, Send, MessageSquare, ShieldAlert, Activity, BrainCircuit, X } from 'lucide-react';
 import { api } from '../../services/api';
 import { DOCTORS } from '../../constants';
 
@@ -11,6 +11,7 @@ export const CroInbox: React.FC = () => {
   const [sendingReply, setSendingReply] = useState(false);
   const [loading, setLoading] = useState(true);
   const [escalating, setEscating] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   // Selection states for target clinicians
   const [selectedDocId, setSelectedDocId] = useState(DOCTORS[0]?.id || '');
@@ -23,30 +24,10 @@ export const CroInbox: React.FC = () => {
     try {
       const res = await api.getInboxThreads();
       const allThreads = res.data || res || [];
-      // Display all threads in the CRO inbox list so escalated/assigned threads don't disappear
       setThreads(allThreads);
     } catch (err) {
-      console.error(err);
-
-      // Load escalated threads tracker from localStorage fallback db
-      const savedThreadsStr = localStorage.getItem('escalated_threads');
-      const savedThreads = savedThreadsStr ? JSON.parse(savedThreadsStr) : [];
-      const assignedIds = new Set(savedThreads.map((t: any) => t.id));
-
-      // Multi-thread pipeline mock state (increased count)
-      const mockThreads = [
-        { id: "t-1", patient_name: "Sara Johnson", latest_message: "When is my next scan scheduled?", updated_at: new Date().toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-2", patient_name: "Priya Nair", latest_message: "My vitals report has been updated.", updated_at: new Date(Date.now() - 3600000).toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-3", patient_name: "Karan Johar", latest_message: "What is the procedure for semen analysis?", updated_at: new Date(Date.now() - 7200000).toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-4", patient_name: "Anjali Sharma", latest_message: "Fasting requirements for glucose check?", updated_at: new Date(Date.now() - 10800000).toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-5", patient_name: "Rahul Khanna", latest_message: "Refill request for my daily prescription.", updated_at: new Date(Date.now() - 14400000).toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-6", patient_name: "Meera Sen", latest_message: "Do you accept credit card payments for scans?", updated_at: new Date(Date.now() - 18000000).toISOString(), status: "green", assigned_user_id: null },
-        { id: "t-7", patient_name: "Kabir Malhotra", latest_message: "BP query and emergency guidance request.", updated_at: new Date(Date.now() - 21600000).toISOString(), status: "green", assigned_user_id: null }
-      ];
-
-      // Filter out mock threads that were escalated locally
-      const filteredMocks = mockThreads.filter(t => !assignedIds.has(t.id));
-      setThreads(filteredMocks);
+      console.error('Failed to fetch threads:', err);
+      setThreads([]);
     } finally {
       setLoading(false);
     }
@@ -61,10 +42,16 @@ export const CroInbox: React.FC = () => {
         thread: {
           id: ctx.threadId || id,
           patient_name: matched?.patient_name || "Patient",
-          status: ctx.status || matched?.status || "green"
+          status: ctx.status || matched?.status || "green",
+          patient_mobile: matched?.patient_mobile || ""
         },
-        messages: ctx.messages || []
+        messages: ctx.messages || [],
+        structured_memory: ctx.structured_memory
       });
+
+      if (ctx.structured_memory?.summary && ctx.structured_memory.summary !== 'No summary available yet.') {
+        setShowSummaryModal(true);
+      }
 
       // Fetch patient location/city dynamically to filter clinician lists
       if (ctx.patientId) {
@@ -88,7 +75,12 @@ export const CroInbox: React.FC = () => {
 
       const matched = threads.find(t => t.id === id) || savedThread;
       setThreadContext({
-        thread: { id, patient_name: matched?.patient_name || "Patient", status: matched?.status || "green" },
+        thread: { 
+          id, 
+          patient_name: matched?.patient_name || "Patient", 
+          status: matched?.status || "green",
+          patient_mobile: matched?.patient_mobile || "" 
+        },
         messages: [
           { id: "m-1", sender_type: "PATIENT", content: matched?.latest_message || "Hello", created_at: new Date().toISOString() }
         ]
@@ -243,7 +235,19 @@ export const CroInbox: React.FC = () => {
           <>
             <div className="px-6 py-4 border-b border-brand-border bg-brand-bg/30 flex justify-between items-center gap-4">
               <div>
-                <h3 className="font-bold text-brand-textPrimary">{threadContext.thread?.patient_name}</h3>
+                <h3 className="font-bold text-brand-textPrimary flex items-center gap-2">
+                  {threadContext.thread?.patient_name}
+                  {threadContext.thread?.patient_mobile && (
+                    <span className="text-xs font-normal text-brand-textSecondary bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border">
+                      {threadContext.thread.patient_mobile}
+                    </span>
+                  )}
+                  {patientLocation && (
+                    <span className="text-xs font-normal text-brand-textSecondary bg-brand-bg px-2 py-0.5 rounded-full border border-brand-border">
+                      {patientLocation}
+                    </span>
+                  )}
+                </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-brand-textSecondary">Active WhatsApp Thread</span>
                   {threadContext.thread?.status === 'red' ? (
@@ -280,11 +284,11 @@ export const CroInbox: React.FC = () => {
                     onClick={() => handleEscalate('red', selectedDocId)}
                     disabled={escalating || threadContext.thread?.status === 'red'}
                     className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${threadContext.thread?.status === 'red'
-                        ? 'bg-red-500/10 text-red-400/50 border border-red-500/10 cursor-not-allowed opacity-50'
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/10 cursor-not-allowed opacity-70'
                         : 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 active:scale-95 cursor-pointer'
                       }`}
                   >
-                    <ShieldAlert size={13} /> Escalate to Doctor
+                    <ShieldAlert size={13} /> {threadContext.thread?.status === 'red' ? 'Already Escalated' : 'Escalate to Doctor'}
                   </button>
                 </div>
 
@@ -301,27 +305,34 @@ export const CroInbox: React.FC = () => {
                     onClick={() => handleEscalate('yellow', selectedNurseId)}
                     disabled={escalating || threadContext.thread?.status === 'yellow'}
                     className={`px-3 py-2 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 ${threadContext.thread?.status === 'yellow'
-                        ? 'bg-orange-500/10 text-orange-400/50 border border-orange-500/10 cursor-not-allowed opacity-50'
+                        ? 'bg-orange-500/10 text-orange-400 border border-orange-500/10 cursor-not-allowed opacity-70'
                         : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20 active:scale-95 cursor-pointer'
                       }`}
                   >
-                    <Activity size={13} /> Escalate to Nurse
+                    <Activity size={13} /> {threadContext.thread?.status === 'yellow' ? 'Already Escalated' : 'Escalate to Nurse'}
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-              {threadContext.messages?.map((msg: any) => (
-                <div key={msg.id} className={`flex ${msg.sender_type === 'HUMAN' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-md p-4 rounded-2xl text-xs font-medium border ${msg.sender_type === 'HUMAN' ? 'bg-brand-primary text-white border-brand-primary/30 rounded-tr-none' : 'bg-brand-bg text-brand-textPrimary border-brand-border rounded-tl-none'}`}>
-                    <p className="leading-relaxed">{msg.content}</p>
-                    <span className={`block text-[9px] mt-1.5 text-right ${msg.sender_type === 'HUMAN' ? 'text-white/70' : 'text-brand-textSecondary'}`}>
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+              {!threadContext.messages || threadContext.messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-brand-textSecondary">
+                  <MessageSquare size={32} className="mb-3 opacity-30" />
+                  <p className="text-xs font-semibold">No messages in this thread yet.</p>
                 </div>
-              ))}
+              ) : (
+                threadContext.messages.map((msg: any) => (
+                  <div key={msg.id} className={`flex ${msg.sender_type === 'HUMAN' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-md p-4 rounded-2xl text-xs font-medium border ${msg.sender_type === 'HUMAN' ? 'bg-brand-primary text-white border-brand-primary/30 rounded-tr-none' : 'bg-brand-bg text-brand-textPrimary border-brand-border rounded-tl-none'}`}>
+                      <p className="leading-relaxed">{msg.content}</p>
+                      <span className={`block text-[9px] mt-1.5 text-right ${msg.sender_type === 'HUMAN' ? 'text-white/70' : 'text-brand-textSecondary'}`}>
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -350,6 +361,45 @@ export const CroInbox: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up">
+            <div className="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/50">
+              <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2">
+                <BrainCircuit size={16} /> AI Clinical Handoff Summary
+              </h3>
+              <button 
+                onClick={() => setShowSummaryModal(false)}
+                className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div className="prose prose-sm prose-invert max-w-none text-brand-textPrimary">
+                {threadContext?.structured_memory?.summary?.split('\n').map((line: string, i: number) => {
+                  if (line.trim().startsWith('-')) {
+                    return <li key={i} className="ml-4 mb-1 text-xs">{line.substring(1).trim()}</li>;
+                  }
+                  if (line.trim().startsWith('#')) {
+                    return <h4 key={i} className="font-bold text-brand-primary mt-3 mb-2">{line.replace(/#/g, '').trim()}</h4>;
+                  }
+                  return <p key={i} className="mb-2 text-xs leading-relaxed">{line}</p>;
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t border-brand-border bg-brand-bg/30 flex justify-end">
+              <button 
+                onClick={() => setShowSummaryModal(false)}
+                className="px-5 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all shadow-md active:scale-95"
+              >
+                Close & View Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

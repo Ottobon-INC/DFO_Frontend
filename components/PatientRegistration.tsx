@@ -13,6 +13,7 @@ export const DailyRegisterTable: React.FC = () => {
     const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
     const [walkInName, setWalkInName] = useState('');
     const [walkInPhone, setWalkInPhone] = useState('');
+    const [walkInAge, setWalkInAge] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
 
@@ -70,6 +71,7 @@ export const DailyRegisterTable: React.FC = () => {
     const handleAddWalkIn = () => {
         setWalkInName('');
         setWalkInPhone('');
+        setWalkInAge('');
         setModalError(null);
         setIsWalkInModalOpen(true);
     };
@@ -93,8 +95,10 @@ export const DailyRegisterTable: React.FC = () => {
             const payload = {
                 patient_name_snapshot: walkInName.trim(),
                 patient_phone_snapshot: walkInPhone,
+                patient_age_snapshot: walkInAge ? parseInt(walkInAge) : undefined,
                 name: walkInName.trim(),
                 phone: walkInPhone,
+                age: walkInAge ? parseInt(walkInAge) : undefined,
                 appointment_date: new Date().toISOString().split('T')[0],
                 start_time: '10:00',
                 type: 'Consultation',
@@ -225,6 +229,19 @@ export const DailyRegisterTable: React.FC = () => {
                                     placeholder="Enter full name"
                                     value={walkInName}
                                     onChange={(e) => setWalkInName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Age</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="120"
+                                    placeholder="Enter age"
+                                    value={walkInAge}
+                                    onChange={(e) => setWalkInAge(e.target.value)}
                                     className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
                                 />
                             </div>
