@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Lead } from '../types';
-import { DOCTORS } from '../constants';
+import { useDoctors } from '../hooks/useDoctors';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -22,6 +22,7 @@ interface LeadsViewProps {
 
 export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpenAddModal, initialFilter = 'All', onRefresh }) => {
     const navigate = useNavigate();
+    const { doctors } = useDoctors();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null); // Store ID, not object
     const [activeTab, setActiveTab] = useState<'intake' | 'comms' | 'retention'>('intake');
@@ -538,16 +539,16 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                                                     <select
                                                         value={editFormData.treatmentDoctor || ''}
                                                         onChange={(e) => {
-                                                            const selected = DOCTORS.find(d => d.name === e.target.value);
+                                                            const selected = doctors.find(d => d.name === e.target.value);
                                                             handleInputChange('treatmentDoctor', e.target.value);
                                                             if (selected) {
-                                                                handleInputChange('treatmentSuggested', selected.speciality);
+                                                                handleInputChange('treatmentSuggested', selected.specialization || selected.speciality);
                                                             }
                                                         }}
                                                         className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
                                                     >
                                                         <option value="">Select Doctor</option>
-                                                        {DOCTORS.map(doc => (
+                                                        {doctors.map(doc => (
                                                             <option key={doc.id} value={doc.name}>{doc.name}</option>
                                                         ))}
                                                     </select>

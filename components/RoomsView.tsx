@@ -28,13 +28,15 @@ export const RoomsView: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [categoriesRes, bedsRes, admissionsRes, patientsRes] = await Promise.all([
+      const [categoriesRes, roomsRes, bedsRes, admissionsRes, patientsRes] = await Promise.all([
         api.getRoomCategories(),
+        api.getRooms(),
         api.getBeds(),
         api.getAdmissions(),
         api.getPatients()
       ]);
       setCategories(categoriesRes?.data || []);
+      setRooms(roomsRes?.data || []);
       setBeds(bedsRes?.data || []);
       setAdmissions(admissionsRes?.data || []);
       setPatients(patientsRes?.data?.items || []);
@@ -153,103 +155,106 @@ export const RoomsView: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-8 relative">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-brand-textSecondary">Loading Floor Plan...</div>
-        ) : activeTab === 'floor_plan' ? (
-          Object.values(floorPlan).map(({ category, rooms }) => {
-            const roomList = Object.values(rooms);
-            if (roomList.length === 0) return null;
+        {activeTab === 'floor_plan' ? (
+          isLoading ? (
+            <div className="flex items-center justify-center py-20 text-brand-textSecondary">Loading Floor Plan...</div>
+          ) : (
+            Object.values(floorPlan).map(({ category, rooms }) => {
+              const roomList = Object.values(rooms);
+              if (roomList.length === 0) return null;
 
-            return (
-              <div key={category.id} className="space-y-4">
-                <h2 className="text-xl font-bold text-brand-textPrimary border-b border-brand-border pb-2 capitalize">
-                  {category.name} ({category.tier} Tier)
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {roomList.map(({ room, beds }) => (
-                    <div key={room.id} className="bg-brand-surface rounded-2xl border border-brand-border shadow-sm overflow-visible flex flex-col">
-                      <div className="bg-brand-bg px-4 py-3 border-b border-brand-border flex justify-between items-center">
-                        <span className="font-bold text-brand-textPrimary">{room.name || `Room ${room.room_number}`}</span>
-                      </div>
-                      <div className="p-4 flex-1 flex flex-col space-y-3 bg-brand-surface/5">
-                        {beds.map((bed: any) => {
-                          const isOccupied = bed.status === 'occupied';
-                          
-                          return (
-                            <div key={bed.id} className={`relative flex items-center justify-between p-3 rounded-xl border group transition-colors ${
-                              isOccupied ? 'border-brand-primary/30 bg-brand-primary/5 hover:bg-brand-primary/10' : 'border-brand-success/20 bg-brand-success/5 hover:bg-brand-success/10'
-                            }`}>
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                  isOccupied ? 'bg-brand-primary/20 text-brand-primary' : 'bg-brand-success/20 text-brand-success'
-                                }`}>
-                                  {isOccupied ? <User size={16} /> : <Bed size={16} />}
-                                </div>
-                                <div>
-                                  <div className="text-sm font-semibold text-brand-textPrimary">
-                                    {isOccupied ? bed.patientName : `Bed ${bed.bed_identifier}`}
+              return (
+                <div key={category.id} className="space-y-4">
+                  <h2 className="text-xl font-bold text-brand-textPrimary border-b border-brand-border pb-2 capitalize">
+                    {category.name} ({category.tier} Tier)
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {roomList.map(({ room, beds }) => (
+                      <div key={room.id} className="bg-brand-surface rounded-2xl border border-brand-border shadow-sm overflow-visible flex flex-col">
+                        <div className="bg-brand-bg px-4 py-3 border-b border-brand-border flex justify-between items-center">
+                          <span className="font-bold text-brand-textPrimary">{room.name || `Room ${room.room_number}`}</span>
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col space-y-3 bg-brand-surface/5">
+                          {beds.map((bed: any) => {
+                            const isOccupied = bed.status === 'occupied';
+                            
+                            return (
+                              <div key={bed.id} className={`relative flex items-center justify-between p-3 rounded-xl border group transition-colors ${
+                                isOccupied ? 'border-brand-primary/30 bg-brand-primary/5 hover:bg-brand-primary/10' : 'border-brand-success/20 bg-brand-success/5 hover:bg-brand-success/10'
+                              }`}>
+                                <div className="flex items-center space-x-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    isOccupied ? 'bg-brand-primary/20 text-brand-primary' : 'bg-brand-success/20 text-brand-success'
+                                  }`}>
+                                    {isOccupied ? <User size={16} /> : <Bed size={16} />}
                                   </div>
-                                  <div className={`text-xs font-medium ${isOccupied ? 'text-brand-primary' : 'text-brand-success'}`}>
-                                    {isOccupied ? `Bed ${bed.bed_identifier} (Occupied)` : 'Available'}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {isOccupied && bed.activeAdmission && (
-                                <div className="relative">
-                                  <button 
-                                    onClick={() => setActiveDropdownId(activeDropdownId === bed.id ? null : bed.id)}
-                                    className="p-1.5 text-brand-textSecondary hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
-                                  >
-                                    <MoreVertical size={16} />
-                                  </button>
-                                  
-                                  {activeDropdownId === bed.id && (
-                                    <div className="absolute right-0 mt-1 w-48 bg-brand-surface border border-brand-border rounded-xl shadow-xl z-[100] py-1 animate-slide-up">
-                                      <button
-                                        onClick={() => {
-                                          setTransferAdmissionId(bed.activeAdmission.id);
-                                          setActiveDropdownId(null);
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2"
-                                      >
-                                        <ArrowRightLeft size={14} className="text-brand-primary" />
-                                        <span>Transfer Patient</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleDischarge(bed.activeAdmission.id)}
-                                        className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2"
-                                      >
-                                        <LogOut size={14} className="text-brand-success" />
-                                        <span>Discharge Patient</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleCancelAdmission(bed.activeAdmission.id)}
-                                        className="w-full text-left px-4 py-2 text-sm text-brand-error hover:bg-brand-error/10 flex items-center space-x-2"
-                                      >
-                                        <XCircle size={14} />
-                                        <span>Cancel Admission</span>
-                                      </button>
+                                  <div>
+                                    <div className="text-sm font-semibold text-brand-textPrimary">
+                                      {isOccupied ? bed.patientName : `Bed ${bed.bed_identifier}`}
                                     </div>
-                                  )}
+                                    <div className={`text-xs font-medium ${isOccupied ? 'text-brand-primary' : 'text-brand-success'}`}>
+                                      {isOccupied ? `Bed ${bed.bed_identifier} (Occupied)` : 'Available'}
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+
+                                {isOccupied && bed.activeAdmission && (
+                                  <div className="relative">
+                                    <button 
+                                      onClick={() => setActiveDropdownId(activeDropdownId === bed.id ? null : bed.id)}
+                                      className="p-1.5 text-brand-textSecondary hover:text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors"
+                                    >
+                                      <MoreVertical size={16} />
+                                    </button>
+                                    
+                                    {activeDropdownId === bed.id && (
+                                      <div className="absolute right-0 mt-1 w-48 bg-brand-surface border border-brand-border rounded-xl shadow-xl z-[100] py-1 animate-slide-up">
+                                        <button
+                                          onClick={() => {
+                                            setTransferAdmissionId(bed.activeAdmission.id);
+                                            setActiveDropdownId(null);
+                                          }}
+                                          className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2"
+                                        >
+                                          <ArrowRightLeft size={14} className="text-brand-primary" />
+                                          <span>Transfer Patient</span>
+                                        </button>
+                                        <button
+                                          onClick={() => handleDischarge(bed.activeAdmission.id)}
+                                          className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2"
+                                        >
+                                          <LogOut size={14} className="text-brand-success" />
+                                          <span>Discharge Patient</span>
+                                        </button>
+                                        <button
+                                          onClick={() => handleCancelAdmission(bed.activeAdmission.id)}
+                                          className="w-full text-left px-4 py-2 text-sm text-brand-error hover:bg-brand-error/10 flex items-center space-x-2"
+                                        >
+                                          <XCircle size={14} />
+                                          <span>Cancel Admission</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })
+          )
         ) : (
            <div className="animate-slide-up h-full">
               <RoomSettingsTab 
                 categories={categories}
                 rooms={rooms}
+                beds={beds}
                 onRefresh={fetchData}
               />
            </div>

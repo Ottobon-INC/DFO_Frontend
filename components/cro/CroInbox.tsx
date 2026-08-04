@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Mail, Send, MessageSquare, ShieldAlert, Activity } from 'lucide-react';
 import { api } from '../../services/api';
-import { DOCTORS } from '../../constants';
+import { useDoctors } from '../../hooks/useDoctors';
 
 export const CroInbox: React.FC = () => {
   const [threads, setThreads] = useState<any[]>([]);
@@ -12,8 +12,10 @@ export const CroInbox: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [escalating, setEscating] = useState(false);
 
+  const { doctors } = useDoctors();
+
   // Selection states for target clinicians
-  const [selectedDocId, setSelectedDocId] = useState(DOCTORS[0]?.id || '');
+  const [selectedDocId, setSelectedDocId] = useState(doctors[0]?.id || '');
   const [selectedNurseId, setSelectedNurseId] = useState('nurse_divya');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -226,7 +228,7 @@ export const CroInbox: React.FC = () => {
                     onChange={(e) => setSelectedDocId(e.target.value)}
                     className="bg-transparent text-[11px] text-brand-textPrimary outline-none font-bold border-none px-2 cursor-pointer max-w-[130px] rounded-lg"
                   >
-                    {DOCTORS.map(doc => (
+                    {doctors.map(doc => (
                       <option key={doc.id} value={doc.id} className="bg-brand-bg text-brand-textPrimary font-semibold">{doc.name}</option>
                     ))}
                   </select>

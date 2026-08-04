@@ -5,10 +5,11 @@ import { api } from '../services/api';
 interface RoomSettingsTabProps {
   categories: any[];
   rooms: any[];
+  beds: any[];
   onRefresh: () => void;
 }
 
-export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, rooms, onRefresh }) => {
+export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, rooms, beds, onRefresh }) => {
   const [activeSubTab, setActiveSubTab] = useState<'categories' | 'rooms' | 'beds'>('categories');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -136,7 +137,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-brand-textSecondary mb-1">Daily Rate ($)</label>
+                  <label className="block text-sm font-semibold text-brand-textSecondary mb-1">Daily Rate (₹)</label>
                   <input type="number" value={categoryRate} onChange={e => setCategoryRate(e.target.value)} required placeholder="1000" className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-textPrimary focus:ring-2 focus:ring-brand-primary/50 outline-none" />
                 </div>
               </div>
@@ -154,7 +155,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
                     <span className="font-bold text-brand-textPrimary">{c.name}</span>
                     <span className="text-xs ml-2 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded">{c.tier}</span>
                   </div>
-                  <span className="text-brand-textSecondary">${c.daily_rate}/day</span>
+                  <span className="text-brand-textSecondary">₹{c.daily_rate}/day</span>
                 </div>
               ))}
             </div>
@@ -198,6 +199,24 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
                 <Plus size={16} /> <span>Create Room</span>
               </button>
             </form>
+
+            {/* List Existing Rooms */}
+            <div className="mt-8 space-y-2">
+              <h3 className="font-semibold text-brand-textSecondary">Existing Rooms</h3>
+              {rooms.length === 0 && <div className="text-brand-textSecondary text-sm">No rooms found.</div>}
+              {rooms.map(r => (
+                <div key={r.id} className="p-3 bg-brand-bg rounded-lg border border-brand-border flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-brand-textPrimary">{r.name || 'Unnamed Room'}</span>
+                    <span className="text-xs ml-2 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded">Room {r.room_number}</span>
+                    <span className="text-xs ml-2 text-brand-textSecondary">Floor {r.floor}</span>
+                  </div>
+                  <div className="text-brand-textSecondary text-sm">
+                    Capacity: {r.capacity} beds
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -214,7 +233,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
                   <label className="block text-sm font-semibold text-brand-textSecondary mb-1">Target Room</label>
                   <select value={bedRoomId} onChange={e => setBedRoomId(e.target.value)} required className="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-brand-textPrimary focus:ring-2 focus:ring-brand-primary/50 outline-none">
                     <option value="" disabled>Select a room...</option>
-                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name || r.room_number}</option>)}
+                    {rooms.map(r => <option key={r.id} value={r.id}>{r.name ? `${r.name} (Room ${r.room_number})` : `Room ${r.room_number}`}</option>)}
                   </select>
                 </div>
                 <div>
@@ -226,6 +245,27 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
                 <Plus size={16} /> <span>Add Bed</span>
               </button>
             </form>
+
+            {/* List Existing Beds */}
+            <div className="mt-8 space-y-2">
+              <h3 className="font-semibold text-brand-textSecondary">Existing Beds</h3>
+              {beds.length === 0 && <div className="text-brand-textSecondary text-sm">No beds found.</div>}
+              {beds.map(b => (
+                <div key={b.id} className="p-3 bg-brand-bg rounded-lg border border-brand-border flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-brand-textPrimary">{b.bed_identifier}</span>
+                    {b.sakhi_clinic_rooms && (
+                      <span className="text-xs ml-2 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded">
+                        {b.sakhi_clinic_rooms.name ? `${b.sakhi_clinic_rooms.name} (Room ${b.sakhi_clinic_rooms.room_number})` : `Room ${b.sakhi_clinic_rooms.room_number}`}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`text-sm px-2 py-1 rounded-md ${b.status === 'occupied' ? 'bg-brand-error/10 text-brand-error' : 'bg-brand-success/10 text-brand-success'}`}>
+                    {b.status === 'occupied' ? 'Occupied' : 'Available'}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Phone, User, Calendar, Ban, CheckCircle2 } from 'lucide-react';
 import { Lead } from '../types';
-import { DOCTORS } from '../constants';
+import { useDoctors } from '../hooks/useDoctors';
 
 interface LeadDetailsModalProps {
     isOpen: boolean;
@@ -19,6 +19,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
     onUpdateLead,
     onConvert
 }) => {
+    const { doctors } = useDoctors();
     const [isEditing, setIsEditing] = useState(false);
     const [editFormData, setEditFormData] = useState<Partial<Lead>>({});
 
@@ -220,16 +221,16 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                                             <select
                                                 value={editFormData.treatmentDoctor || ''}
                                                 onChange={(e) => {
-                                                    const selected = DOCTORS.find(d => d.name === e.target.value);
+                                                    const selected = doctors.find(d => d.name === e.target.value);
                                                     handleInputChange('treatmentDoctor', e.target.value);
                                                     if (selected) {
-                                                        handleInputChange('treatmentSuggested', selected.speciality);
+                                                        handleInputChange('treatmentSuggested', selected.specialization || selected.speciality);
                                                     }
                                                 }}
                                                 className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary"
                                             >
                                                 <option value="">Select Doctor</option>
-                                                {DOCTORS.map(doc => (
+                                                {doctors.map(doc => (
                                                     <option key={doc.id} value={doc.name}>{doc.name}</option>
                                                 ))}
                                             </select>

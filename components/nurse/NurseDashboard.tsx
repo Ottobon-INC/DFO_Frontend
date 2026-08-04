@@ -15,6 +15,7 @@ export const NurseDashboard: React.FC = () => {
   // Vitals form state
   const [patients, setPatients] = useState<any[]>([]);
   const [vitalsPatientId, setVitalsPatientId] = useState('');
+  const [activeAppointmentId, setActiveAppointmentId] = useState('');
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -122,8 +123,37 @@ export const NurseDashboard: React.FC = () => {
     setLoading(false);
   };
 
+  const handleTabChange = (tab: 'triage' | 'vitals' | 'checkin') => {
+    if (activeTab === 'vitals' && tab !== 'vitals') {
+      setVitalsPatientId('');
+      setActiveAppointmentId('');
+      setSystolic('');
+      setDiastolic('');
+      setTemperature('');
+      setPulse('');
+      setWeight('');
+      setHeight('');
+      setNotes('');
+    }
+    setActiveTab(tab);
+  };
+
   useEffect(() => {
     loadData();
+    
+    let interval: NodeJS.Timeout;
+    // Silent background polling for Lobby Check-In Roster with Page Visibility check
+    if (activeTab === 'checkin') {
+      interval = setInterval(() => {
+        if (!document.hidden) {
+          fetchAppointments();
+        }
+      }, 30000); // Poll every 30 seconds
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [activeTab]);
 
   // Handle vitals form submission
@@ -137,12 +167,16 @@ export const NurseDashboard: React.FC = () => {
     try {
       await api.saveVitals({
         patientId: vitalsPatientId,
+        appointmentId: activeAppointmentId || undefined, // Future-proofing encounter linking
         systolic: systolic ? parseInt(systolic) : undefined,
         diastolic: diastolic ? parseInt(diastolic) : undefined,
         temperature: temperature ? parseFloat(temperature) : undefined,
+        temp_unit: temperature ? 'F' : undefined,
         pulse: pulse ? parseInt(pulse) : undefined,
         weight: weight ? parseFloat(weight) : undefined,
+        weight_unit: weight ? 'kg' : undefined,
         height: height ? parseFloat(height) : undefined,
+        height_unit: height ? 'cm' : undefined,
         notes
       });
       alert("Patient vitals saved successfully!");
@@ -154,6 +188,9 @@ export const NurseDashboard: React.FC = () => {
       setWeight('');
       setHeight('');
       setNotes('');
+      setActiveAppointmentId('');
+      setVitalsPatientId('');
+      setActiveTab('checkin'); // Auto-route back to Check-in Roster
     } catch (err) {
       console.error("Failed to save vitals", err);
       alert("Patient vitals saved successfully (Demo Mode)!");
@@ -165,6 +202,9 @@ export const NurseDashboard: React.FC = () => {
       setWeight('');
       setHeight('');
       setNotes('');
+      setActiveAppointmentId('');
+      setVitalsPatientId('');
+      setActiveTab('checkin'); // Auto-route back to Check-in Roster
     } finally {
       setSavingVitals(false);
     }
@@ -189,6 +229,8 @@ export const NurseDashboard: React.FC = () => {
   const isTempHigh = temperature ? parseFloat(temperature) >= 99.5 : false;
   const isPulseHigh = pulse ? parseInt(pulse) >= 100 : false;
 
+  const isFormEmpty = !systolic && !diastolic && !temperature && !pulse && !weight && !height;
+
   return (
     <div className="p-6 space-y-8 bg-brand-bg min-h-full">
       {/* Header */}
@@ -208,19 +250,19 @@ export const NurseDashboard: React.FC = () => {
       {/* Tabs */}
       <div className="flex border-b border-brand-border space-x-6">
         <button
-          onClick={() => setActiveTab('triage')}
+          onClick={() => handleTabChange('triage')}
           className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'triage' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
         >
           <ClipboardList size={18} /> Triage Chats (Yellow Queue)
         </button>
         <button
-          onClick={() => setActiveTab('vitals')}
+          onClick={() => handleTabChange('vitals')}
           className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'vitals' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
         >
           <Heart size={18} /> Patient Vitals Intake
         </button>
         <button
-          onClick={() => setActiveTab('checkin')}
+          onClick={() => handleTabChange('checkin')}
           className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'checkin' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
         >
           <CheckCircle size={18} /> Lobby Check-In Roster
@@ -421,8 +463,8 @@ export const NurseDashboard: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={savingVitals}
-                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold uppercase tracking-wider py-4 rounded-xl shadow-lg transition-all active:scale-[0.98]"
+                  disabled={savingVitals || isFormEmpty}
+                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold uppercase tracking-wider py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingVitals ? 'Saving Metrics...' : 'Record Intake Vitals'}
                 </button>
@@ -460,12 +502,24 @@ export const NurseDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-4">
-                          {appt.status !== 'Checked-In' && (
+                          {appt.status !== 'Checked-In' ? (
                             <button
                               onClick={() => handleCheckInPatient(appt.id)}
                               className="bg-brand-primary hover:bg-brand-secondary text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95"
                             >
                               Check-In Patient
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                // Default to 'p1' if appointment mock is missing patientId
+                                setVitalsPatientId(appt.patientId || appt.patient_id || 'p1');
+                                setActiveAppointmentId(appt.id);
+                                setActiveTab('vitals');
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                            >
+                              <Heart size={12} /> Record Vitals
                             </button>
                           )}
                         </td>

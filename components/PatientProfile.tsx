@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
-    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye
+    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye, RefreshCw
 } from 'lucide-react';
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
@@ -31,6 +31,8 @@ const MOCK_DOCUMENTS: PatientDocument[] = [];
 export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initialPatient, onClose, userRole, onCompleteConsultation, onPatientUpdate, initialTab = 'overview' }) => {
     const [patient, setPatient] = useState<Patient>(initialPatient);
     const [activeTab, setActiveTab] = useState<string>(initialTab);
+    const [isEditing, setIsEditing] = useState(false);
+    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -42,8 +44,36 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
     const [patientDocuments, setPatientDocuments] = useState<PatientDocument[]>([]);
     const [doctors, setDoctors] = useState<any[]>([]);
-    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+    const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
+    
+    // Vitals Modal State
+    const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
+    const [vitalType, setVitalType] = useState('Blood Pressure');
+    const [vitalValue, setVitalValue] = useState('');
+    const [vitalUnit, setVitalUnit] = useState('mmHg');
+    const [savingVitals, setSavingVitals] = useState(false);
+
+    const handleSaveVitals = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingVitals(true);
+        try {
+            await api.saveVitals({
+                patientId: patient.id,
+                vital_type: vitalType,
+                vital_value: vitalValue,
+                unit: vitalUnit
+            } as any);
+            setIsVitalsModalOpen(false);
+            setVitalValue('');
+            fetchDashboardMetrics();
+        } catch (err) {
+            console.error("Failed to save vitals", err);
+            alert("Failed to save vitals");
+        } finally {
+            setSavingVitals(false);
+        }
+    };
     const [isDigitalPrescriptionModalOpen, setIsDigitalPrescriptionModalOpen] = useState(false);
     const [consultationNote, setConsultationNote] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
@@ -54,7 +84,6 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
 
     // PIN Reset State
-    const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
     const [newPinInput, setNewPinInput] = useState('');
     const [isResettingPin, setIsResettingPin] = useState(false);
     const [resetPinSuccess, setResetPinSuccess] = useState<string | null>(null);
@@ -739,6 +768,27 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
                                     {/* COLUMN 2: Vitals & Conditions */}
                                     <div className="space-y-6 lg:col-span-1">
+                                        <div className="flex justify-between items-center bg-brand-surface p-4 rounded-2xl border border-brand-border shadow-sm">
+                                            <h3 className="font-bold text-brand-textPrimary flex items-center">
+                                                <Activity size={18} className="mr-2 text-brand-primary" /> Health Metrics
+                                            </h3>
+                                            <div className="flex space-x-2">
+                                                <button 
+                                                    onClick={fetchDashboardMetrics}
+                                                    disabled={isLoadingDashboard}
+                                                    className="p-1.5 text-brand-textSecondary hover:text-brand-primary bg-brand-bg hover:bg-brand-primary/10 rounded transition-colors disabled:opacity-50"
+                                                    title="Refresh Metrics"
+                                                >
+                                                    <RefreshCw size={16} className={isLoadingDashboard ? "animate-spin" : ""} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => setIsVitalsModalOpen(true)}
+                                                    className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-brand-secondary transition-colors shadow-sm"
+                                                >
+                                                    Record Vitals
+                                                </button>
+                                            </div>
+                                        </div>
                                         <DynamicTrendChart vitals={dashboardData?.vitals} />
                                         <ConditionsWidget conditions={dashboardData?.medicalHistory} />
                                     </div>

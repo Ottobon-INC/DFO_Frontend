@@ -3,18 +3,25 @@ import { createPortal } from 'react-dom';
 import { Save, ArrowRight, FileText, UserPlus, Calendar, X } from 'lucide-react';
 import { Patient } from '../types';
 import { api } from '../services/api';
+import { useDoctors } from '../hooks/useDoctors';
 
 // --- Daily Register Table ---
 export const DailyRegisterTable: React.FC = () => {
     const [registerData, setRegisterData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Modal state for Add Walk-In (simplified to Name & Phone only)
+    // Modal state for Add Walk-In
     const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+    const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
+    const [selectedWalkIn, setSelectedWalkIn] = useState<any>(null);
     const [walkInName, setWalkInName] = useState('');
     const [walkInPhone, setWalkInPhone] = useState('');
+    const [walkInAge, setWalkInAge] = useState('');
+    const [walkInConsultant, setWalkInConsultant] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
+
+    const { doctors } = useDoctors();
 
     const fetchRegisterData = async () => {
         try {
@@ -37,9 +44,11 @@ export const DailyRegisterTable: React.FC = () => {
             const mapped = apptItems.map((item: any) => {
                 const patientObj = patientMap.get(item.patient_id);
                 const docId = item.doctor_id || item.doctorId;
-                const docName = item.doctor_name_snapshot || item.doctor_name || doctorsList.find((d: any) => d.id === docId)?.name || 'Dr. Sireesha';
+                const docName = item.doctor_name_snapshot || item.doctor_name || doctorsList.find((d: any) => d.id === docId)?.name || 'Unassigned';
                 
                 return {
+                    id: item.id,
+                    patientId: item.patient_id,
                     date: item.appointment_date || item.date || new Date().toISOString().split('T')[0],
                     name: item.patient_name_snapshot || item.patient_name || patientObj?.name || 'Unknown Patient',
                     age: item.patient_age_snapshot || patientObj?.age || '-',
@@ -70,8 +79,15 @@ export const DailyRegisterTable: React.FC = () => {
     const handleAddWalkIn = () => {
         setWalkInName('');
         setWalkInPhone('');
+        setWalkInAge('');
+        setWalkInConsultant('');
         setModalError(null);
         setIsWalkInModalOpen(true);
+    };
+
+    const handleConvertToPatient = (row: any) => {
+        setSelectedWalkIn(row);
+        setIsConversionModalOpen(true);
     };
 
     const handleModalSubmit = async (e: React.FormEvent) => {
@@ -90,15 +106,23 @@ export const DailyRegisterTable: React.FC = () => {
         setIsSubmitting(true);
         setModalError(null);
         try {
+            // Get current time in HH:MM format for the walk-in
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + 
+                              now.getMinutes().toString().padStart(2, '0');
+
             const payload = {
                 patient_name_snapshot: walkInName.trim(),
                 patient_phone_snapshot: walkInPhone,
+                patient_age_snapshot: walkInAge ? parseInt(walkInAge) : null,
+                doctor_id: walkInConsultant || null,
                 name: walkInName.trim(),
                 phone: walkInPhone,
+                age: walkInAge ? parseInt(walkInAge) : null,
                 appointment_date: new Date().toISOString().split('T')[0],
-                start_time: '10:00',
+                start_time: currentTime,
                 type: 'Consultation',
-                status: 'Scheduled',
+                status: 'Checked-In', // Walk-ins are physically present
                 visit_reason: 'Walk-In'
             };
             await api.createAppointment(payload);
@@ -146,6 +170,7 @@ export const DailyRegisterTable: React.FC = () => {
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Payment</th>
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Referred By</th>
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Remarks</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
@@ -170,6 +195,16 @@ export const DailyRegisterTable: React.FC = () => {
                                         </td>
                                         <td className="p-4 text-sm text-brand-textSecondary">{row.referredBy}</td>
                                         <td className="p-4 text-sm text-brand-textSecondary italic">{row.remarks}</td>
+                                        <td className="p-4 text-right">
+                                            {!row.patientId && (
+                                                <button
+                                                    onClick={() => handleConvertToPatient(row)}
+                                                    className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded hover:bg-brand-primary hover:text-white transition-colors"
+                                                >
+                                                    Create Profile
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -242,6 +277,34 @@ export const DailyRegisterTable: React.FC = () => {
                                 />
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Age (Optional)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="120"
+                                        placeholder="e.g. 28"
+                                        value={walkInAge}
+                                        onChange={(e) => setWalkInAge(e.target.value)}
+                                        className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Consultant (Optional)</label>
+                                    <select
+                                        value={walkInConsultant}
+                                        onChange={(e) => setWalkInConsultant(e.target.value)}
+                                        className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                                    >
+                                        <option value="">Unassigned</option>
+                                        {doctors.map(doc => (
+                                            <option key={doc.id} value={doc.id}>{doc.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
                             <div className="pt-3 flex justify-end space-x-2 flex-shrink-0">
                                 <button
                                     type="button"
@@ -267,6 +330,42 @@ export const DailyRegisterTable: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Render the Patient Conversion Form in a Modal if opened from here */}
+            {isConversionModalOpen && selectedWalkIn && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-scale-in">
+                    <div
+                        className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm transition-opacity"
+                        onClick={() => setIsConversionModalOpen(false)}
+                    />
+                    <div className="relative bg-brand-surface w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
+                        <div className="bg-brand-bg p-5 flex justify-between items-center border-b border-brand-border flex-shrink-0">
+                            <h3 className="text-brand-textPrimary text-base font-bold">Register Patient: {selectedWalkIn.name}</h3>
+                            <button
+                                type="button"
+                                onClick={() => setIsConversionModalOpen(false)}
+                                className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto p-6">
+                            <PatientConversionForm
+                                initialData={{
+                                    name: selectedWalkIn.name,
+                                    phone: selectedWalkIn.phone,
+                                    age: selectedWalkIn.age !== '-' ? selectedWalkIn.age : ''
+                                }}
+                                onSuccess={() => {
+                                    setIsConversionModalOpen(false);
+                                    fetchRegisterData();
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>,
                 document.body

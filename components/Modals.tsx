@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, CheckCircle } from 'lucide-react';
-import { DOCTORS } from '../constants';
+import { useDoctors } from '../hooks/useDoctors';
 
 interface RescheduleModalProps {
   isOpen: boolean;
@@ -232,6 +232,7 @@ interface AddLeadModalProps {
 }
 
 export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onConfirm }) => {
+  const { doctors } = useDoctors();
   const [data, setData] = useState({
     name: '',
     phone: '',
@@ -401,17 +402,17 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
                   <select
                     value={data.treatmentDoctor}
                     onChange={e => {
-                      const selected = DOCTORS.find(d => d.name === e.target.value);
+                      const selected = doctors.find(d => d.name === e.target.value);
                       setData({
                         ...data,
                         treatmentDoctor: e.target.value,
-                        treatmentSuggested: selected?.speciality || data.treatmentSuggested // Auto-suggest speciality
+                        treatmentSuggested: selected?.specialization || selected?.speciality || data.treatmentSuggested // Auto-suggest speciality
                       });
                     }}
                     className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
                   >
                     <option value="">Select Doctor (Optional)</option>
-                    {DOCTORS.map(doc => (
+                    {doctors.map(doc => (
                       <option key={doc.id} value={doc.name}>{doc.name}</option>
                     ))}
                   </select>

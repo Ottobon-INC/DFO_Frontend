@@ -806,7 +806,7 @@ export const api = {
         });
     },
 
-    saveVitals: async (data: { patientId: string; systolic?: number; diastolic?: number; temperature?: number; heartRate?: number; pulse?: number; weight?: number; height?: number; notes?: string }) => {
+    saveVitals: async (data: { patientId: string; appointmentId?: string; systolic?: number; diastolic?: number; temperature?: number; temp_unit?: string; heartRate?: number; pulse?: number; weight?: number; weight_unit?: string; height?: number; height_unit?: string; notes?: string }) => {
         return fetchJson<any>(`${API_BASE_URL}/api/vitals`, {
             method: 'POST',
             headers: getHeaders(),

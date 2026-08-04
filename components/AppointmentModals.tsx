@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, User, MapPin, Phone, Mail, Stethoscope, FileText, CheckCircle2, Search } from 'lucide-react';
 import { Appointment } from '../types';
 import { api } from '../services/api';
-import { DOCTORS } from '../constants';
+import { useDoctors } from '../hooks/useDoctors';
 
 interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -38,7 +38,9 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOpen, onClose, onConfirm, initialDate, initialTime, initialTab, initialData, doctors = DOCTORS, patients: initialPatients }) => {
+export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOpen, onClose, onConfirm, initialDate, initialTime, initialTab, initialData, doctors: passedDoctors, patients: initialPatients }) => {
+    const { doctors: fetchedDoctors } = useDoctors();
+    const doctors = passedDoctors || fetchedDoctors;
     const [formData, setFormData] = useState({
         name: '',
         date: initialDate ? initialDate.toISOString().split('T')[0] : '',
@@ -426,7 +428,10 @@ interface AppointmentActionCardProps {
     doctors?: any[];
 }
 
-export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ appointment, onClose, onCancel, onReschedule, doctors }) => {
+export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ appointment, onClose, onCancel, onReschedule, doctors: passedDoctors }) => {
+    const { doctors: fetchedDoctors } = useDoctors();
+    const doctors = passedDoctors || fetchedDoctors;
+
     React.useEffect(() => {
         document.body.style.overflow = 'hidden';
         return () => {
@@ -454,11 +459,11 @@ export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ ap
         // Try to find by ID first (Pass explicit ID if you have it, or try to use the name as ID if it looks like one)
         const targetId = appointment.doctorId || (isIdLike(doctorName) ? doctorName : undefined);
 
-        const found = doctors?.find(d => d.id === targetId) || DOCTORS.find(d => d.id === targetId);
+        const found = doctors?.find(d => d.id === targetId) || fetchedDoctors.find(d => d.id === targetId);
         if (found) {
             doctorName = found.name;
         } else if (isIdLike(doctorName)) {
-            const foundInGlobal = DOCTORS.find(d => d.id === doctorName);
+            const foundInGlobal = fetchedDoctors.find(d => d.id === doctorName);
             if (foundInGlobal) doctorName = foundInGlobal.name;
         }
     }
