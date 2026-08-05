@@ -47,6 +47,13 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
 
     const handleSaveChanges = () => {
         if (lead && editFormData) {
+            if (editFormData.phone) {
+                const isValidPhone = /^\+?[1-9]\d{9,14}$/.test(editFormData.phone);
+                if (!isValidPhone) {
+                    alert('Invalid phone number format. Must be a valid 10-15 digit number.');
+                    return;
+                }
+            }
             const updatedLead = { ...lead, ...editFormData } as Lead;
             onUpdateLead(updatedLead);
             setIsEditing(false);
@@ -158,6 +165,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                                         <label className="block text-xs font-bold text-brand-textSecondary mb-1">Phone</label>
                                         {isEditing ? (
                                             <input
+                                                type="tel"
                                                 value={editFormData.phone || ''}
                                                 onChange={(e) => handleInputChange('phone', e.target.value)}
                                                 className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary"

@@ -55,6 +55,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
 
     const handleSaveChanges = () => {
         if (selectedLead && editFormData) {
+            if (editFormData.phone) {
+                const isValidPhone = /^\+?[1-9]\d{9,14}$/.test(editFormData.phone);
+                if (!isValidPhone) {
+                    alert('Invalid phone number format. Must be a valid 10-15 digit number.');
+                    return;
+                }
+            }
             // Create a complete Lead object by merging selectedLead with editFormData
             const updatedLead = { ...selectedLead, ...editFormData } as Lead;
             onUpdateLead(updatedLead);
@@ -132,7 +139,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
             const text = e.target?.result as string;
             if (!text) return;
 
-            const rows = text.split('\n').map(row => row.split(','));
+            const rows = text.split('\n').map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
             // CSV columns match export: Name, Phone, Status, Source, Gender, Age, Problem, Date Added
             // Skipping header if detected
             const startIndex = rows[0][0].toLowerCase().includes('name') ? 1 : 0;
@@ -145,10 +152,21 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                 if (cols.length < 2 || !cols[0]) continue; // Skip empty rows
 
                 // Match export column order: Name, Phone, Status, Source, Gender, Age, Problem, Date Added
-                const [name, phone, _status, source, gender, age, problem] = cols;
+                const [name, phone, _status, source, gender, age, problem, dateAddedStr] = cols;
 
                 // Basic validation
-                if (!name || !phone) continue;
+                if (!name || !phone) {
+                    errorCount++;
+                    continue;
+                }
+                
+                const cleanPhone = phone.replace(/[\s\-()]/g, '').trim();
+                const isValidPhone = /^\+?[1-9]\d{9,14}$/.test(cleanPhone);
+                if (!isValidPhone) {
+                    console.error('Invalid phone number format:', phone);
+                    errorCount++;
+                    continue;
+                }
 
                 try {
                     // Create lead with all CSV fields properly mapped
@@ -157,14 +175,22 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                     const ageVal = age ? age.trim() : '';
                     const problemVal = problem ? problem.trim() : '';
 
+                    let parsedDate = new Date().toISOString();
+                    if (dateAddedStr && dateAddedStr.trim()) {
+                        const d = new Date(dateAddedStr.trim());
+                        if (!isNaN(d.getTime())) {
+                            parsedDate = d.toISOString();
+                        }
+                    }
+
                     const leadData: Record<string, any> = {
                         name,
-                        phone,
+                        phone: cleanPhone,
                         source: source ? source.trim() : 'Bulk Import',
                         // Always set status to 'New Inquiry' for imported leads
                         status: 'New Inquiry',
                         inquiry: 'Bulk Import',
-                        date_added: new Date().toISOString()
+                        date_added: parsedDate
                     };
 
                     // Only add these fields if they have actual values

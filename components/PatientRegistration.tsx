@@ -414,7 +414,6 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            // 1. Create Patient
             const patientPayload: any = { ...formData };
 
             // Map 'date' to 'registration_date' for Backend Schema
@@ -422,35 +421,19 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                 patientPayload.registration_date = patientPayload.date;
             }
 
-            // Link to Lead if available (As per Schema: Patients.lead_id -> Leads.id)
-            if (initialData?.id) {
-                // @ts-ignore
-                patientPayload.lead_id = initialData.id;
-            }
-
-            /* 
-               Ensure payload matches backend expectation. 
-               If backend requires specific fields like `phone` instead of `mobile`, map them here.
-               For now sending formData directly as it aligns largely with typical schemas, 
-               but `mobile` might need to be `phone`.
-            */
-            // @ts-ignore
+            // Ensure mobile is set
             if (!patientPayload.phone && patientPayload.mobile) patientPayload.phone = patientPayload.mobile;
 
-            const response = await api.createPatient(patientPayload);
-            const newPatientId = response?.data?.id || response?.id;
-            const newPin = response?.generatedPin;
+            let newPin = null;
 
-            // 2. Update Lead Status if applicable
             if (initialData?.id) {
-                try {
-                    // Only update the status. Linking is done via lead_id in Patients table.
-                    const updatePayload: any = { status: 'Converted - Active Patient' };
-                    await api.updateLead(initialData.id, updatePayload);
-                } catch (leadError) {
-                    console.error("Failed to update lead status", leadError);
-                    // Don't block success flow if patient is created but lead update fails
-                }
+                // Atomic Lead Conversion Flow
+                const response = await api.convertLead(initialData.id, patientPayload);
+                newPin = response?.generatedPin;
+            } else {
+                // Standard Patient Registration Flow (e.g. Walk-Ins)
+                const response = await api.createPatient(patientPayload);
+                newPin = response?.generatedPin;
             }
 
             if (newPin) {
@@ -466,64 +449,34 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
         } catch (error: any) {
             console.error("Registration failed", error);
 
-            // Handle Conflict (Patient already exists)
-            // Check for status 409 or message content
             if ((error.status === 409) || (error.message && (error.message.includes('409') || error.message.includes('Conflict')))) {
-                const confirmMessage = `A patient with these details (likely mobile: ${formData.mobile}) already exists.\n\nDo you want to mark this Lead as 'Converted' and attempt to link to the existing patient?`;
-
-                if (window.confirm(confirmMessage)) {
-                    try {
-                        // 1. Attempt to find the existing patient to link
-                        let existingId = null;
-
-                        // Strategy A: Backend returns it in error data (Preferred)
-                        // This relies on backend sending { success: false, error: '...', existing_id: '...' }
-                        if (error.data && error.data.existing_id) {
-                            existingId = error.data.existing_id;
-                        }
-                        // Strategy B: If backend returned the full patient object
-                        else if (error.data && error.data.patient && error.data.patient.id) {
-                            existingId = error.data.patient.id;
-                        }
-
-                        // Strategy C: Fallback to frontend search (Optimistic)
-                        if (!existingId) {
-                            try {
-                                const patientsData = await api.getPatients();
-                                // Optimistic local search
-                                const found = patientsData?.data?.items?.find((p: any) =>
-                                    (p.mobile === formData.mobile) || (p.phone === formData.mobile)
-                                );
-                                if (found) existingId = found.id;
-                            } catch (searchErr) {
-                                console.warn("Could not search for existing patient", searchErr);
-                            }
-                        }
-
-                        // 2. Update Lead & Link
-                        if (initialData?.id) {
-                            const updatePayload: any = { status: 'Converted - Active Patient' };
-
-                            // Correct Linking: Update Patient with lead_id (Foreign Key is on Patient)
-                            if (existingId) {
-                                try {
-                                    await api.updatePatient(existingId, { lead_id: initialData.id });
-                                } catch (linkErr) {
-                                    console.warn("Failed to reverse-link lead to existing patient", linkErr);
-                                }
+                if (initialData?.id) {
+                    const linkPatient = window.confirm(`A patient with this mobile number (${formData.mobile}) already exists.\n\nDo you want to mark this Lead as 'Converted' and attempt to link it to the existing patient record?`);
+                    if (linkPatient) {
+                        try {
+                            const patientsRes = await api.getPatients();
+                            const patients = patientsRes.data || patientsRes;
+                            const cleanInputMobile = String(formData.mobile).replace(/[\s\-()]/g, '').trim();
+                            const existingPatient = patients.find((p: any) => p.mobile && String(p.mobile).replace(/[\s\-()]/g, '').trim() === cleanInputMobile);
+                            
+                            if (existingPatient) {
+                                await api.updatePatient(existingPatient.id, { lead_id: initialData.id });
+                                await api.updateLead(initialData.id, { status: 'Converted' });
+                                alert(`Lead successfully linked to existing patient: ${existingPatient.name}`);
+                                if (onSuccess) onSuccess();
+                                return;
                             } else {
-                                alert("Could not automatically find the existing patient ID to link. The lead will be marked converted, but you may need to verify the patient record manually.");
+                                alert(`Failed to locate existing patient automatically. Please manually search for them.`);
                             }
-
-                            // Update Lead Status (No patient_id column on leads)
-                            await api.updateLead(initialData.id, updatePayload);
-
-                            alert(`Lead converted successfully.${existingId ? ' Linked to existing patient.' : ''}`);
-                            if (onSuccess) onSuccess();
+                        } catch (linkError: any) {
+                            console.error("Failed to link patient:", linkError);
+                            alert(`Failed to link to existing patient: ${linkError.message || 'Unknown error'}`);
                         }
-                    } catch (updateErr: any) {
-                        alert(`Failed to update lead: ${updateErr.message}`);
+                    } else {
+                        alert('Conversion aborted to prevent duplicate records.');
                     }
+                } else {
+                    alert(`A patient with this mobile number (${formData.mobile}) already exists.`);
                 }
             } else {
                 alert(`Failed to register patient: ${error.message || 'Unknown error'}`);
@@ -532,6 +485,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
             setIsSubmitting(false);
         }
     };
+
 
     return (
         <div className="flex flex-col h-full bg-brand-surface">

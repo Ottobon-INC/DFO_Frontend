@@ -168,6 +168,13 @@ export const api = {
             headers: getHeaders()
         });
     },
+    convertLead: async (id: string, payload: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads/${id}/convert`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
 
     // patients
     getPatients: async () => {
