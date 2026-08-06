@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search } from 'lucide-react';
+import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, BrainCircuit, X } from 'lucide-react';
 import { api } from '../../services/api';
 
 export const DoctorDashboard: React.FC = () => {
@@ -12,6 +12,7 @@ export const DoctorDashboard: React.FC = () => {
   const [threadContext, setThreadContext] = useState<any>(null);
   const [replyText, setReplyText] = useState('');
   const [takingControl, setTakingControl] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   // Patients state
   const [patients, setPatients] = useState<any[]>([]);
@@ -33,12 +34,7 @@ export const DoctorDashboard: React.FC = () => {
       setRedQueue(myQueue);
     } catch (err) {
       console.error("Failed to fetch doctor queue", err);
-      const savedThreadsStr = localStorage.getItem('escalated_threads');
-      const savedThreads = savedThreadsStr ? JSON.parse(savedThreadsStr) : [];
-      const myMockQueue = savedThreads.filter((t: any) => t.status === 'red' && t.assigned_user_id === loggedInDoctorId);
-      setRedQueue(myMockQueue.length > 0 ? myMockQueue : [
-        { id: "red-1", patient_name: "Sara Johnson", latest_message: "High risk symptoms reported (Default)", updated_at: new Date().toISOString(), risk_score: 95, assigned_user_id: loggedInDoctorId }
-      ]);
+      setRedQueue([]);
     }
   };
 
@@ -46,15 +42,14 @@ export const DoctorDashboard: React.FC = () => {
   const fetchThreadContext = async (id: string) => {
     try {
       const res = await api.getThreadContext(id);
-      setThreadContext(res.data || res);
+      const ctx = res.data || res;
+      setThreadContext(ctx);
+      if (ctx.structured_memory?.summary && ctx.structured_memory.summary !== 'No summary available yet.') {
+        setShowSummaryModal(true);
+      }
     } catch (err) {
       console.error("Failed to fetch thread context", err);
-      setThreadContext({
-        thread: { id, patient_name: redQueue.find(q => q.id === id)?.patient_name || "Patient" },
-        messages: [
-          { id: "m-1", sender_type: "PATIENT", content: redQueue.find(q => q.id === id)?.latest_message || "Help needed", created_at: new Date().toISOString() }
-        ]
-      });
+      setThreadContext(null);
     }
   };
 
@@ -325,6 +320,44 @@ export const DoctorDashboard: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-brand-surface border border-brand-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up">
+            <div className="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/50">
+              <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2">
+                <BrainCircuit size={16} /> AI Clinical Handoff Summary
+              </h3>
+              <button 
+                onClick={() => setShowSummaryModal(false)}
+                className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <div className="prose prose-sm prose-invert max-w-none text-brand-textPrimary">
+                {threadContext?.structured_memory?.summary?.split('\n').map((line: string, i: number) => {
+                  if (line.trim().startsWith('-')) {
+                    return <li key={i} className="ml-4 mb-1 text-xs">{line.substring(1).trim()}</li>;
+                  }
+                  if (line.trim().startsWith('#')) {
+                    return <h4 key={i} className="font-bold text-brand-primary mt-3 mb-2">{line.replace(/#/g, '').trim()}</h4>;
+                  }
+                  return <p key={i} className="mb-2 text-xs leading-relaxed">{line}</p>;
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t border-brand-border bg-brand-bg/30 flex justify-end">
+              <button 
+                onClick={() => setShowSummaryModal(false)}
+                className="px-5 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all shadow-md active:scale-95"
+              >
+                Close & View Chat
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

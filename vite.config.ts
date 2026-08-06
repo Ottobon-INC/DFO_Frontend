@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: env.VITE_BINDING_URL || 'http://localhost:8000',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => {
@@ -22,7 +22,8 @@ export default defineConfig(({ mode }) => {
               '/api/dashboard',
               '/api/control-tower',
               '/api/internal-assistant',
-              '/api/clinic/'
+              '/api/clinic/',
+              '/api/janmasethu'
             ];
             if (keepApiPrefixes.some(prefix => path.startsWith(prefix))) {
               return path;

@@ -45,7 +45,7 @@ export const DailyRegisterTable: React.FC = () => {
                 const patientObj = patientMap.get(item.patient_id);
                 const docId = item.doctor_id || item.doctorId;
                 const docName = item.doctor_name_snapshot || item.doctor_name || doctorsList.find((d: any) => d.id === docId)?.name || 'Unassigned';
-                
+
                 return {
                     id: item.id,
                     patientId: item.patient_id,
@@ -92,12 +92,12 @@ export const DailyRegisterTable: React.FC = () => {
 
     const handleModalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!walkInName.trim()) {
             setModalError("Patient name is required.");
             return;
         }
-        
+
         if (!walkInPhone || walkInPhone.length < 10) {
             setModalError("Phone number must be exactly 10 digits.");
             return;
@@ -108,14 +108,12 @@ export const DailyRegisterTable: React.FC = () => {
         try {
             // Get current time in HH:MM format for the walk-in
             const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + 
-                              now.getMinutes().toString().padStart(2, '0');
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' +
+                now.getMinutes().toString().padStart(2, '0');
 
             const payload = {
                 patient_name_snapshot: walkInName.trim(),
                 patient_phone_snapshot: walkInPhone,
-                patient_age_snapshot: walkInAge ? parseInt(walkInAge) : null,
-                doctor_id: walkInConsultant || null,
                 name: walkInName.trim(),
                 phone: walkInPhone,
                 age: walkInAge ? parseInt(walkInAge) : null,
@@ -260,6 +258,19 @@ export const DailyRegisterTable: React.FC = () => {
                                     placeholder="Enter full name"
                                     value={walkInName}
                                     onChange={(e) => setWalkInName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Age</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="120"
+                                    placeholder="Enter age"
+                                    value={walkInAge}
+                                    onChange={(e) => setWalkInAge(e.target.value)}
                                     className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
                                 />
                             </div>
@@ -458,7 +469,7 @@ export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ in
                             const patients = patientsRes.data || patientsRes;
                             const cleanInputMobile = String(formData.mobile).replace(/[\s\-()]/g, '').trim();
                             const existingPatient = patients.find((p: any) => p.mobile && String(p.mobile).replace(/[\s\-()]/g, '').trim() === cleanInputMobile);
-                            
+
                             if (existingPatient) {
                                 await api.updatePatient(existingPatient.id, { lead_id: initialData.id });
                                 await api.updateLead(initialData.id, { status: 'Converted' });

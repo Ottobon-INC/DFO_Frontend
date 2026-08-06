@@ -105,11 +105,7 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
             }
         } catch (err) {
             console.error("Failed to fetch inbox threads", err);
-            // Mock Fallback
-            setThreads([
-                { id: "t-1", patient_name: "Sara Johnson", latest_message: "When is my next scan scheduled?", updated_at: new Date().toISOString(), status: "PENDING_DOCTOR" },
-                { id: "t-2", patient_name: "Priya Nair", latest_message: "My vitals report has been updated.", updated_at: new Date(Date.now() - 3600000).toISOString(), status: "COMPLETED" }
-            ]);
+            setThreads([]);
         }
     };
 
@@ -120,13 +116,7 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
             setThreadContext(res.data || res);
         } catch (err) {
             console.error("Failed to fetch thread context", err);
-            // Mock Fallback
-            setThreadContext({
-                thread: { id, patient_name: threads.find(t => t.id === id)?.patient_name || "Patient" },
-                messages: [
-                    { id: "m-1", sender_type: "PATIENT", content: threads.find(t => t.id === id)?.latest_message || "Hello", created_at: new Date().toISOString() }
-                ]
-            });
+            setThreadContext(null);
         }
     };
 
@@ -145,17 +135,6 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
             await fetchThreadDetails(selectedThreadId);
         } catch (err) {
             console.error("Failed to send reply", err);
-            // Mock add message for preview
-            if (threadContext) {
-                setThreadContext({
-                    ...threadContext,
-                    messages: [
-                        ...(threadContext.messages || []),
-                        { id: Math.random().toString(), sender_type: "HUMAN", content: replyText.trim(), created_at: new Date().toISOString() }
-                    ]
-                });
-                setReplyText('');
-            }
         } finally {
             setSendingReply(false);
         }
@@ -168,13 +147,7 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
             setAnalyticsData(res.data || res);
         } catch (err) {
             console.error("Failed to fetch analytics", err);
-            // Mock Fallback
-            setAnalyticsData({
-                totalPatients: 145,
-                conversionRate: 68.2,
-                avgWaitingTime: 22,
-                slaCompliance: 94.5
-            });
+            setAnalyticsData(null);
         }
     };
 

@@ -26,18 +26,23 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
     try {
       if (isLoginMode) {
         const response = await api.login({ email, password });
-        if (response.user) {
+        const userPayload = response.user || (response.data && response.data.user);
+        const token = response.token || response.accessToken || (response.data && (response.data.token || response.data.accessToken));
+        if (userPayload) {
+          if (token) {
+            userPayload.token = token;
+          }
           // Normalize role from backend case-insensitively
-          const backendRole = (response.user.role || '').toLowerCase();
+          const backendRole = (userPayload.role || '').toLowerCase();
           let userRole: UserRole = UserRole.FRONT_DESK; // Default
           if (backendRole === 'doctor') userRole = UserRole.DOCTOR;
-          else if (backendRole === 'cro') userRole = UserRole.CRO;
-          else if (backendRole === 'nurse') userRole = UserRole.NURSE;
-          else if (backendRole === 'admin') userRole = UserRole.ADMIN;
+          else if (backendRole === 'cro' || backendRole === 'receptionist') userRole = UserRole.FRONT_DESK;
+          else if (backendRole === 'nurse' || backendRole === 'lab_staff') userRole = UserRole.NURSE;
+          else if (backendRole === 'admin' || backendRole === 'hospital_admin') userRole = UserRole.ADMIN;
           else if (backendRole === 'frontdesk' || backendRole === 'front_desk' || backendRole === 'front desk') userRole = UserRole.FRONT_DESK;
 
           if (onLoginSuccess) {
-            onLoginSuccess(userRole, response.user);
+            onLoginSuccess(userRole, userPayload);
           }
         } else {
           throw new Error(response.message || "Login failed");
