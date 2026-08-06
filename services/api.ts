@@ -650,7 +650,12 @@ export const api = {
                     avgTimeToConvertDaysTrend?: number;
                     patientChurnRateTrend?: number;
                 };
-                funnel?: any[];
+                funnel?: {
+                    newLeads: number;
+                    firstConsult: number;
+                    followUp: number;
+                    converted: number;
+                };
                 interventionQueue?: any[];
             };
         }>(`${API_BASE_URL}/api/dashboard/cro`, {

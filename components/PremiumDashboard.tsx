@@ -1,8 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, CalendarDays, TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight, MoreVertical } from 'lucide-react';
 import { Card } from './ui/Card';
+import { api } from '../services/api';
 
 export const PremiumDashboard: React.FC = () => {
+  const [appointmentsCount, setAppointmentsCount] = useState<number | string>('...');
+  const [newPatientsCount, setNewPatientsCount] = useState<number | string>('...');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const summary = await api.getDashboardSummary();
+        const cro = await api.getCRODashboard();
+        
+        if (summary.success && summary.data?.todayAppointments) {
+          setAppointmentsCount(summary.data.todayAppointments.length);
+        } else {
+          setAppointmentsCount(0);
+        }
+
+        if (cro.success && cro.data?.funnel) {
+          setNewPatientsCount(cro.data.funnel.newLeads || 0);
+        } else {
+          setNewPatientsCount(0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch premium dashboard data", err);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <div className="w-full flex flex-col gap-4 animate-fade-in pb-8">
       {/* Top Row: Hero & KPIs */}
@@ -19,7 +47,7 @@ export const PremiumDashboard: React.FC = () => {
                 <div>
                   <p className="text-xs text-brand-textSecondary mb-1">Today's Revenue</p>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-bold text-brand-primary">$4,250</h3>
+                    <h3 className="text-2xl font-bold text-brand-primary">₹4,250</h3>
                     <span className="flex items-center text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
                       +12%
                     </span>
@@ -28,7 +56,7 @@ export const PremiumDashboard: React.FC = () => {
                 <div>
                   <p className="text-xs text-brand-textSecondary mb-1">Appointments</p>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-bold text-brand-primary">48</h3>
+                    <h3 className="text-2xl font-bold text-brand-primary">{appointmentsCount}</h3>
                     <span className="flex items-center text-[10px] font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-full">
                       -5%
                     </span>
@@ -57,7 +85,7 @@ export const PremiumDashboard: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-3xl font-bold text-brand-primary">124</h3>
+              <h3 className="text-3xl font-bold text-brand-primary">{newPatientsCount}</h3>
               <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">+18%</span>
             </div>
             <a href="#" className="text-xs font-medium text-brand-textPrimary flex items-center hover:text-brand-primary transition-colors">
@@ -130,7 +158,7 @@ export const PremiumDashboard: React.FC = () => {
               <h3 className="text-sm font-bold text-brand-textPrimary">Monthly Collections</h3>
               <DollarSign size={16} className="text-brand-textSecondary" />
             </div>
-            <h2 className="text-3xl font-bold text-brand-primary mt-1">$46,820</h2>
+            <h2 className="text-3xl font-bold text-brand-primary mt-1">₹46,820</h2>
             <span className="inline-block mt-2 text-[10px] font-semibold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-full">
               -4% than last year
             </span>
@@ -156,7 +184,7 @@ export const PremiumDashboard: React.FC = () => {
             <h3 className="text-base font-bold text-brand-primary mb-6">Revenue by Dept</h3>
             <div className="flex items-center gap-6">
                <div className="flex-1">
-                 <h2 className="text-2xl font-bold text-brand-primary mb-1">$36,358</h2>
+                 <h2 className="text-2xl font-bold text-brand-primary mb-1">₹36,358</h2>
                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full inline-block">
                    +9% last year
                  </span>

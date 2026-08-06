@@ -8,16 +8,18 @@ export const CroAnalytics: React.FC = () => {
 
   const fetchAnalyticsData = async () => {
     try {
-      const res = await api.getOverviewAnalytics();
-      setAnalyticsData(res.data || res || null);
+      const res = await api.getCRODashboard();
+      if (res.success && res.data) {
+        setAnalyticsData({
+          kpis: res.data.kpis || {},
+          funnel: res.data.funnel || { newLeads: 0, firstConsult: 0, followUp: 0, converted: 0 }
+        });
+      } else {
+        setAnalyticsData(null);
+      }
     } catch (err) {
       console.error(err);
-      setAnalyticsData({
-        totalPatients: 145,
-        conversionRate: 68.2,
-        avgWaitingTime: 22,
-        slaCompliance: 94.5
-      });
+      setAnalyticsData(null);
     } finally {
       setLoading(false);
     }
@@ -36,10 +38,26 @@ export const CroAnalytics: React.FC = () => {
   }
 
   // Calculate coordinates for visual compliance ring
-  const compliance = analyticsData?.slaCompliance || 94.5;
+  const kpis = analyticsData?.kpis || {};
+  const funnel = analyticsData?.funnel || { newLeads: 0, firstConsult: 0, followUp: 0, converted: 0 };
+  
+  // Total managed can be the total leads or appointments, let's use funnel.newLeads for now
+  const totalPatients = funnel.newLeads || 0;
+  
+  // SLA compliance is not coming from backend CRO yet, defaulting to 100 for now.
+  const compliance = kpis.slaCompliance || 100;
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (compliance / 100) * circumference;
+
+  // Funnel calculations
+  const base = funnel.newLeads > 0 ? funnel.newLeads : 1; // Prevent division by zero
+  
+  const calcPct = (val: number) => ((val / base) * 100).toFixed(1) + '%';
+  const calcDrop = (prev: number, curr: number) => {
+    if (prev === 0) return '';
+    return '-' + (((prev - curr) / prev) * 100).toFixed(1) + '% Drop-off';
+  };
 
   return (
     <div className="space-y-8 animate-slide-up">
@@ -49,10 +67,10 @@ export const CroAnalytics: React.FC = () => {
           <div className="space-y-2">
             <h4 className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Total Patients Managed</h4>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-brand-textPrimary">{analyticsData?.totalPatients}</span>
-              <span className="text-xs text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded-full">+12% wk</span>
+              <span className="text-3xl font-extrabold text-brand-textPrimary">{totalPatients}</span>
+              <span className="text-xs text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded-full">Active</span>
             </div>
-            <p className="text-[10px] text-brand-textSecondary font-bold">Active clinical trial registrations</p>
+            <p className="text-[10px] text-brand-textSecondary font-bold">New leads to manage</p>
           </div>
           <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary group-hover:scale-110 transition-transform duration-300">
             <Users size={24} />
@@ -63,8 +81,10 @@ export const CroAnalytics: React.FC = () => {
           <div className="space-y-2">
             <h4 className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Lead Conversion Rate</h4>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-brand-textPrimary">{analyticsData?.conversionRate}%</span>
-              <span className="text-xs text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded-full">Optimal</span>
+              <span className="text-3xl font-extrabold text-brand-textPrimary">{kpis.conversionRate || 0}%</span>
+              {kpis.conversionRateTrend && kpis.conversionRateTrend > 0 ? (
+                <span className="text-xs text-green-400 font-bold bg-green-500/10 px-2 py-0.5 rounded-full">+{kpis.conversionRateTrend}%</span>
+              ) : null}
             </div>
             <p className="text-[10px] text-brand-textSecondary font-bold">Inquiry to active patient profile</p>
           </div>
@@ -114,10 +134,10 @@ export const CroAnalytics: React.FC = () => {
         <p className="text-xs text-brand-textSecondary mb-8">Clinical lifecycle progression pipeline status overview</p>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
-          <PipelineCard label="1. Triage Queue" value={72} percentage="100%" color="bg-blue-500" dropoff="" />
-          <PipelineCard label="2. Consultations" value={50} percentage="69.4%" color="bg-purple-500" dropoff="-30.6% Drop-off" />
-          <PipelineCard label="3. Active Leads" value={42} percentage="58.3%" color="bg-orange-500" dropoff="-16.0% Drop-off" />
-          <PipelineCard label="4. Converted" value={35} percentage="48.6%" color="bg-green-500" dropoff="-16.7% Drop-off" />
+          <PipelineCard label="1. New Leads" value={funnel.newLeads} percentage="100%" color="bg-blue-500" dropoff="" />
+          <PipelineCard label="2. 1st Consult" value={funnel.firstConsult} percentage={calcPct(funnel.firstConsult)} color="bg-purple-500" dropoff={calcDrop(funnel.newLeads, funnel.firstConsult)} />
+          <PipelineCard label="3. Follow Up" value={funnel.followUp} percentage={calcPct(funnel.followUp)} color="bg-orange-500" dropoff={calcDrop(funnel.firstConsult, funnel.followUp)} />
+          <PipelineCard label="4. Converted" value={funnel.converted} percentage={calcPct(funnel.converted)} color="bg-green-500" dropoff={calcDrop(funnel.followUp, funnel.converted)} />
         </div>
       </div>
     </div>

@@ -95,7 +95,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                         setKpiData(mappedKpiData);
                     }
 
-                    if (response.success && response.data?.funnel && !Array.isArray(response.data.funnel)) {
+                    if (response.success && response.data?.funnel) {
                         setFunnelData(response.data.funnel as FunnelData);
                     }
                 } catch (error: any) {
