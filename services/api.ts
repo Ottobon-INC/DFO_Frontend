@@ -185,6 +185,14 @@ export const api = {
         });
     },
 
+    walkInExpress: async (data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/walk-in-express`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             method: 'PATCH',

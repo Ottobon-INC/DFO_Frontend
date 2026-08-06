@@ -11,6 +11,8 @@ import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
+import { WalkInExpressModal } from './WalkInExpressModal';
+import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './doctor/DoctorDashboard';
@@ -176,6 +178,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isWalkInExpressOpen, setIsWalkInExpressOpen] = useState(false);
+  const [expressTokenResult, setExpressTokenResult] = useState<{ token: string; details: any } | null>(null);
 
   useEffect(() => {
     try {
@@ -435,6 +439,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             )}
             <NavItem
+              icon={<Users size={20} />}
+              label="Waiting Room"
+              active={location.pathname === '/dashboard/waiting-room'}
+              onClick={() => navigate('/dashboard/waiting-room')}
+            />
+            <NavItem
               icon={<CalendarDays size={20} />}
               label="Appointments"
               active={location.pathname === '/dashboard/appointments'}
@@ -583,6 +593,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
           {/* Right Status / Toggles */}
           <div className="flex items-center space-x-4">
+            
+            {/* Walk-in Express and Queue Pill */}
+            <div className="flex items-center gap-2">
+               <button 
+                onClick={() => setIsWalkInExpressOpen(true)}
+                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-brand-primary to-brand-accent text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all"
+               >
+                 <Activity size={14} /> Walk-in Express
+               </button>
+               <button
+                onClick={() => navigate('/dashboard/waiting-room')}
+                className="hidden lg:flex items-center gap-1.5 bg-brand-hover border border-brand-border text-brand-textPrimary px-3 py-1.5 rounded-full text-xs font-bold hover:bg-brand-surface transition-colors"
+               >
+                 <Users size={14} className="text-brand-primary" /> Queue
+               </button>
+            </div>
+
             {/* Language Toggles */}
             <div className="hidden sm:flex items-center bg-brand-hover rounded-full p-1 border border-brand-border">
               <span className="bg-brand-primary text-white text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer">EN</span>
@@ -688,6 +715,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="cro-analytics" element={<CroAnalytics />} />
             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="daily-register" element={<DailyRegisterTable />} />
+            <Route path="waiting-room" element={
+              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+                <WaitingRoomView />
+              </div>
+            } />
             <Route path="settings/schedules" element={<DoctorScheduleSettings userRole={userRole} currentUser={currentUser} />} />
             <Route path="schedules/view" element={<DoctorSchedulesView userRole={userRole} currentUser={currentUser} />} />
 
@@ -745,6 +777,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         onClose={() => setIsChangePasswordModalOpen(false)}
         showToast={showToast}
       />
+
+      <WalkInExpressModal 
+        isOpen={isWalkInExpressOpen} 
+        onClose={() => setIsWalkInExpressOpen(false)} 
+        onSuccess={(token, details) => {
+          setIsWalkInExpressOpen(false);
+          setExpressTokenResult({ token, details });
+          setRefreshTrigger(prev => prev + 1);
+        }} 
+      />
+
+      {/* Express Token Success Modal */}
+      {expressTokenResult && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] animate-fade-in p-4" onClick={() => setExpressTokenResult(null)}>
+          <div className="bg-brand-surface rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-brand-primary" onClick={e => e.stopPropagation()}>
+            <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-brand-textPrimary mb-1">Check-in Complete!</h2>
+            <p className="text-brand-textSecondary text-sm mb-6">Patient added to the waiting room.</p>
+            
+            <div className="bg-brand-bg rounded-2xl p-6 border border-brand-border mb-6">
+              <p className="text-xs text-brand-textSecondary font-bold uppercase tracking-widest mb-2">Token Number</p>
+              <div className="text-6xl font-black text-brand-primary tracking-tighter mb-2">{expressTokenResult.token}</div>
+              <p className="text-sm font-medium text-brand-textPrimary mt-4 pt-4 border-t border-brand-border border-dashed">
+                {expressTokenResult.details.name} <br/>
+                <span className="text-brand-textSecondary text-xs">for {expressTokenResult.details.doctorName}</span>
+              </p>
+            </div>
+            
+            <button 
+              onClick={() => setExpressTokenResult(null)}
+              className="w-full py-3 bg-brand-hover text-brand-textPrimary font-bold rounded-xl hover:bg-brand-surface transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Patient Profile Overlay - Lifted to Dashboard level for z-index fix */}
       {selectedPatient && (
