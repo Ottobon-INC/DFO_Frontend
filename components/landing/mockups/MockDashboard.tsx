@@ -2,7 +2,7 @@ import React from 'react';
 
 export const MockDashboard: React.FC<{ variant?: 'main' | 'secondary' | 'tertiary' }> = ({ variant = 'main' }) => {
     return (
-        <div className="w-full h-full bg-brand-surface flex flex-col overflow-hidden relative select-none">
+        <div className="w-full h-full bg-white flex flex-col overflow-hidden relative select-none">
             {/* Header */}
             <div className="h-8 border-b border-slate-100 flex items-center px-4 justify-between bg-slate-50/50">
                 <div className="flex space-x-2">
@@ -24,7 +24,7 @@ export const MockDashboard: React.FC<{ variant?: 'main' | 'secondary' | 'tertiar
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-4 bg-brand-surface">
+                <div className="flex-1 p-4 bg-white">
                     {variant === 'main' && (
                         <>
                             <div className="flex justify-between items-end mb-6">

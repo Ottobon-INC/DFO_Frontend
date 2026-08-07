@@ -3,38 +3,38 @@ import { motion } from 'framer-motion';
 
 export const WhyClinicsTrust: React.FC = () => {
     return (
-        <section className="py-32 bg-slate-950">
-            <div className="container mx-auto px-6 text-center">
+        <section className="py-32 bg-slate-50">
+            <div className="container mx-auto px-6 text-center max-w-7xl">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-3xl md:text-4xl font-bold text-white mb-20"
+                    className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-20 tracking-tight"
                 >
-                    Why Clinics Choose Us
+                    Why Hospitals Trust Us
                 </motion.h2>
 
-                <div className="relative max-w-3xl mx-auto h-[300px] md:h-[250px] flex flex-col items-center justify-center">
+                <div className="relative max-w-4xl mx-auto h-[400px] md:h-[300px] flex flex-col items-center justify-center">
                     {/* Top */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         whileHover={{ scale: 1.05 }}
-                        className="absolute top-0 px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
+                        className="absolute top-0 px-8 py-5 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 font-bold text-slate-700 w-56 z-10"
                     >
                         Reliable
                     </motion.div>
 
                     {/* Middle Row */}
-                    <div className="absolute top-1/2 -translate-y-1/2 w-full flex justify-center gap-48 md:gap-64">
+                    <div className="absolute top-1/2 -translate-y-1/2 w-full flex flex-col md:flex-row items-center justify-center gap-12 md:gap-80">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.1 }}
                             whileHover={{ scale: 1.05 }}
-                            className="px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
+                            className="px-8 py-5 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 font-bold text-slate-700 w-56"
                         >
                             Accurate
                         </motion.div>
@@ -44,7 +44,7 @@ export const WhyClinicsTrust: React.FC = () => {
                             viewport={{ once: true }}
                             transition={{ delay: 0.1 }}
                             whileHover={{ scale: 1.05 }}
-                            className="px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 backdrop-blur-sm"
+                            className="px-8 py-5 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 font-bold text-slate-700 w-56"
                         >
                             Secure
                         </motion.div>
@@ -57,7 +57,7 @@ export const WhyClinicsTrust: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ delay: 0.2 }}
                         whileHover={{ scale: 1.05 }}
-                        className="absolute top-1/2 -translate-y-1/2 px-8 py-4 bg-indigo-600/20 rounded-2xl shadow-lg border border-indigo-500/30 font-bold text-indigo-300 w-48 z-20 backdrop-blur-md"
+                        className="absolute top-1/2 -translate-y-1/2 px-10 py-6 bg-gradient-to-tr from-sky-100 to-blue-50 rounded-2xl shadow-2xl shadow-sky-200/40 border border-sky-100 font-bold text-sky-700 text-lg w-56 z-20"
                     >
                         Faster
                     </motion.div>
@@ -69,7 +69,7 @@ export const WhyClinicsTrust: React.FC = () => {
                         viewport={{ once: true }}
                         transition={{ delay: 0.3 }}
                         whileHover={{ scale: 1.05 }}
-                        className="absolute bottom-0 px-8 py-4 bg-brand-surface/5 rounded-2xl shadow-lg border border-white/10 font-bold text-slate-200 w-48 z-10 backdrop-blur-sm"
+                        className="absolute bottom-0 px-8 py-5 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 font-bold text-slate-700 w-56 z-10"
                     >
                         Patient-First
                     </motion.div>

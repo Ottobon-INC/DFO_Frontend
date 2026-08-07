@@ -12,18 +12,18 @@ export const CoreFunctionalModules: React.FC = () => {
     ];
 
     return (
-        <section className="py-24 bg-brand-bg border-y border-brand-border/50">
-            <div className="container mx-auto px-6 max-w-4xl">
+        <section id="modules" className="py-24 bg-mint-50 border-y border-mint-200/50">
+            <div className="container mx-auto px-6 max-w-6xl">
                 <motion.h2
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-3xl md:text-4xl font-bold text-center text-brand-textPrimary mb-16"
+                    className="text-3xl md:text-4xl font-medium text-center text-mint-900 mb-16"
                 >
                     Core Functional Modules
                 </motion.h2>
 
-                <div className="space-y-8">
+                <div className="flex flex-wrap justify-center gap-6 lg:gap-8">
                     {modules.map((module, index) => (
                         <motion.div
                             key={index}
@@ -31,17 +31,17 @@ export const CoreFunctionalModules: React.FC = () => {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
-                            className="group flex items-start p-6 rounded-xl hover:bg-brand-surface hover:shadow-md transition-all duration-300 border border-transparent hover:border-brand-border cursor-default"
+                            className="w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(50%-1rem)] group flex items-start p-6 rounded-xl hover:bg-white hover:shadow-md transition-all duration-300 border border-transparent hover:border-mint-200 cursor-default"
                         >
                             <div className="mt-1 mr-6 text-brand-secondary group-hover:text-brand-primary transition-colors">
                                 <CheckCircle2 size={24} />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-xl font-bold text-brand-textPrimary mb-2 relative inline-block">
+                                <h3 className="text-xl font-bold text-mint-900 mb-2 relative inline-block">
                                     {module.title}
                                     <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-primary transition-all duration-300 group-hover:w-full"></span>
                                 </h3>
-                                <p className="text-brand-textSecondary text-lg">
+                                <p className="text-mint-700/80 text-lg">
                                     {module.desc}
                                 </p>
                             </div>

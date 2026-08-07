@@ -10,6 +10,18 @@ export default {
   theme: {
     extend: {
       colors: {
+        mint: {
+          50: '#f4fbf9',
+          100: '#e5f5f0',
+          200: '#ccebe4',
+          300: '#a5dccf',
+          400: '#7ac5b3',
+          500: '#54ac98',
+          600: '#408776',
+          700: '#31524a',
+          800: '#213a34',
+          900: '#0d1f1a',
+        },
         brand: {
           bg: 'var(--color-bg)',
           surface: 'var(--color-surface)',

@@ -24,7 +24,7 @@ export const PartnershipSection: React.FC = () => {
               Medcy IVF: Our Commitment to <span className="text-brand-teal">Families.</span>
             </h2>
             <p className="text-lg text-brand-textSecondary leading-relaxed mb-6">
-              We believe every journey to parenthood deserves world-class science and empathetic support. By partnering with JanmaSethu, we have integrated the latest in AI-driven patient management to ensure no query goes unanswered and every treatment plan is tracked with precision.
+              We believe every journey to parenthood deserves world-class science and empathetic support. By partnering with JanmaSethu, we have integrated the latest in AI-driven Digital OP Desk to ensure no query goes unanswered and every treatment plan is tracked with precision.
             </p>
             <div className="flex items-center space-x-4">
               <div className="h-1 w-12 bg-brand-teal rounded-full"></div>

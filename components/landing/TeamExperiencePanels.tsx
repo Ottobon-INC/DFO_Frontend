@@ -21,8 +21,8 @@ export const TeamExperiencePanels: React.FC = () => {
     ];
 
     return (
-        <section className="py-24 bg-slate-950">
-            <div className="container mx-auto px-6">
+        <section className="py-24 bg-slate-50">
+            <div className="container mx-auto px-6 max-w-7xl">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {panels.map((panel, index) => (
                         <motion.div
@@ -31,16 +31,16 @@ export const TeamExperiencePanels: React.FC = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.7, delay: panel.delay }}
-                            whileHover={{ y: -8, boxShadow: '0 20px 40px -10px rgba(79, 70, 229, 0.15)' }}
-                            className="bg-brand-surface/5 p-8 rounded-3xl shadow-lg border border-white/10 flex flex-col h-full transition-all duration-300 backdrop-blur-sm"
+                            whileHover={{ y: -8, boxShadow: '0 20px 40px -10px rgba(14, 165, 233, 0.15)' }}
+                            className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col h-full transition-all duration-300 backdrop-blur-sm"
                         >
-                            <h3 className="text-2xl font-bold text-white mb-8 pb-4 border-b border-white/10">
+                            <h3 className="text-2xl font-bold text-slate-900 mb-8 pb-4 border-b border-slate-100">
                                 {panel.role}
                             </h3>
                             <ul className="space-y-4 flex-1">
                                 {panel.items.map((item, i) => (
-                                    <li key={i} className="text-lg text-slate-300 font-medium flex items-center">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-3 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+                                    <li key={i} className="text-lg text-slate-600 font-medium flex items-center">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 mr-3 shadow-[0_0_8px_rgba(14,165,233,0.4)]"></span>
                                         {item}
                                     </li>
                                 ))}
