@@ -59,31 +59,31 @@ export const ControlTower: React.FC<ControlTowerProps> = ({ onLogout, userRole }
     const fetchLiveOpsData = async () => {
         try {
             const [flowData, alertsData, queueData, docData, leadsData] = await Promise.all([
-                api.getPatientFlowSummary().catch(() => ({ data: { scheduled: 12, arrived: 8, checkedIn: 5, completed: 3 } })), 
-                api.getWaitingAlerts().catch(() => ({ data: [] })),
-                api.getLiveQueue().catch(() => ({ data: [] })),
-                api.getDoctorUtilization().catch(() => ({ data: [] })),
+                api.getPatientFlowSummary().catch(() => ({ scheduled: 12, arrived: 8, checkedIn: 5, completed: 3 })), 
+                api.getWaitingAlerts().catch(() => ([])),
+                api.getLiveQueue().catch(() => ([])),
+                api.getDoctorUtilization().catch(() => ([])),
                 api.getLeadSnapshot().catch(() => ({ data: { new: 5, contacted: 12, stalling: 3, converted: 2 } })) 
             ]);
 
-            setPatientFlow(flowData.data || { scheduled: 0, arrived: 0, checkedIn: 0, completed: 0 });
-            setWaitingAlerts(alertsData.data || []);
-            setLiveQueue(queueData.data || []);
-            setDoctorUtilization(docData.data || []);
-            setLeadSnapshot(leadsData.data || { new: 0, contacted: 0, stalling: 0, converted: 0 });
+            setPatientFlow(flowData || { scheduled: 0, arrived: 0, checkedIn: 0, completed: 0 });
+            setWaitingAlerts(alertsData || []);
+            setLiveQueue(queueData || []);
+            setDoctorUtilization(docData || []);
+            setLeadSnapshot(leadsData?.data || leadsData || { new: 0, contacted: 0, stalling: 0, converted: 0 });
 
-            if (!queueData?.data?.length) {
+            if (!queueData?.length) {
                 setLiveQueue([
                     { patientName: "Ramesh Gupta", doctor: "Dr. Sireesha", status: "Arrived", waitingMinutes: 45 },
                     { patientName: "Sita Verma", doctor: "Dr. Ananya", status: "Checked-In", waitingMinutes: 12 },
                 ]);
             }
-            if (!alertsData?.data?.length) {
+            if (!alertsData?.length) {
                 setWaitingAlerts([
                     { message: "Patient waiting > 30 mins", patientName: "Ramesh Gupta", doctor: "Dr. Sireesha", minutes: 45 }
                 ]);
             }
-            if (!docData?.data?.length) {
+            if (!docData?.length) {
                 setDoctorUtilization([
                     { doctorName: "Dr. Sireesha", total: 15, completed: 5, pending: 10 },
                     { doctorName: "Dr. Ananya", total: 12, completed: 8, pending: 4 },

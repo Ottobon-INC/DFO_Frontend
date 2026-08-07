@@ -4,7 +4,7 @@ import { Search, Filter, UserPlus, FileText, Upload, Download, Activity, Users, 
 import { Patient, Doctor } from '../types';
 import { PatientProfile } from './PatientProfile';
 import { BookAppointmentModal } from './AppointmentModals';
-import { PatientConversionForm } from './PatientRegistration';
+import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { api } from '../services/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -348,12 +348,16 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                 {/* Table or New Patient Form */}
                 <div className="flex-1 overflow-auto custom-scrollbar">
                     {isNewPatientMode ? (
-                        <PatientConversionForm
-                            onSuccess={() => {
-                                setIsNewPatientMode(false);
-                                fetchPatients();
-                            }}
-                        />
+                        <div className="flex flex-col h-full overflow-hidden relative">
+                            <ClinicRegistrationForm
+                                initialData={{}} // Empty for new patient
+                                onSuccess={() => {
+                                    setIsNewPatientMode(false);
+                                    fetchPatients();
+                                }}
+                                onCancel={() => setIsNewPatientMode(false)}
+                            />
+                        </div>
                     ) : (
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm border-b border-brand-border">

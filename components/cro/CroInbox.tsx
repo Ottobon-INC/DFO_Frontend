@@ -14,7 +14,8 @@ export const CroInbox: React.FC = () => {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   // Selection states for target clinicians
-  const [selectedDocId, setSelectedDocId] = useState(doctors[0]?.id || '');
+  const { doctors } = useDoctors();
+  const [selectedDocId, setSelectedDocId] = useState('');
   const [selectedNurseId, setSelectedNurseId] = useState('nurse_divya');
   const [patientLocation, setPatientLocation] = useState<string | null>(null);
 
@@ -91,17 +92,19 @@ export const CroInbox: React.FC = () => {
 
   // Auto-select first doctor of filtered list when location changes
   useEffect(() => {
-    const filtered = DOCTORS.filter(doc => {
+    if (!doctors) return;
+    const filtered = doctors.filter(doc => {
       if (!patientLocation) return true;
-      return doc.location.toLowerCase().includes(patientLocation.toLowerCase()) ||
-        patientLocation.toLowerCase().includes(doc.location.toLowerCase()) ||
-        doc.location === 'Medcy Hospitals';
+      const loc = doc.location || 'Medcy Hospitals';
+      return loc.toLowerCase().includes(patientLocation.toLowerCase()) ||
+        patientLocation.toLowerCase().includes(loc.toLowerCase()) ||
+        loc === 'Medcy Hospitals';
     });
-    const toShow = filtered.length > 0 ? filtered : DOCTORS;
+    const toShow = filtered.length > 0 ? filtered : doctors;
     if (toShow.length > 0) {
-      setSelectedDocId(toShow[0].id);
+      setSelectedDocId(toShow[0].id || toShow[0].doctorId);
     }
-  }, [patientLocation]);
+  }, [patientLocation, doctors]);
 
   const handleEscalate = async (targetStatus: 'red' | 'yellow', assignedUserId: string) => {
     if (!selectedThreadId) return;
@@ -268,15 +271,17 @@ export const CroInbox: React.FC = () => {
                     className="bg-transparent text-[11px] text-brand-textPrimary outline-none font-bold border-none px-2 cursor-pointer max-w-[130px] rounded-lg"
                   >
                     {(() => {
-                      const filtered = DOCTORS.filter(doc => {
+                      if (!doctors) return null;
+                      const filtered = doctors.filter(doc => {
                         if (!patientLocation) return true;
-                        return doc.location.toLowerCase().includes(patientLocation.toLowerCase()) ||
-                          patientLocation.toLowerCase().includes(doc.location.toLowerCase()) ||
-                          doc.location === 'Medcy Hospitals';
+                        const loc = doc.location || 'Medcy Hospitals';
+                        return loc.toLowerCase().includes(patientLocation.toLowerCase()) ||
+                          patientLocation.toLowerCase().includes(loc.toLowerCase()) ||
+                          loc === 'Medcy Hospitals';
                       });
-                      const doctorsToShow = filtered.length > 0 ? filtered : DOCTORS;
+                      const doctorsToShow = filtered.length > 0 ? filtered : doctors;
                       return doctorsToShow.map(doc => (
-                        <option key={doc.id} value={doc.id} className="bg-brand-bg text-brand-textPrimary font-semibold">{doc.name}</option>
+                        <option key={doc.id || doc.doctorId} value={doc.id || doc.doctorId} className="bg-brand-bg text-brand-textPrimary font-semibold">{doc.name}</option>
                       ));
                     })()}
                   </select>

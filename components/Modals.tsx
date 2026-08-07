@@ -220,8 +220,6 @@ interface AddLeadModalProps {
     inquiry: string;
     referralRequired: 'Yes' | 'No'; // New
     alternativePhoneNumber: string; // New
-    husbandOrGuardianName: string; // New
-    husbandAge: string; // New
     location: string; // New
     age: string;
     gender: 'Male' | 'Female' | 'Other';
@@ -240,8 +238,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
     inquiry: 'General',
     referralRequired: 'No' as 'Yes' | 'No', // Default
     alternativePhoneNumber: '',
-    husbandOrGuardianName: '',
-    husbandAge: '',
     location: '',
     age: '',
     gender: 'Female' as 'Male' | 'Female' | 'Other',
@@ -274,8 +270,6 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
       inquiry: 'General',
       referralRequired: 'No',
       alternativePhoneNumber: '',
-      husbandOrGuardianName: '',
-      husbandAge: '',
       location: '',
       age: '',
       gender: 'Female',
@@ -335,25 +329,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary uppercase mb-1">Husband / Guardian Name</label>
-                  <input
-                    value={data.husbandOrGuardianName}
-                    onChange={e => setData({ ...data, husbandOrGuardianName: e.target.value })}
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
-                    placeholder="Enter husband/guardian name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary uppercase mb-1">Husband Age</label>
-                  <input
-                    type="number"
-                    value={data.husbandAge}
-                    onChange={e => setData({ ...data, husbandAge: e.target.value })}
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
-                    placeholder="Husband Age"
-                  />
-                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-brand-textSecondary uppercase mb-1">City / Location</label>
                   <input

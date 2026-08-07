@@ -298,6 +298,7 @@ export const DoctorDashboard: React.FC = () => {
                       <th className="p-4">Patient</th>
                       <th className="p-4">Date</th>
                       <th className="p-4">Consultation Type</th>
+                      <th className="p-4">Handoff / Reason</th>
                       <th className="p-4">Status</th>
                     </tr>
                   </thead>
@@ -306,8 +307,11 @@ export const DoctorDashboard: React.FC = () => {
                       <tr key={appt.id} className="hover:bg-brand-bg/30 transition-colors">
                         <td className="p-4 font-bold text-brand-primary">{appt.time}</td>
                         <td className="p-4 font-bold text-brand-textPrimary">{appt.patientName}</td>
-                        <td className="p-4 text-brand-textSecondary">{appt.date}</td>
+                        <td className="p-4 text-brand-textSecondary">{appt.date || appt.appointment_date}</td>
                         <td className="p-4 text-brand-textSecondary font-medium">{appt.type || 'General Consult'}</td>
+                        <td className="p-4 text-brand-textSecondary italic text-[11px] max-w-[200px] truncate" title={appt.visit_reason || appt.notes || 'No notes'}>
+                          {appt.visit_reason || appt.notes || '—'}
+                        </td>
                         <td className="p-4">
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
                             {appt.status}

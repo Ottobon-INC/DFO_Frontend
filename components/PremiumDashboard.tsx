@@ -13,8 +13,8 @@ export const PremiumDashboard: React.FC = () => {
         const summary = await api.getDashboardSummary();
         const cro = await api.getCRODashboard();
         
-        if (summary.success && summary.data?.todayAppointments) {
-          setAppointmentsCount(summary.data.todayAppointments.length);
+        if (summary.success && summary.data?.kpis) {
+          setAppointmentsCount(summary.data.kpis.totalWalkIns || 0);
         } else {
           setAppointmentsCount(0);
         }

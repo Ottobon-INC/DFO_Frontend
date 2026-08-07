@@ -10,9 +10,8 @@ import { api } from '../services/api';
 const DEFAULT_PATIENT_PROFILE: Patient = {
     id: '',
     uhid: '',
-    name: 'Unknown Patient',
-    gender: 'Female',
-    mobile: '',
+    fullname: 'Unknown Patient',
+    phone: '',
     registrationDate: new Date().toISOString().split('T')[0],
     status: 'Active'
 };

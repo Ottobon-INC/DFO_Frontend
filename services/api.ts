@@ -266,14 +266,6 @@ export const api = {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/walk-in-express`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(backendPayload)
-        });
-    },
-
-    walkInExpress: async (data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/walk-in-express`, {
-            method: 'POST',
-            headers: getHeaders(),
             body: JSON.stringify(data)
         });
     },
@@ -404,13 +396,20 @@ export const api = {
         // Translate frontend payload to backend schema
         const fullname = (data.name || data.fullname || '').trim() || 'Unknown Patient';
         const phone = data.phone || data.mobile || '0000000000';
-        const location = [data.house, data.street, data.city, data.state, data.location].filter(Boolean).join(', ') || null;
+        const location = [data.house, data.street, data.city, data.state, data.location].filter(Boolean).join(', ') || data.address || null;
 
         const backendPayload = {
             fullname,
-            age: parseInt(data.age) || 30,
+            age: data.age ? parseInt(data.age) : undefined,
+            dateOfBirth: data.dob || undefined,
+            gender: data.gender ? data.gender.toUpperCase() : undefined,
+            bloodGroup: data.bloodGroup || undefined,
+            email: data.email || undefined,
             phone,
             location,
+            kin_name: data.kin_name || undefined,
+            kin_relation: data.kin_relation || undefined,
+            kin_phone: data.kin_phone || undefined,
             status: 'ACTIVE'
         };
 
@@ -895,9 +894,9 @@ export const api = {
         const res = await fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments?date=${today}`, { headers: getHeaders() });
         const appts = res.data || res || [];
         return {
-            total_walkins: appts.length,
-            in_consultation: appts.filter((a: any) => a.status === 'In Progress').length,
-            waiting: appts.filter((a: any) => a.status === 'Checked-In' || a.status === 'Arrived').length,
+            scheduled: appts.length,
+            arrived: appts.filter((a: any) => a.status === 'Arrived').length,
+            checkedIn: appts.filter((a: any) => a.status === 'Checked-In').length,
             completed: appts.filter((a: any) => a.status === 'Completed').length
         };
     },

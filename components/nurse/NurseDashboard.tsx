@@ -480,6 +480,7 @@ export const NurseDashboard: React.FC = () => {
                       <th className="p-4">Time</th>
                       <th className="p-4">Patient</th>
                       <th className="p-4">Consultant Doctor</th>
+                      <th className="p-4">Handoff / Reason</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Action</th>
                     </tr>
@@ -490,6 +491,9 @@ export const NurseDashboard: React.FC = () => {
                         <td className="p-4 font-bold text-brand-primary">{appt.time}</td>
                         <td className="p-4 font-bold text-brand-textPrimary">{appt.patientName}</td>
                         <td className="p-4 text-brand-textSecondary font-semibold">{appt.doctorName || appt.consultant}</td>
+                        <td className="p-4 text-brand-textSecondary italic text-[11px] max-w-[200px] truncate" title={appt.visit_reason || appt.notes || 'No notes'}>
+                          {appt.visit_reason || appt.notes || '—'}
+                        </td>
                         <td className="p-4">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border 
                             ${appt.status === 'Checked-In' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-brand-primary/10 text-brand-primary border-brand-primary/20'}`}>

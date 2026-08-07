@@ -831,23 +831,8 @@ export const ControlTowerWorkspace: React.FC = () => {
                       )}
                     </div>
 
-                    {threadDetails.handoff_summary ? (
-                      <>
-                        <div className="grid grid-cols-2 gap-4 text-xs font-medium border-b border-brand-border/30 pb-4 mb-4">
-                          <div>
-                            <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Risk Score</span>
-                            <span className="text-lg font-extrabold text-red-500">{threadDetails.risk_score || 50}/100</span>
-                          </div>
-                          {threadDetails.escalation_reason && (
-                            <div>
-                              <span className="text-[10px] text-brand-textSecondary uppercase tracking-wider font-bold block mb-1">Escalation Reason</span>
-                              <span className="text-xs font-semibold text-brand-textPrimary">{threadDetails.escalation_reason}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
-                          {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
+                    <div className="text-xs text-brand-textSecondary leading-relaxed space-y-2 font-medium">
+                      {threadDetails.handoff_summary.split('\n').map((line: string, i: number) => {
                             if (line.includes(':')) {
                               const parts = line.split(':');
                               return (
@@ -938,8 +923,6 @@ export const ControlTowerWorkspace: React.FC = () => {
                 </div>
               )}
 
-            </div>
-
               {/* 4. Reply Composer */}
               {activeTab === 'overview' && (
                 <div className="p-4 border-t border-brand-border bg-brand-surface">
@@ -997,96 +980,6 @@ export const ControlTowerWorkspace: React.FC = () => {
         )}
           </div>
 
-        {/* Modals */}
-        {showResolveConfirm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-brand-border">
-                <h3 className="font-bold text-sm text-brand-textPrimary">Resolve Thread?</h3>
-              </div>
-              <div className="p-6">
-                <p className="text-xs text-brand-textSecondary">Are you sure you want to resolve this thread? It will be returned to AI automation and marked as resolved.</p>
-              </div>
-              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end">
-                <button onClick={() => setShowResolveConfirm(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-bg border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-                <button onClick={handleResolve} className="px-4 py-2 text-xs font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all">Yes, Resolve</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showEscalateModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-red-500/10">
-                <h3 className="font-bold text-sm text-red-500 flex items-center gap-2"><ShieldAlert size={16} /> Escalate Thread</h3>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Escalate To Queue</label>
-                  <select
-                    value={escalateRole}
-                    onChange={(e) => setEscalateRole(e.target.value)}
-                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400 font-bold"
-                  >
-                    <option value="DOCTOR">Doctor / Specialist (Red Queue)</option>
-                    <option value="NURSE">Nurse / Triage (Yellow Queue)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Reason for Escalation</label>
-                  <textarea
-                    value={escalateReason}
-                    onChange={(e) => setEscalateReason(e.target.value)}
-                    placeholder="Provide clinical context for the clinician..."
-                    rows={3}
-                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-red-400"
-                  />
-                </div>
-              </div>
-              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
-                <button onClick={() => setShowEscalateModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-                <button onClick={handleEscalateSubmit} disabled={!escalateReason.trim()} className="px-4 py-2 text-xs font-bold bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50">Escalate Now</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showSummaryModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-brand-surface border border-brand-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center">
-                <h3 className="font-bold text-sm text-brand-primary flex items-center gap-2"><BrainCircuit size={16} /> Edit AI Context Summary</h3>
-              </div>
-              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Clinical Summary</label>
-                  <textarea
-                    value={summaryText}
-                    onChange={(e) => setSummaryText(e.target.value)}
-                    rows={4}
-                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-brand-textSecondary mb-2 uppercase">Handoff Bullet Points</label>
-                  <textarea
-                    value={handoffText}
-                    onChange={(e) => setHandoffText(e.target.value)}
-                    rows={6}
-                    className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-xs text-brand-textPrimary outline-none focus:border-brand-primary font-mono text-[10px]"
-                  />
-                </div>
-              </div>
-              <div className="px-6 py-4 border-t border-brand-border flex gap-3 justify-end bg-brand-bg/50">
-                <button onClick={() => setShowSummaryModal(false)} className="px-4 py-2 text-xs font-bold text-brand-textSecondary bg-brand-surface border border-brand-border rounded-xl hover:bg-brand-hover transition-all">Cancel</button>
-                <button onClick={handleSummarySubmit} className="px-4 py-2 text-xs font-bold bg-brand-primary hover:bg-brand-secondary text-white rounded-xl transition-all">Save Summary</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
 
       {/* Modals */}
       {showResolveConfirm && (

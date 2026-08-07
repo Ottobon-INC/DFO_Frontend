@@ -11,7 +11,8 @@ import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
-import { WalkInExpressModal } from './WalkInExpressModal';
+
+import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
@@ -144,7 +145,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           problem: item.problem || item.Problem || item.presenting_problem,
           treatmentDoctor: item.treatment_doctor || item.treatmentDoctor || item.camp_doctor || item.CampDoctor,
           treatmentSuggested: item.treatment_suggested || item.treatmentSuggested || item.suggested_tx || item.SuggestedTx,
-          husbandAge: item.husband_age || item.husbandAge,
           location: item.location || item.Location || item.city || item.City
         })) : [];
         console.log('Raw Leads Data (for debugging):', leadItems[0]); // Debug log
@@ -180,6 +180,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isWalkInExpressOpen, setIsWalkInExpressOpen] = useState(false);
   const [expressTokenResult, setExpressTokenResult] = useState<{ token: string; details: any } | null>(null);
+  
+  // Global Search State
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     try {
@@ -190,9 +206,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
     } catch (e) { }
   }, []);
 
-  const handleGlobalSearch = () => {
-    showToast(`Searching for: "${globalSearch}"...`);
+  const handleGlobalSearch = async () => {
+    if (!globalSearch.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+    setIsSearching(true);
+    setShowSearchResults(true);
+    try {
+      const res = await api.searchPatients(globalSearch);
+      setSearchResults(res?.data?.items || (Array.isArray(res?.data) ? res.data : res) || []);
+    } catch (err) {
+      console.error("Search failed", err);
+    } finally {
+      setIsSearching(false);
+    }
   };
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (globalSearch.trim()) handleGlobalSearch();
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [globalSearch]);
 
   // --- Derived State ---
   const leadsInCROQueue = leads.filter(l => l.status === 'Stalling - Sent to CRO').length;
@@ -260,8 +297,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
     inquiry: string;
     referralRequired: 'Yes' | 'No';
     alternativePhoneNumber: string;
-    husbandOrGuardianName: string;
-    husbandAge: string;
     location: string;
     age: string;
     gender: 'Male' | 'Female' | 'Other';
@@ -284,8 +319,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         inquiry: data.referralRequired === 'Yes' ? 'Referral Required' : 'General', // Auto-map for now
         referral_required: data.referralRequired,
         alternative_phone_number: data.alternativePhoneNumber,
-        husband_or_guardian_name: data.husbandOrGuardianName,
-        husband_age: data.husbandAge,
         location: data.location,
         status: 'New Inquiry',
         age: data.age,
@@ -305,8 +338,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         dateAdded: new Date().toISOString().split('T')[0],
         referralRequired: data.referralRequired,
         alternativePhoneNumber: data.alternativePhoneNumber,
-        husbandOrGuardianName: data.husbandOrGuardianName,
-        husbandAge: data.husbandAge,
         location: data.location,
         treatmentDoctor: data.treatmentDoctor,
         treatmentSuggested: data.treatmentSuggested
@@ -573,13 +604,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         <header className="bg-brand-surface border-b border-brand-border px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center flex-shrink-0 gap-3">
 
           {/* Search Bar - Top Center/Left */}
-          <div className="flex-1 max-w-xl hidden md:flex items-center">
+          <div className="flex-1 max-w-xl hidden md:flex items-center relative" ref={searchRef}>
             <div className="flex items-center bg-brand-bg px-4 py-2 rounded-full border border-brand-border w-full focus-within:ring-2 focus-within:ring-brand-primary/30 transition-all">
               <Search size={16} className="text-brand-textSecondary mr-2" />
               <input
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch()}
+                onFocus={() => { if(globalSearch) setShowSearchResults(true); }}
                 placeholder="Search Patient Name, Phone, or ID..."
                 className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary"
               />
@@ -589,6 +620,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">K</span>
               </div>
             </div>
+
+            {/* Predictive Search Dropdown */}
+            {showSearchResults && (
+              <div className="absolute top-full mt-2 w-full bg-brand-surface border border-brand-border rounded-2xl shadow-xl overflow-hidden z-50">
+                {isSearching ? (
+                  <div className="p-4 text-center text-sm text-brand-textSecondary animate-pulse">Searching global records...</div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-80 overflow-y-auto">
+                    <div className="p-2 border-b border-brand-border bg-brand-bg/50">
+                      <span className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest ml-2">Matches Found</span>
+                    </div>
+                    {searchResults.map(patient => (
+                      <div key={patient.id || patient.patientId} className="p-3 hover:bg-brand-hover cursor-pointer border-b border-brand-border last:border-0 flex justify-between items-center group transition-colors">
+                        <div>
+                          <p className="text-sm font-bold text-brand-textPrimary">{patient.name || patient.fullname || patient.patientName}</p>
+                          <p className="text-xs text-brand-textSecondary mt-0.5">{patient.phone || patient.mobile} {patient.uhid ? `• ${patient.uhid}` : ''}</p>
+                        </div>
+                        <button 
+                           onClick={() => {
+                             setShowSearchResults(false);
+                             setGlobalSearch('');
+                             // A bit of a hack: open WalkInExpressModal directly from search results to quickly check them in
+                             setIsWalkInExpressOpen(true);
+                           }}
+                           className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                        >
+                          Check-In
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                   <div className="p-6 text-center">
+                     <p className="text-sm text-brand-textSecondary mb-3">No existing patient found.</p>
+                     <button onClick={() => { setShowSearchResults(false); setIsWalkInExpressOpen(true); setGlobalSearch(''); }} className="bg-brand-primary text-white text-xs font-bold px-4 py-2 rounded-xl">
+                       Register New Walk-In
+                     </button>
+                   </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Status / Toggles */}
@@ -778,15 +850,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         showToast={showToast}
       />
 
-      <WalkInExpressModal 
-        isOpen={isWalkInExpressOpen} 
-        onClose={() => setIsWalkInExpressOpen(false)} 
-        onSuccess={(token, details) => {
-          setIsWalkInExpressOpen(false);
-          setExpressTokenResult({ token, details });
-          setRefreshTrigger(prev => prev + 1);
-        }} 
-      />
+      {isWalkInExpressOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <ClinicRegistrationForm 
+            onCancel={() => setIsWalkInExpressOpen(false)}
+            onSuccess={(patientId, appointmentId) => {
+               setIsWalkInExpressOpen(false);
+               setRefreshTrigger(prev => prev + 1);
+               showToast("Patient registered and checked in successfully!");
+            }}
+          />
+        </div>
+      )}
 
       {/* Express Token Success Modal */}
       {expressTokenResult && (

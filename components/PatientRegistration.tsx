@@ -4,6 +4,7 @@ import { Save, ArrowRight, FileText, UserPlus, Calendar, X } from 'lucide-react'
 import { Patient } from '../types';
 import { api } from '../services/api';
 import { useDoctors } from '../hooks/useDoctors';
+import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 
 // --- Daily Register Table ---
 export const DailyRegisterTable: React.FC = () => {
@@ -364,8 +365,8 @@ export const DailyRegisterTable: React.FC = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="overflow-y-auto p-6">
-                            <PatientConversionForm
+                        <div className="flex flex-col h-full overflow-hidden relative">
+                            <ClinicRegistrationForm
                                 initialData={{
                                     name: selectedWalkIn.name,
                                     phone: selectedWalkIn.phone,
@@ -375,6 +376,7 @@ export const DailyRegisterTable: React.FC = () => {
                                     setIsConversionModalOpen(false);
                                     fetchRegisterData();
                                 }}
+                                onCancel={() => setIsConversionModalOpen(false)}
                             />
                         </div>
                     </div>
@@ -385,260 +387,4 @@ export const DailyRegisterTable: React.FC = () => {
     );
 };
 
-// --- Patient Conversion Form ---
-interface PatientConversionFormProps {
-    initialData?: any; // Using any for Lead type compatibility or import Lead
-    onSuccess?: () => void;
-}
 
-export const PatientConversionForm: React.FC<PatientConversionFormProps> = ({ initialData, onSuccess }) => {
-    const [formData, setFormData] = useState({
-        name: initialData?.name || '',
-        relation: '',
-        maritalStatus: 'Married',
-        gender: initialData?.gender || 'Female',
-        dob: '',
-        age: initialData?.age || '',
-        aadhar: '',
-        bloodGroup: '',
-        house: '',
-        street: initialData?.address || '', // Attempt to map address if available
-        area: '',
-        city: '',
-        district: '',
-        state: '',
-        postalCode: '',
-        email: initialData?.email || '',
-        mobile: initialData?.phone || '',
-        referralDoctor: '',
-        hospitalAddress: '',
-        uhid: '',
-        date: new Date().toISOString().split('T')[0]
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        try {
-            const patientPayload: any = { ...formData };
-
-            // Map 'date' to 'registration_date' for Backend Schema
-            if (patientPayload.date) {
-                patientPayload.registration_date = patientPayload.date;
-            }
-
-            // Ensure mobile is set
-            if (!patientPayload.phone && patientPayload.mobile) patientPayload.phone = patientPayload.mobile;
-
-            let newPin = null;
-
-            if (initialData?.id) {
-                // Atomic Lead Conversion Flow
-                const response = await api.convertLead(initialData.id, patientPayload);
-                newPin = response?.generatedPin;
-            } else {
-                // Standard Patient Registration Flow (e.g. Walk-Ins)
-                const response = await api.createPatient(patientPayload);
-                newPin = response?.generatedPin;
-            }
-
-            if (newPin) {
-                alert(`Patient ${formData.name} registered successfully!\n\nPORTAL ACCESS PIN: ${newPin}\n\nPlease share this 4-digit PIN with the patient.`);
-            } else {
-                alert(`Patient ${formData.name} registered successfully!`);
-            }
-
-            if (onSuccess) {
-                onSuccess();
-            }
-
-        } catch (error: any) {
-            console.error("Registration failed", error);
-
-            if ((error.status === 409) || (error.message && (error.message.includes('409') || error.message.includes('Conflict')))) {
-                if (initialData?.id) {
-                    const linkPatient = window.confirm(`A patient with this mobile number (${formData.mobile}) already exists.\n\nDo you want to mark this Lead as 'Converted' and attempt to link it to the existing patient record?`);
-                    if (linkPatient) {
-                        try {
-                            const patientsRes = await api.getPatients();
-                            const patients = patientsRes.data || patientsRes;
-                            const cleanInputMobile = String(formData.mobile).replace(/[\s\-()]/g, '').trim();
-                            const existingPatient = patients.find((p: any) => p.mobile && String(p.mobile).replace(/[\s\-()]/g, '').trim() === cleanInputMobile);
-
-                            if (existingPatient) {
-                                await api.updatePatient(existingPatient.id, { lead_id: initialData.id });
-                                await api.updateLead(initialData.id, { status: 'Converted' });
-                                alert(`Lead successfully linked to existing patient: ${existingPatient.name}`);
-                                if (onSuccess) onSuccess();
-                                return;
-                            } else {
-                                alert(`Failed to locate existing patient automatically. Please manually search for them.`);
-                            }
-                        } catch (linkError: any) {
-                            console.error("Failed to link patient:", linkError);
-                            alert(`Failed to link to existing patient: ${linkError.message || 'Unknown error'}`);
-                        }
-                    } else {
-                        alert('Conversion aborted to prevent duplicate records.');
-                    }
-                } else {
-                    alert(`A patient with this mobile number (${formData.mobile}) already exists.`);
-                }
-            } else {
-                alert(`Failed to register patient: ${error.message || 'Unknown error'}`);
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-
-    return (
-        <div className="flex flex-col h-full bg-brand-surface">
-
-            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                <form className="space-y-8 max-w-5xl mx-auto" onSubmit={handleSubmit}>
-
-                    {/* Section 1: Basic Demographics */}
-                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
-                        <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
-                            <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">1</span>
-                            Demographics
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Patient Name</label>
-                                <input name="name" value={formData.name} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">S/D/H/W of</label>
-                                <input name="relation" value={formData.relation} onChange={handleChange} placeholder="Relation Name" className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Marital Status</label>
-                                <select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
-                                    <option value="Married">Married</option>
-                                    <option value="Single">Single</option>
-                                    <option value="Divorced">Divorced</option>
-                                    <option value="Widowed">Widowed</option>
-                                </select>
-                            </div>
-
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Gender</label>
-                                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
-                                    <option value="Female">Female</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Date of Birth</label>
-                                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Age</label>
-                                <input name="age" value={formData.age} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Aadhar Number</label>
-                                <input name="aadhar" value={formData.aadhar} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Blood Group</label>
-                                <input name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Contact Information */}
-                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
-                        <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
-                            <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">2</span>
-                            Contact Information
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">House / Apt</label>
-                                <input name="house" value={formData.house} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Street / Road</label>
-                                <input name="street" value={formData.street} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Area / Sector</label>
-                                <input name="area" value={formData.area} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">City / Town</label>
-                                <input name="city" value={formData.city} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">District</label>
-                                <input name="district" value={formData.district} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">State</label>
-                                <input name="state" value={formData.state} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Postal Code</label>
-                                <input name="postalCode" value={formData.postalCode} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Email Address</label>
-                                <input name="email" value={formData.email} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div className="md:col-span-1">
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Mobile Number</label>
-                                <input name="mobile" value={formData.mobile} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 3: Referral & Admin */}
-                    <div className="pb-8 border-b border-brand-border/40 last:border-0 last:pb-0">
-                        <h4 className="text-sm font-bold text-brand-primary uppercase tracking-wider mb-6 flex items-center">
-                            <span className="w-6 h-6 rounded-full bg-brand-primary text-white flex items-center justify-center text-xs mr-2">3</span>
-                            Referral & Admin
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Referral Doctor Name</label>
-                                <input name="referralDoctor" value={formData.referralDoctor} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Hospital Address</label>
-                                <input name="hospitalAddress" value={formData.hospitalAddress} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">UHID</label>
-                                <input name="uhid" value={formData.uhid} onChange={handleChange} placeholder="Enter UHID manually" className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1">Registration Date</label>
-                                <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full mt-1 bg-brand-surface border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                        <button type="submit" disabled={isSubmitting} className="px-8 py-3 bg-brand-primary hover:bg-brand-secondary text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 flex items-center transition-all active:scale-95 disabled:opacity-70">
-                            <Save size={20} className="mr-2" /> {isSubmitting ? 'Saving...' : 'Save Patient Record'}
-                        </button>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-    );
-};

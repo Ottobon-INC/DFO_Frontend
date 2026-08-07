@@ -35,8 +35,6 @@ export interface Lead {
     email?: string;
     referralRequired?: 'Yes' | 'No';
     alternativePhoneNumber?: string;
-    husbandOrGuardianName?: string;
-    husbandAge?: string;
     location?: string;
 }
 

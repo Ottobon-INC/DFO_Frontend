@@ -464,18 +464,6 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                             <div>
-                                                <label className="block text-[10px] sm:text-xs font-bold text-brand-textSecondary mb-1">Husband/Guardian</label>
-                                                {isEditing ? (
-                                                    <input
-                                                        value={editFormData.husbandOrGuardianName || ''}
-                                                        onChange={(e) => handleInputChange('husbandOrGuardianName', e.target.value)}
-                                                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
-                                                    />
-                                                ) : (
-                                                    <p className="text-xs sm:text-sm font-bold text-brand-textPrimary">{selectedLead.husbandOrGuardianName || 'N/A'}</p>
-                                                )}
-                                            </div>
-                                            <div>
                                                 <label className="block text-[10px] sm:text-xs font-bold text-brand-textSecondary mb-1">Alt Phone</label>
                                                 {isEditing ? (
                                                     <input
@@ -485,20 +473,6 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                                                     />
                                                 ) : (
                                                     <p className="text-xs sm:text-sm font-bold text-brand-textPrimary">{selectedLead.alternativePhoneNumber || 'N/A'}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                            <div>
-                                                <label className="block text-[10px] sm:text-xs font-bold text-brand-textSecondary mb-1">Husband Age</label>
-                                                {isEditing ? (
-                                                    <input
-                                                        value={editFormData.husbandAge || ''}
-                                                        onChange={(e) => handleInputChange('husbandAge', e.target.value)}
-                                                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
-                                                    />
-                                                ) : (
-                                                    <p className="text-xs sm:text-sm font-bold text-brand-textPrimary">{selectedLead.husbandAge || 'N/A'}</p>
                                                 )}
                                             </div>
                                             <div>
