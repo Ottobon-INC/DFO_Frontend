@@ -1,4 +1,4 @@
-
+import toast from 'react-hot-toast';
 
 export const API_BASE_URL = ''; // Always use Vite proxy to handle CORS automatically
 
@@ -47,10 +47,13 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
             localStorage.removeItem('token');
             localStorage.removeItem('userRole');
             window.location.href = '/login';
+            toast.error('Session expired. Please log in again.');
             throw new Error('Session expired. Please log in again.');
         }
         // Otherwise, throw an ApiError so the calling component can show a "Forbidden" toast
-        throw new ApiError(errorBody?.error || 'Access denied', 401, errorBody);
+        const apiError = new ApiError(errorBody?.error || 'Access denied', 401, errorBody);
+        toast.error(apiError.message);
+        throw apiError;
     }
 
     if (!response.ok) {
@@ -76,10 +79,12 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
                 if (text) errorMessage = text;
             } catch (textErr) { }
         }
+        toast.error(errorMessage);
         throw new ApiError(errorMessage, response.status, errorData);
     }
     const json = await response.json();
     if (json && typeof json === 'object' && 'success' in json && !json.success) {
+        toast.error(json.error || 'Unknown error');
         throw new Error(json.error || 'Unknown error');
     }
     return json;
@@ -228,31 +233,13 @@ export const api = {
             }
         }
 
-        let docId = data.doctor_id;
-        let deptId = data.department_id;
-
-        if (!docId || docId === 'UNKNOWN') {
-            try {
-                const docsRes = await api.getDoctors();
-                const docs = docsRes?.data || docsRes;
-                if (Array.isArray(docs) && docs.length > 0) {
-                    docId = docs[0].doctorId || docs[0].id;
-                    deptId = docs[0].departmentId || docs[0].department?.id || 'cardiology-dept-uuid';
-                }
-            } catch (e) {
-                docId = '14e45131-7386-4726-b17a-fa4a57e7439f';
-                deptId = 'cardiology-dept-uuid';
-            }
-        }
-
         const backendPayload = {
-            patientId: patientId,
-            doctorId: docId,
-            departmentId: deptId || 'cardiology-dept-uuid',
-            appointmentDate: data.appointment_date || new Date().toISOString().split('T')[0],
-            slotTime: data.start_time || data.appointment_time || '10:00',
+            patient_id: patientId,
+            doctor_id: data.doctor_id,
+            appointment_date: data.appointment_date,
+            start_time: data.start_time || data.appointment_time,
             type: (data.type || 'CONSULTATION').toUpperCase(),
-            reason: data.visit_reason || 'Checkup'
+            visit_reason: data.visit_reason || data.reason || 'Checkup'
         };
 
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments`, {
@@ -264,6 +251,20 @@ export const api = {
 
     walkInExpress: async (data: any) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/walk-in-express`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    qmsWalkIn: async (data: { 
+        doctor_id: string; date: string; time: string; mobile: string; name: string;
+        patient_id?: string; type?: string; visit_reason?: string;
+        doctor_name_snapshot?: string; referral_doctor?: string; referral_doctor_phone?: string;
+        patient_email_snapshot?: string; patient_age_snapshot?: string; sex_snapshot?: string;
+        patient_marital_status_snapshot?: string; patient_address_snapshot?: string;
+    }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/qms/queue/walk-in`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -394,19 +395,20 @@ export const api = {
 
     createPatient: async (data: any) => {
         // Translate frontend payload to backend schema
-        const fullname = (data.name || data.fullname || '').trim() || 'Unknown Patient';
-        const phone = data.phone || data.mobile || '0000000000';
+        const name = (data.name || data.fullname || '').trim();
+        const mobile = data.mobile || data.phone;
         const location = [data.house, data.street, data.city, data.state, data.location].filter(Boolean).join(', ') || data.address || null;
 
         const backendPayload = {
-            fullname,
+            name,
             age: data.age ? parseInt(data.age) : undefined,
-            dateOfBirth: data.dob || undefined,
-            gender: data.gender ? data.gender.toUpperCase() : undefined,
-            bloodGroup: data.bloodGroup || undefined,
+            dob: data.dob || undefined,
+            gender: data.gender || undefined,
+            marital_status: data.marital_status || data.maritalStatus || undefined,
+            blood_group: data.bloodGroup || data.blood_group || undefined,
             email: data.email || undefined,
-            phone,
-            location,
+            mobile,
+            street: location || undefined,
             kin_name: data.kin_name || undefined,
             kin_relation: data.kin_relation || undefined,
             kin_phone: data.kin_phone || undefined,

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, User, Phone, UserPlus } from 'lucide-react';
-import { api } from '../services/api';
+import { api } from '../services/api';import toast from 'react-hot-toast';
+
 
 interface AssignDocumentModalProps {
     documentId: string;
@@ -62,7 +63,7 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
             onSuccess();
         } catch (error: any) {
             console.error("Assignment failed", error);
-            alert(error.message || "Failed to assign document");
+            toast.error(error.message || "Failed to assign document");
         } finally {
             setIsAssigning(false);
         }
@@ -70,7 +71,7 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
 
     const handleCreateAndAssign = async () => {
         if (!newPatientName || !newPatientMobile) {
-            alert("Name and Mobile are required");
+            toast.error("Name and Mobile are required");
             return;
         }
         setIsAssigning(true);
@@ -83,15 +84,15 @@ export const AssignDocumentModal: React.FC<AssignDocumentModalProps> = ({ docume
             
             const newPin = response?.data?.generatedPin || response?.generatedPin;
             if (newPin) {
-                alert(`Patient ${newPatientName} created and document linked successfully!\n\nPORTAL ACCESS PIN: ${newPin}\n\nPlease share this 4-digit PIN with the patient.`);
+                toast.success(`Patient ${newPatientName} created and document linked successfully!\n\nPORTAL ACCESS PIN: ${newPin}\n\nPlease share this 4-digit PIN with the patient.`);
             } else {
-                alert(`Patient ${newPatientName} created and document linked successfully!`);
+                toast.success(`Patient ${newPatientName} created and document linked successfully!`);
             }
 
             onSuccess();
         } catch (error: any) {
             console.error("Create and Assignment failed", error);
-            alert(error.message || "Failed to create patient and assign document");
+            toast.error(error.message || "Failed to create patient and assign document");
         } finally {
             setIsAssigning(false);
         }

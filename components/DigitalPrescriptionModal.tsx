@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Pill, Save, Loader2, Plus, Trash2, Minus } from 'lucide-react';
+import { X, Pill, Save, Loader2, Plus, Trash2, Minus } from 'lucide-react';import toast from 'react-hot-toast';
+
 
 export interface MedicationItem {
     medication_name: string;
@@ -59,7 +60,7 @@ export const DigitalPrescriptionModal: React.FC<DigitalPrescriptionModalProps> =
             onClose();
         } catch (error) {
             console.error('Failed to save prescription', error);
-            alert("Failed to save prescription. Please try again.");
+            toast.error("Failed to save prescription. Please try again.");
         } finally {
             setIsLoading(false);
         }

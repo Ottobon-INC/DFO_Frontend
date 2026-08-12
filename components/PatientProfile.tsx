@@ -12,7 +12,8 @@ import { TimelineContainer } from './timeline/TimelineContainer';
 import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
 import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
-import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
+import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';import toast from 'react-hot-toast';
+
 
 interface PatientProfileProps {
     patient: Patient;
@@ -69,7 +70,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             fetchDashboardMetrics();
         } catch (err) {
             console.error("Failed to save vitals", err);
-            alert("Failed to save vitals");
+            toast.error("Failed to save vitals");
         } finally {
             setSavingVitals(false);
         }
@@ -192,7 +193,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             
             const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
             if (file.size > MAX_FILE_SIZE) {
-                alert('File size exceeds the 25MB limit. Please upload a smaller file.');
+                toast('File size exceeds the 25MB limit. Please upload a smaller file.');
                 if (fileInputRef.current) fileInputRef.current.value = '';
                 return;
             }
@@ -225,11 +226,11 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     document_type: docTypeToUpload
                 });
 
-                alert("Document uploaded securely!");
+                toast("Document uploaded securely!");
                 fetchPatientDocuments();
             } catch (err) {
                 console.error("Upload failed", err);
-                alert("Failed to upload document securely.");
+                toast.error("Failed to upload document securely.");
             } finally {
                 setUploadingDoc(false);
                 if (fileInputRef.current) fileInputRef.current.value = '';
@@ -346,44 +347,87 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const handleBookAppointment = async (formData: any) => {
         try {
             const selectedDoc = doctors.find(d => d.name === formData.consultant);
-            const payload = {
-                patient_id: patient.id,
-                doctor_id: selectedDoc ? selectedDoc.id : null,
-                doctor_name_snapshot: formData.consultant,
-                appointment_date: formData.date,
-                start_time: formData.time,
-                type: 'Consultation',
-                status: 'Scheduled',
-                notes: formData.notes
-            };
-            const response = await api.createAppointment(payload);
-            let newId = `temp-${Date.now()}`;
-            if (response && (response.id || (response.data && response.data.id))) {
-                newId = response.id || response.data.id;
+            const doctorId = selectedDoc ? selectedDoc.id : null;
+            const doctorName = formData.consultant || '';
+
+            // Determine if this is today (walk-in) or future
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const isWalkIn = formData.date === todayStr;
+
+            if (isWalkIn && doctorId) {
+                // WALK-IN: Use QMS endpoint for immediate token
+                const currentTime = today.getHours().toString().padStart(2, '0') + ':' + today.getMinutes().toString().padStart(2, '0');
+                const qmsRes = await api.qmsWalkIn({
+                    doctor_id: doctorId,
+                    date: todayStr,
+                    time: formData.time || currentTime,
+                    mobile: patient.phone || patient.mobile || '',
+                    name: patient.name || patient.fullname || '',
+                    patient_id: patient.id,
+                    doctor_name_snapshot: doctorName,
+                    type: 'Consultation',
+                    visit_reason: formData.visitReason || formData.notes || 'Consultation'
+                });
+
+                const newApptId = qmsRes?.appointment_id || qmsRes?.data?.appointment_id || `apt-${Date.now()}`;
+                const token = qmsRes?.token_number || qmsRes?.data?.token_number;
+
+                const newApt: Appointment = {
+                    id: newApptId,
+                    patientName: patient.name,
+                    doctorName: doctorName,
+                    doctorId: doctorId,
+                    time: formData.time || currentTime,
+                    date: todayStr,
+                    type: 'Consultation',
+                    status: 'Checked-In'
+                };
+                setPatientAppointments(prev => [newApt, ...prev]);
+
+                if (token) {
+                    toast.success(`Walk-in registered! Token: ${token}`);
+                } else {
+                    toast.success('Walk-in registered and checked in!');
+                }
+            } else {
+                // FUTURE BOOKING: Use appointments endpoint
+                const payload = {
+                    patient_id: patient.id,
+                    doctor_id: doctorId,
+                    doctor_name_snapshot: doctorName,
+                    appointment_date: formData.date,
+                    start_time: formData.time,
+                    type: 'Consultation',
+                    status: 'Scheduled',
+                    visit_reason: formData.visitReason || formData.notes || 'Consultation'
+                };
+                const response = await api.createAppointment(payload);
+                let newId = `temp-${Date.now()}`;
+                if (response && (response.id || (response.data && response.data.id))) {
+                    newId = response.id || response.data.id;
+                }
+
+                const newApt: Appointment = {
+                    id: newId,
+                    patientName: patient.name,
+                    doctorName: doctorName,
+                    doctorId: doctorId,
+                    time: formData.time,
+                    date: formData.date,
+                    type: 'Consultation',
+                    status: 'Scheduled'
+                };
+                setPatientAppointments(prev => [newApt, ...prev]);
+                toast.success('Appointment booked successfully!');
             }
 
-            // Update: Add to list immediately with real ID
-            const newApt: Appointment = {
-                id: newId,
-                patientName: patient.name,
-                doctorName: formData.consultant,
-                doctorId: payload.doctor_id,
-                time: formData.time,
-                date: formData.date,
-                type: 'Consultation',
-                status: 'Scheduled'
-            };
-            setPatientAppointments(prev => [newApt, ...prev]);
-
-            alert('Appointment booked successfully!');
             setIsBookingModalOpen(false);
-
-            // Background refresh
             setTimeout(fetchPatientAppointments, 1000);
 
         } catch (error: any) {
             console.error("Failed to book appointment", error);
-            alert(error?.message || error?.error || "Failed to book appointment.");
+            toast.error(error?.message || error?.error || "Failed to book appointment.");
         }
     };
 
@@ -414,7 +458,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             };
 
             await api.updatePatient(patient.id, payload);
-            alert('Patient details updated successfully!');
+            toast.success('Patient details updated successfully!');
             setIsEditing(false);
             if (onPatientUpdate) {
                 onPatientUpdate();
@@ -422,7 +466,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             onClose(); // Close to refresh external view, or we could refetch here
         } catch (error) {
             console.error("Failed to update patient", error);
-            alert("Failed to update patient details.");
+            toast.error("Failed to update patient details.");
         }
     };
 
@@ -442,7 +486,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             setResetPinSuccess(res.newPin);
             setNewPinInput('');
         } catch (error: any) {
-            alert(error.message || 'Failed to reset PIN');
+            toast.error(error.message || 'Failed to reset PIN');
         } finally {
             setIsResettingPin(false);
         }
@@ -818,12 +862,12 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         if (confirm('Are you sure you want to archive this patient record?')) {
                                                             try {
                                                                 await api.updatePatient(patient.id, { status: 'Archived' });
-                                                                alert('Patient record archived successfully.');
+                                                                toast.success('Patient record archived successfully.');
                                                                 if (onPatientUpdate) onPatientUpdate();
                                                                 onClose();
                                                             } catch (error: any) {
                                                                 console.error('Failed to archive patient:', error);
-                                                                alert(error?.message || 'Failed to archive patient.');
+                                                                toast.error(error?.message || 'Failed to archive patient.');
                                                             }
                                                         }
                                                     }}
@@ -869,10 +913,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         setIsSavingNote(true);
                                                         try {
                                                             await api.saveClinicalNote(patient.id, consultationNote);
-                                                            alert("Note saved successfully!");
+                                                            toast.success("Note saved successfully!");
                                                         } catch (e) {
                                                             console.error(e);
-                                                            alert("Failed to save note. Please check your connection.");
+                                                            toast.error("Failed to save note. Please check your connection.");
                                                         } finally {
                                                             setIsSavingNote(false);
                                                         }
@@ -1047,7 +1091,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                             if (url && url !== '#') {
                                                                                 setPreviewDoc({...doc, url});
                                                                             } else {
-                                                                                alert('Preview not available for this document.');
+                                                                                toast('Preview not available for this document.');
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
@@ -1067,7 +1111,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                             if (url && url !== '#') {
                                                                                 window.open(url, '_blank');
                                                                             } else {
-                                                                                alert('Download not available for this document.');
+                                                                                toast('Download not available for this document.');
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
@@ -1080,17 +1124,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                             const reason = prompt('Please enter a reason for unlinking this document (e.g., "Assigned to wrong patient"):');
                                                                             if (reason === null) return; // User cancelled
                                                                             if (reason.trim() === '') {
-                                                                                alert('A reason is required to unlink a document.');
+                                                                                toast.error('A reason is required to unlink a document.');
                                                                                 return;
                                                                             }
                                                                             
                                                                             if (confirm('Are you sure you want to remove this document from the patient? It will be sent back to Pending Files.')) {
                                                                                 try {
                                                                                     await api.unlinkDocument(doc.id, reason);
-                                                                                    alert('Document unlinked successfully.');
+                                                                                    toast.success('Document unlinked successfully.');
                                                                                     fetchPatientDocuments(); // refresh list
                                                                                 } catch (err: any) {
-                                                                                    alert(err.message || 'Failed to unlink document.');
+                                                                                    toast.error(err.message || 'Failed to unlink document.');
                                                                                 }
                                                                             }
                                                                         }}
@@ -1104,10 +1148,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                             if (confirm('WARNING: Are you sure you want to permanently delete this document? This cannot be undone.')) {
                                                                                 try {
                                                                                     await api.deleteDocument(doc.id);
-                                                                                    alert('Document deleted successfully.');
+                                                                                    toast.success('Document deleted successfully.');
                                                                                     fetchPatientDocuments(); // refresh list
                                                                                 } catch (err: any) {
-                                                                                    alert(err.message || 'Failed to delete document.');
+                                                                                    toast.error(err.message || 'Failed to delete document.');
                                                                                 }
                                                                             }
                                                                         }}
@@ -1265,7 +1309,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         ...data,
                         patient_id: patient.id
                     } as any);
-                    alert("Prescription generated successfully! It will appear in the documents list shortly.");
+                    toast.success("Prescription generated successfully! It will appear in the documents list shortly.");
                     
                     // The backend generates this asynchronously via BullMQ, so we poll for it
                     setTimeout(fetchPatientDocuments, 2000);

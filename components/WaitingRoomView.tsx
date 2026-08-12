@@ -19,7 +19,11 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = () => {
       const response = await api.getAppointments({ date: today });
       const items = Array.isArray(response.data) ? response.data : (response.data?.items || []);
       
-      const queueItems = items.filter((a: any) => ['Checked-In', 'In-Consultation'].includes(a.status));
+      const queueItems = items.filter((a: any) => {
+        const hasValidStatus = ['Checked-In', 'In-Consultation'].includes(a.status);
+        const hasValidQueue = ['WAITING', 'ARRIVED', 'IN_CONSULTATION'].includes(a.queue_status || a.queueStatus);
+        return hasValidStatus || hasValidQueue;
+      });
       setAppointments(queueItems);
       setLastRefreshed(new Date());
     } catch (err) {
@@ -63,8 +67,8 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = () => {
     }
   };
 
-  const waiting = appointments.filter(a => a.status === 'Checked-In');
-  const inConsultation = appointments.filter(a => a.status === 'In-Consultation');
+  const waiting = appointments.filter(a => a.status === 'Checked-In' || a.queue_status === 'WAITING' || a.queueStatus === 'WAITING' || a.queue_status === 'ARRIVED' || a.queueStatus === 'ARRIVED');
+  const inConsultation = appointments.filter(a => a.status === 'In-Consultation' || a.queue_status === 'IN_CONSULTATION' || a.queueStatus === 'IN_CONSULTATION');
 
   return (
     <div className="h-full flex flex-col space-y-6">

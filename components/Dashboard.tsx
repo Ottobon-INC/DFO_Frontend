@@ -11,8 +11,8 @@ import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
+import { BookAppointmentModal } from './AppointmentModals';
 
-import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
@@ -120,6 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             date: item.appointment_date || item.date,
             type: item.type,
             status: item.status,
+            queueStatus: item.queue_status || item.queueStatus,
             resourceId: item.resource_id
           };
         }) : [];
@@ -179,6 +180,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isWalkInExpressOpen, setIsWalkInExpressOpen] = useState(false);
+  const [walkInInitialData, setWalkInInitialData] = useState<any>(undefined);
   const [expressTokenResult, setExpressTokenResult] = useState<{ token: string; details: any } | null>(null);
   
   // Global Search State
@@ -641,7 +643,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                            onClick={() => {
                              setShowSearchResults(false);
                              setGlobalSearch('');
-                             // A bit of a hack: open WalkInExpressModal directly from search results to quickly check them in
+                             setWalkInInitialData({
+                               name: patient.name || patient.fullname || patient.patientName,
+                               phone: patient.phone || patient.mobile
+                             });
                              setIsWalkInExpressOpen(true);
                            }}
                            className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
@@ -851,16 +856,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
       />
 
       {isWalkInExpressOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <ClinicRegistrationForm 
-            onCancel={() => setIsWalkInExpressOpen(false)}
-            onSuccess={(patientId, appointmentId) => {
-               setIsWalkInExpressOpen(false);
-               setRefreshTrigger(prev => prev + 1);
-               showToast("Patient registered and checked in successfully!");
-            }}
-          />
-        </div>
+        <BookAppointmentModal
+          isOpen={isWalkInExpressOpen}
+          onClose={() => {
+            setIsWalkInExpressOpen(false);
+            setWalkInInitialData(undefined);
+          }}
+          initialData={walkInInitialData}
+          initialTab={walkInInitialData ? 'existing' : 'new'}
+          onConfirm={async (formData) => {
+            try {
+              const now = new Date();
+              const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+              
+              const qmsPayload = {
+                doctor_id: formData.consultant,
+                date: now.toISOString().split('T')[0],
+                time: currentTime,
+                mobile: formData.phone,
+                name: formData.name,
+                patient_id: formData.patientId || null,
+                type: formData.speciality || 'Consultation',
+                visit_reason: formData.visitReason || 'Walk-In Consultation',
+                patient_email_snapshot: formData.email,
+                patient_age_snapshot: formData.age,
+                sex_snapshot: formData.sex,
+                patient_marital_status_snapshot: formData.maritalStatus,
+                patient_address_snapshot: formData.address,
+                source: 'Walk-In'
+              };
+
+              const qmsRes = await api.qmsWalkIn(qmsPayload);
+              setIsWalkInExpressOpen(false);
+              setWalkInInitialData(undefined);
+              setRefreshTrigger(prev => prev + 1);
+              
+              const pin = qmsRes?.data?.patient?.pin || qmsRes?.patient?.pin || null;
+              if (pin) {
+                 toast.success(`Walk-In Checked-in successfully. Patient PIN: ${pin}`, { duration: 8000 });
+              } else {
+                 toast.success("Walk-In Registered & Checked-in successfully");
+              }
+            } catch (err: any) {
+              console.error("Registration failed:", err);
+              // Global error toast from api.ts will handle displaying the error
+            }
+          }}
+        />
       )}
 
       {/* Express Token Success Modal */}

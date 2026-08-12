@@ -61,6 +61,7 @@ export interface Appointment {
     patientId?: string; // Links to Patient Profile
     type: string; // Consult, Scan, etc.
     status: 'Scheduled' | 'Arrived' | 'Checked-In' | 'Completed' | 'Canceled' | 'Expected';
+    queueStatus?: 'BOOKED' | 'ARRIVED' | 'WAITING' | 'CALLED' | 'IN_CONSULTATION' | 'SKIPPED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
     resourceId?: string;
 }
 

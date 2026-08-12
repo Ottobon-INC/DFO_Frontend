@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Mail, Send, MessageSquare, ShieldAlert, Activity, BrainCircuit, X } from 'lucide-react';
 import { api } from '../../services/api';
-import { useDoctors } from '../../hooks/useDoctors';
+import { useDoctors } from '../../hooks/useDoctors';import toast from 'react-hot-toast';
+
 
 export const CroInbox: React.FC = () => {
   const [threads, setThreads] = useState<any[]>([]);
@@ -111,7 +112,7 @@ export const CroInbox: React.FC = () => {
     setEscating(true);
     try {
       await api.escalateThread(selectedThreadId, targetStatus, assignedUserId);
-      alert(`Successfully escalated thread to ${targetStatus === 'red' ? 'Doctor' : 'Nurse'} queue!`);
+      toast.success(`Successfully escalated thread to ${targetStatus === 'red' ? 'Doctor' : 'Nurse'} queue!`);
 
       // Save escalation state to localStorage as a fallback database trigger for demo routing
       const savedThreadsStr = localStorage.getItem('escalated_threads') || '[]';
@@ -140,7 +141,7 @@ export const CroInbox: React.FC = () => {
       await fetchInboxData();
     } catch (err: any) {
       console.error(err);
-      alert(`Escalation failed: ${err.message || 'Unknown error'}`);
+      toast.error(`Escalation failed: ${err.message || 'Unknown error'}`);
     } finally {
       setEscating(false);
     }

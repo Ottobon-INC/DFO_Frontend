@@ -10,7 +10,8 @@ import { Lead } from '../types';
 import { useDoctors } from '../hooks/useDoctors';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Input } from './ui/Input';import toast from 'react-hot-toast';
+
 
 interface LeadsViewProps {
     leads: Lead[];
@@ -58,7 +59,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
             if (editFormData.phone) {
                 const isValidPhone = /^\+?[1-9]\d{9,14}$/.test(editFormData.phone);
                 if (!isValidPhone) {
-                    alert('Invalid phone number format. Must be a valid 10-15 digit number.');
+                    toast.error('Invalid phone number format. Must be a valid 10-15 digit number.');
                     return;
                 }
             }
@@ -85,7 +86,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
     // --- Export Feature ---
     const handleExportCSV = () => {
         if (filteredLeads.length === 0) {
-            alert('No leads to export.');
+            toast('No leads to export.');
             return;
         }
 
@@ -207,7 +208,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                 }
             }
 
-            alert(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
+            toast.error(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
             if (onRefresh && successCount > 0) {
                 onRefresh();
             }

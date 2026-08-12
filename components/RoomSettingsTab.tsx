@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Plus, LayoutGrid, Bed, Hash, RefreshCcw } from 'lucide-react';
 import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 interface RoomSettingsTabProps {
   categories: any[];
@@ -39,7 +40,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
       setCategoryName(''); setCategoryRate('');
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to create category');
+      toast.error(err.message || 'Failed to create category');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +60,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
       setRoomName(''); setRoomNumber('');
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to create room');
+      toast.error(err.message || 'Failed to create room');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +76,7 @@ export const RoomSettingsTab: React.FC<RoomSettingsTabProps> = ({ categories, ro
       setBedIdentifier('');
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to create bed');
+      toast.error(err.message || 'Failed to create bed');
     } finally {
       setIsLoading(false);
     }

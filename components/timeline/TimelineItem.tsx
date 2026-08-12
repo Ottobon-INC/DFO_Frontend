@@ -46,8 +46,8 @@ export const TimelineItem: React.FC<TimelineItemProps> = ({ date, type, children
             </div>
 
             {/* Center Node */}
-            <div className="relative flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ring-4 ${ringColor} ${bgColor} z-10 -ml-[19px] sm:ml-0 flex-shrink-0`}>
+            <div className="absolute left-[-39px] sm:left-[-47px] flex flex-col items-center top-0 sm:top-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ring-4 ${ringColor} ${bgColor} z-10 flex-shrink-0`}>
                     <Icon size={14} />
                 </div>
             </div>

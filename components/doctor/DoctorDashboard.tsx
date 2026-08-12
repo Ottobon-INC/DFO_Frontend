@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, BrainCircuit, X } from 'lucide-react';
-import { api } from '../../services/api';
+import { api } from '../../services/api';import toast from 'react-hot-toast';
+
 
 export const DoctorDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'escalations' | 'patients' | 'consultations'>('escalations');
@@ -58,14 +59,14 @@ export const DoctorDashboard: React.FC = () => {
     setTakingControl(true);
     try {
       await api.takeControl(id);
-      alert("Successfully took control of this conversation!");
+      toast.success("Successfully took control of this conversation!");
       fetchEscalations();
       setSelectedThreadId(null);
       setThreadContext(null);
     } catch (err) {
       console.error("Failed to take control", err);
       // Simulate success for demo
-      alert("Successfully took control of this conversation (Demo Mode)!");
+      toast.success("Successfully took control of this conversation (Demo Mode);!");
       setRedQueue(prev => prev.filter(q => q.id !== id));
       setSelectedThreadId(null);
       setThreadContext(null);

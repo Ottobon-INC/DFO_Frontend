@@ -3,7 +3,8 @@ import { Bed, Plus, MoreVertical, LogOut, ArrowRightLeft, XCircle, Settings, Use
 import { api } from '../services/api';
 import { TransferBed } from './TransferBed';
 import { AdmissionWizardModal } from './AdmissionWizardModal';
-import { RoomSettingsTab } from './RoomSettingsTab';
+import { RoomSettingsTab } from './RoomSettingsTab';import toast from 'react-hot-toast';
+
 
 export const RoomsView: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -54,7 +55,7 @@ export const RoomsView: React.FC = () => {
       setActiveDropdownId(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to discharge');
+      toast.error(err.message || 'Failed to discharge');
     }
   };
 
@@ -65,7 +66,7 @@ export const RoomsView: React.FC = () => {
       setActiveDropdownId(null);
       fetchData();
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel admission');
+      toast.error(err.message || 'Failed to cancel admission');
     }
   };
 

@@ -18,7 +18,8 @@ const orgSupabase = createClient(
   import.meta.env.VITE_ORG_SUPABASE_KEY || import.meta.env.VITE_SUPABASE_KEY || ''
 );
 
-import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
+import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';import toast from 'react-hot-toast';
+
 
 export const ControlTowerWorkspace: React.FC = () => {
   const [threads, setThreads] = useState<any[]>([]);
@@ -102,7 +103,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         setLead(res.data[0]);
       }
     } catch (err) {
-      alert('Failed to update lead status');
+      toast.error('Failed to update lead status');
     }
   };
 
@@ -136,7 +137,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         setLead(res.data.items[0]);
       }
     } catch (e: any) {
-      alert('Failed to book appointment: ' + e.message);
+      toast.error('Failed to book appointment: ' + e.message);
     }
   };
 
@@ -151,7 +152,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         setAppointments(apptRes.data || apptRes || []);
       }
     } catch (e: any) {
-      alert('Failed to cancel appointment: ' + e.message);
+      toast.error('Failed to cancel appointment: ' + e.message);
     }
   };
 
@@ -355,7 +356,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await api.assignWorkspaceThread(selectedThreadId, { assignTo, role });
       await fetchThreadContext(selectedThreadId);
     } catch (e) {
-      alert('Assignment failed: ' + (e as any).message);
+      toast.error('Assignment failed: ' + (e as any);.message);
     }
   };
 
@@ -367,7 +368,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await api.takeControl(selectedThreadId);
       await fetchThreadContext(selectedThreadId);
     } catch (e: any) {
-      alert('Takeover failed: ' + e.message);
+      toast.error('Takeover failed: ' + e.message);
     }
   };
 
@@ -378,7 +379,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await api.escalateWorkspaceThread(selectedThreadId, { reason, status, riskScore: score });
       await fetchThreadContext(selectedThreadId);
     } catch (e) {
-      alert('Escalation failed');
+      toast.error('Escalation failed');
     }
   };
 
@@ -390,7 +391,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await api.replyToWorkspaceThread(selectedThreadId, { message: replyText.trim() });
       setReplyText('');
     } catch (e) {
-      alert('Failed to send reply');
+      toast.error('Failed to send reply');
     } finally {
       setSendingReply(false);
     }
@@ -404,7 +405,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await fetchThreadContext(selectedThreadId);
       setShowResolveConfirm(false);
     } catch (e) {
-      alert('Failed to resolve thread');
+      toast.error('Failed to resolve thread');
     }
   };
 
@@ -420,7 +421,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       setShowEscalateModal(false);
       setEscalateReason('');
     } catch (e) {
-      alert('Escalation failed');
+      toast.error('Escalation failed');
     }
   };
 
@@ -435,7 +436,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await fetchThreadContext(selectedThreadId);
       setShowSummaryModal(false);
     } catch (e) {
-      alert('Failed to update summary');
+      toast.error('Failed to update summary');
     }
   };
 

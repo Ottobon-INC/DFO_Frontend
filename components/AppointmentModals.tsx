@@ -47,14 +47,15 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
         time: initialTime ? (initialTime < 10 ? `0${initialTime}:00` : `${initialTime}:00`) : '09:00',
         dob: '',
         age: '',
-        sex: 'Female',
-        maritalStatus: 'Married',
+        sex: '',
+        maritalStatus: '',
         address: '',
         pin: '',
         email: '',
         phone: '',
         consultant: '',
-        speciality: 'IVF Specialist',
+        speciality: 'Consultation',
+        visitReason: '',
         referralDoctor: '',
         referralDoctorMobile: '',
         source: 'Walk-In',
@@ -325,16 +326,20 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                         <div>
                                             <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Sex</label>
                                             <select name="sex" value={formData.sex} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
-                                                <option value="Female">Female</option>
+                                                <option value="">Select</option>
                                                 <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
                                                 <option value="Other">Other</option>
                                             </select>
                                         </div>
                                         <div>
                                             <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Marital Status</label>
                                             <select name="maritalStatus" value={formData.maritalStatus} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
-                                                <option value="Married">Married</option>
+                                                <option value="">Select</option>
                                                 <option value="Single">Single</option>
+                                                <option value="Married">Married</option>
+                                                <option value="Divorced">Divorced</option>
+                                                <option value="Widowed">Widowed</option>
                                             </select>
                                         </div>
                                     </div>
@@ -398,6 +403,11 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                         <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Speciality</label>
                                         <input name="speciality" value={formData.speciality} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" />
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Visit Reason / Notes</label>
+                                    <textarea name="visitReason" value={(formData as any).visitReason || ''} onChange={(e) => setFormData({ ...formData, visitReason: e.target.value })} rows={2} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all resize-none" placeholder="e.g. Follow-up, Hand Pain, General Check-up" />
                                 </div>
                             </div>
                         </div>

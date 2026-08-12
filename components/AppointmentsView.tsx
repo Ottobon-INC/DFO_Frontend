@@ -228,7 +228,26 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const [viewingPatientProfile, setViewingPatientProfile] = useState<string | null>(null);
 
     // --- Helpers ---
-    const timeSlots = Array.from({ length: 9 }, (_, i) => i + 9); // 9 AM to 5 PM
+    const timeSlots = React.useMemo(() => {
+        let minHour = 9;
+        let maxHour = 17; // 5 PM default ending
+
+        if (appointments && appointments.length > 0) {
+            appointments.forEach(appt => {
+                if (appt.time) {
+                    const hour = parseInt(appt.time.split(':')[0], 10);
+                    if (!isNaN(hour)) {
+                        if (hour < minHour) minHour = hour;
+                        if (hour > maxHour) maxHour = hour;
+                    }
+                }
+            });
+        }
+
+        // Add 1 to maxHour to ensure the last appointment fits inside the grid fully
+        const totalHours = (maxHour + 1) - minHour + 1; 
+        return Array.from({ length: totalHours }, (_, i) => i + minHour);
+    }, [appointments]);
 
 
     const getWeekDays = (date: Date) => {
@@ -578,7 +597,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-full gap-3 md:gap-4 relative w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-90px)] gap-3 md:gap-4 relative w-full overflow-hidden">
             {/* Sidebar Filters - Hidden on mobile, narrower on tablet */}
             <div className="hidden md:flex w-48 lg:w-56 xl:w-64 flex-shrink-0 flex-col gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
                 {userRole !== UserRole.DOCTOR && (
@@ -685,8 +704,26 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         <div className="flex items-center space-x-0.5">
                             <button onClick={handlePrev} className="p-1 hover:bg-brand-bg hover:shadow-sm rounded-lg text-brand-textSecondary transition-all"><ChevronLeft size={14} /></button>
                             <h2 className="text-xs sm:text-sm lg:text-base font-bold text-brand-textPrimary min-w-[80px] sm:min-w-[120px] text-center whitespace-nowrap">
-                                <span className="hidden sm:inline">{viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                                <span className="sm:hidden">{viewDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}</span>
+                                <span className="hidden sm:inline">
+                                    {viewMode === 'month' && viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                    {viewMode === 'day' && viewDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    {viewMode === 'week' && (
+                                        (() => {
+                                            const start = new Date(viewDate);
+                                            start.setDate(viewDate.getDate() - viewDate.getDay());
+                                            const end = new Date(start);
+                                            end.setDate(start.getDate() + 6);
+                                            const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                            const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                            return `${startStr} - ${endStr}`;
+                                        })()
+                                    )}
+                                </span>
+                                <span className="sm:hidden">
+                                    {viewMode === 'month' && viewDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                                    {viewMode === 'day' && viewDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    {viewMode === 'week' && 'This Week'}
+                                </span>
                             </h2>
                             <button onClick={handleNext} className="p-1 hover:bg-brand-bg hover:shadow-sm rounded-lg text-brand-textSecondary transition-all"><ChevronRight size={14} /></button>
                         </div>
@@ -750,7 +787,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
                     {/* --- MONTH VIEW --- */}
                     {viewMode === 'month' && (
-                        <div className="flex-1 flex flex-col overflow-auto">
+                        <div className="flex-1 flex flex-col min-h-0 bg-brand-surface relative overflow-y-auto custom-scrollbar">
                             {/* Days Header */}
                             <div className="grid grid-cols-7 border-b border-brand-border bg-brand-bg sticky top-0 z-10 shadow-sm">
                                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
@@ -835,7 +872,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
                     {/* --- WEEK & DAY VIEW --- */}
                     {(viewMode === 'week' || viewMode === 'day') && (
-                        <>
+                        <div className="flex-1 flex flex-col min-h-0 bg-brand-surface relative overflow-y-auto custom-scrollbar">
                             {/* Days Header */}
                             <div className={`grid ${viewMode === 'week' ? 'grid-cols-8' : 'grid-cols-2'} border-b border-brand-border bg-brand-bg sticky top-0 z-10 shadow-sm`}>
                                 <div className="p-4 text-xs font-bold text-brand-textSecondary uppercase text-center border-r border-brand-border flex items-center justify-center">
@@ -940,7 +977,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                     </div>
                                 ))}
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

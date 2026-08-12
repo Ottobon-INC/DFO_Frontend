@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Activity, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 interface HealthMetricsEntryModalProps {
     patientId: string;
@@ -33,46 +34,46 @@ export const HealthMetricsEntryModal: React.FC<HealthMetricsEntryModalProps> = (
             if (vitals.temp) await api.addPatientVitals(patientId, { vital_type: 'temperature', value: vitals.temp, recorded_at });
             if (vitals.weight) await api.addPatientVitals(patientId, { vital_type: 'weight', value: vitals.weight, recorded_at });
             
-            alert('Vitals saved successfully');
+            toast.success('Vitals saved successfully');
             onSuccess();
             setVitals({ bp: '', hr: '', temp: '', weight: '' });
         } catch (error) {
             console.error(error);
-            alert('Failed to save vitals');
+            toast.error('Failed to save vitals');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleSaveAllergy = async () => {
-        if (!allergyName) return alert('Allergy name is required');
+        if (!allergyName) return toast.error('Allergy name is required');
         setIsSubmitting(true);
         try {
             await api.addPatientAllergy(patientId, { allergy_name: allergyName, severity, reaction });
-            alert('Allergy saved successfully');
+            toast.success('Allergy saved successfully');
             onSuccess();
             setAllergyName('');
             setReaction('');
         } catch (error) {
             console.error(error);
-            alert('Failed to save allergy');
+            toast.error('Failed to save allergy');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleSaveHistory = async () => {
-        if (!conditionName) return alert('Condition name is required');
+        if (!conditionName) return toast.error('Condition name is required');
         setIsSubmitting(true);
         try {
             await api.addPatientMedicalHistory(patientId, { condition_name: conditionName, diagnosis_date: diagnosisDate });
-            alert('Medical history saved successfully');
+            toast.success('Medical history saved successfully');
             onSuccess();
             setConditionName('');
             setDiagnosisDate('');
         } catch (error) {
             console.error(error);
-            alert('Failed to save medical history');
+            toast.error('Failed to save medical history');
         } finally {
             setIsSubmitting(false);
         }

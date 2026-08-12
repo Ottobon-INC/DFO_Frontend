@@ -131,12 +131,12 @@ export const TimelineContainer: React.FC<TimelineContainerProps> = ({ patientId 
                         <p className="text-xs text-brand-textSecondary/70 mt-1">Try adjusting the filters above.</p>
                     </div>
                 ) : (
-                    <div className="relative border-l-2 border-brand-border/50 ml-4 pl-6 space-y-8 pb-10">
+                    <div className="relative border-l-2 border-brand-border/50 ml-4 sm:ml-[108px] pl-6 sm:pl-8 space-y-8 pb-10">
                         {events.map((event, index) => {
                             const isLast = index === events.length - 1;
                             return (
                                 <div key={`${event.id}-${index}`} ref={isLast ? lastElementRef : null}>
-                                    <TimelineItem date={event.created_at} type={event.event_type}>
+                                    <TimelineItem date={event.created_at || event.date || event.appointment_date || event.timestamp} type={event.event_type}>
                                         {event.event_type === 'APPOINTMENT' || event.event_type === 'CONSULTATION' ? (
                                             <AppointmentCard event={event} />
                                         ) : event.event_type === 'PRESCRIPTION' ? (

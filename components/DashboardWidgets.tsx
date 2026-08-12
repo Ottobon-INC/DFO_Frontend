@@ -77,14 +77,18 @@ export const AppointmentWidget: React.FC<{
 
                             {/* Quick Actions */}
                             <div className="mt-3 pt-3 border-t border-brand-border flex space-x-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                {apt.status !== 'Checked-In' && apt.status !== 'Canceled' && (
+                                {(apt.queueStatus === 'WAITING' || apt.queueStatus === 'ARRIVED' || apt.queueStatus === 'IN_CONSULTATION') ? (
+                                    <div className="flex-1 py-1.5 bg-brand-surface border border-brand-accent text-brand-accent text-xs font-bold rounded-lg flex items-center justify-center">
+                                        <Activity size={12} className="mr-1 animate-pulse" /> In Queue
+                                    </div>
+                                ) : apt.status !== 'Checked-In' && apt.status !== 'Canceled' ? (
                                     <button
                                         onClick={() => onCheckIn(apt.id)}
                                         className="flex-1 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center"
                                     >
                                         <CheckCircle2 size={12} className="mr-1" /> Check In
                                     </button>
-                                )}
+                                ) : null}
                                 {apt.status !== 'Canceled' && (
                                     <>
                                         <button

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Phone, User, Calendar, Ban, CheckCircle2 } from 'lucide-react';
 import { Lead } from '../types';
-import { useDoctors } from '../hooks/useDoctors';
+import { useDoctors } from '../hooks/useDoctors';import toast from 'react-hot-toast';
+
 
 interface LeadDetailsModalProps {
     isOpen: boolean;
@@ -50,7 +51,7 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
             if (editFormData.phone) {
                 const isValidPhone = /^\+?[1-9]\d{9,14}$/.test(editFormData.phone);
                 if (!isValidPhone) {
-                    alert('Invalid phone number format. Must be a valid 10-15 digit number.');
+                    toast.error('Invalid phone number format. Must be a valid 10-15 digit number.');
                     return;
                 }
             }

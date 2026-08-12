@@ -8,7 +8,8 @@ import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { api } from '../services/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Input } from './ui/Input';import toast from 'react-hot-toast';
+
 
 interface PatientsViewProps {
     onNavigateToLeads: () => void;
@@ -75,7 +76,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     // --- Export Patients to CSV ---
     const handleExportCSV = () => {
         if (filteredPatients.length === 0) {
-            alert('No patients to export.');
+            toast('No patients to export.');
             return;
         }
 
@@ -192,7 +193,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                 }
             }
 
-            alert(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
+            toast.error(`Import Complete!\nSuccess: ${successCount}\nFailed: ${errorCount}`);
             if (successCount > 0) {
                 fetchPatients();
             }

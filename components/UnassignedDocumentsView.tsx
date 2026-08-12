@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Image as ImageIcon, Calendar, User, FileDigit, ChevronLeft, ChevronRight, Inbox, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { TriageDocument } from '../types';
-import { AssignDocumentModal } from './AssignDocumentModal';
+import { AssignDocumentModal } from './AssignDocumentModal';import toast from 'react-hot-toast';
+
 
 export const UnassignedDocumentsView: React.FC = () => {
     const [documents, setDocuments] = useState<TriageDocument[]>([]);
@@ -116,7 +117,7 @@ export const UnassignedDocumentsView: React.FC = () => {
                                             if (doc.previewUrl) {
                                                 window.open(doc.previewUrl, '_blank');
                                             } else {
-                                                alert("Preview URL is not available. Ensure AWS credentials are correct.");
+                                                toast("Preview URL is not available. Ensure AWS credentials are correct.");
                                             }
                                         }}
                                         title="Preview Document"
@@ -135,10 +136,10 @@ export const UnassignedDocumentsView: React.FC = () => {
                                             if (confirm('WARNING: Are you sure you want to permanently delete this document? This cannot be undone.')) {
                                                 try {
                                                     await api.deleteDocument(doc.id);
-                                                    alert('Document deleted successfully.');
+                                                    toast.success('Document deleted successfully.');
                                                     fetchDocuments(); // refresh list
                                                 } catch (err: any) {
-                                                    alert(err.message || 'Failed to delete document.');
+                                                    toast.error(err.message || 'Failed to delete document.');
                                                 }
                                             }
                                         }}

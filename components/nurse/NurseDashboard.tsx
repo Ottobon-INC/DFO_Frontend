@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, ShieldAlert, AlertCircle, Heart, User, ClipboardList, CheckCircle, RefreshCw, Send, Search, BrainCircuit, X } from 'lucide-react';
-import { api } from '../../services/api';
+import { api } from '../../services/api';import toast from 'react-hot-toast';
+
 
 export const NurseDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'triage' | 'vitals' | 'checkin'>('triage');
@@ -66,13 +67,13 @@ export const NurseDashboard: React.FC = () => {
     setTakingControl(true);
     try {
       await api.takeControl(id);
-      alert("Successfully assigned this thread to yourself!");
+      toast.success("Successfully assigned this thread to yourself!");
       fetchTriage();
       setSelectedThreadId(null);
       setThreadContext(null);
     } catch (err) {
       console.error("Failed to take control", err);
-      alert("Assigned conversation to triage desk (Demo Mode)!");
+      toast("Assigned conversation to triage desk (Demo Mode);!");
       setYellowQueue(prev => prev.filter(q => q.id !== id));
       setSelectedThreadId(null);
       setThreadContext(null);
@@ -155,7 +156,7 @@ export const NurseDashboard: React.FC = () => {
   const handleSaveVitals = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vitalsPatientId) {
-      alert("Please select a patient.");
+      toast("Please select a patient.");
       return;
     }
     setSavingVitals(true);
@@ -174,7 +175,7 @@ export const NurseDashboard: React.FC = () => {
         height_unit: height ? 'cm' : undefined,
         notes
       });
-      alert("Patient vitals saved successfully!");
+      toast.success("Patient vitals saved successfully!");
       // Reset form
       setSystolic('');
       setDiastolic('');
@@ -188,7 +189,7 @@ export const NurseDashboard: React.FC = () => {
       setActiveTab('checkin'); // Auto-route back to Check-in Roster
     } catch (err) {
       console.error("Failed to save vitals", err);
-      alert("Patient vitals saved successfully (Demo Mode)!");
+      toast.success("Patient vitals saved successfully (Demo Mode);!");
       // Reset form
       setSystolic('');
       setDiastolic('');
@@ -209,12 +210,12 @@ export const NurseDashboard: React.FC = () => {
   const handleCheckInPatient = async (appointmentId: string) => {
     try {
       await api.updateAppointmentStatus(appointmentId, { status: 'Checked-In' });
-      alert("Marked patient as Checked-In!");
+      toast("Marked patient as Checked-In!");
       fetchAppointments();
     } catch (err) {
       console.error("Check-in failed", err);
       setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, status: 'Checked-In' } : a));
-      alert("Marked patient as Checked-In (Demo Mode)!");
+      toast("Marked patient as Checked-In (Demo Mode);!");
     }
   };
 

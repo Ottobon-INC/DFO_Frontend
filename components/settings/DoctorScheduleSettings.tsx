@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Clock, AlertCircle, ChevronDown, Check } from 'lucide-react';
-import { api } from '../../services/api';
+import { api } from '../../services/api';import toast from 'react-hot-toast';
+
 
 interface ScheduleRule {
     day_of_week: number;
@@ -114,7 +115,7 @@ export default function DoctorScheduleSettings({ userRole, currentUser }: { user
             setTimeout(() => setSuccessMessage(''), 5000);
         } catch (error) {
             console.error("Failed to save schedules", error);
-            alert("Failed to save schedules. Please try again.");
+            toast.error("Failed to save schedules. Please try again.");
         } finally {
             setSaving(false);
         }
