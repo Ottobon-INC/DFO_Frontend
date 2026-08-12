@@ -112,9 +112,9 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
   };
 
   return (
-    <div className="bg-brand-surface border border-brand-border rounded-2xl shadow-xl w-full max-w-4xl mx-auto overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+    <div className="bg-brand-surface border border-brand-border rounded-2xl shadow-xl w-full max-w-4xl mx-auto overflow-hidden animate-fade-in flex flex-col max-h-full">
       {/* Header */}
-      <div className="bg-gradient-to-r from-brand-primary to-brand-secondary p-6 text-white flex justify-between items-center flex-shrink-0">
+      <div className="bg-brand-primary p-6 text-white flex justify-between items-center flex-shrink-0">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <UserPlus size={24} /> New Patient Registration

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { Search, Filter, UserPlus, FileText, Upload, Download, Activity, Users, Calendar, Eye, CalendarPlus, ArrowLeft } from 'lucide-react';
 import { Patient, Doctor } from '../types';
@@ -299,66 +300,41 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
 
                     {/* Actions */}
                     <div className="flex flex-wrap items-center gap-3">
-                        {!isNewPatientMode && (
-                            <>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
-                                    accept=".csv"
-                                    className="hidden"
-                                />
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleExportCSV}
-                                    title="Export to CSV"
-                                >
-                                    <Download size={14} className="mr-2" /> Export
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleImportClick}
-                                    title="Import from CSV"
-                                >
-                                    <Upload size={14} className="mr-2" /> Import
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    size="sm"
-                                    onClick={() => setIsNewPatientMode(true)}
-                                >
-                                    <UserPlus size={14} className="mr-2" /> New Patient
-                                </Button>
-                            </>
-                        )}
-                        {isNewPatientMode && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setIsNewPatientMode(false)}
-                            >
-                                <ArrowLeft size={14} className="mr-2" /> Back to List
-                            </Button>
-                        )}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".csv"
+                            className="hidden"
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportCSV}
+                            title="Export to CSV"
+                        >
+                            <Download size={14} className="mr-2" /> Export
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleImportClick}
+                            title="Import from CSV"
+                        >
+                            <Upload size={14} className="mr-2" /> Import
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setIsNewPatientMode(true)}
+                        >
+                            <UserPlus size={14} className="mr-2" /> New Patient
+                        </Button>
                     </div>
                 </div>
 
-                {/* Table or New Patient Form */}
+                {/* Table */}
                 <div className="flex-1 overflow-auto custom-scrollbar">
-                    {isNewPatientMode ? (
-                        <div className="flex flex-col h-full overflow-hidden relative">
-                            <ClinicRegistrationForm
-                                initialData={{}} // Empty for new patient
-                                onSuccess={() => {
-                                    setIsNewPatientMode(false);
-                                    fetchPatients();
-                                }}
-                                onCancel={() => setIsNewPatientMode(false)}
-                            />
-                        </div>
-                    ) : (
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm border-b border-brand-border">
                             <tr>
@@ -426,9 +402,22 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                             )}
                         </tbody>
                     </table>
-                    )}
                 </div>
             </div>
+
+            {isNewPatientMode && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 md:p-10 py-10">
+                    <ClinicRegistrationForm
+                        initialData={{}} // Empty for new patient
+                        onSuccess={() => {
+                            setIsNewPatientMode(false);
+                            fetchPatients();
+                        }}
+                        onCancel={() => setIsNewPatientMode(false)}
+                    />
+                </div>,
+                document.body
+            )}
 
             {/* Patient Profile Overlay */}
             {selectedPatient && (
