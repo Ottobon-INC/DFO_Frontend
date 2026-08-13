@@ -12,6 +12,7 @@ import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
 import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
 import { BookAppointmentModal } from './AppointmentModals';
+import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 
 import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
@@ -855,54 +856,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         showToast={showToast}
       />
 
-      {isWalkInExpressOpen && (
-        <BookAppointmentModal
-          isOpen={isWalkInExpressOpen}
-          onClose={() => {
-            setIsWalkInExpressOpen(false);
-            setWalkInInitialData(undefined);
-          }}
-          initialData={walkInInitialData}
-          initialTab={walkInInitialData ? 'existing' : 'new'}
-          onConfirm={async (formData) => {
-            try {
-              const now = new Date();
-              const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-              
-              const qmsPayload = {
-                doctor_id: formData.consultant,
-                date: now.toISOString().split('T')[0],
-                time: currentTime,
-                mobile: formData.phone,
-                name: formData.name,
-                patient_id: formData.patientId || null,
-                type: formData.speciality || 'Consultation',
-                visit_reason: formData.visitReason || 'Walk-In Consultation',
-                patient_email_snapshot: formData.email,
-                patient_age_snapshot: formData.age,
-                sex_snapshot: formData.sex,
-                patient_marital_status_snapshot: formData.maritalStatus,
-                patient_address_snapshot: formData.address,
-                source: 'Walk-In'
-              };
-
-              const qmsRes = await api.qmsWalkIn(qmsPayload);
+            {isWalkInExpressOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <ClinicRegistrationForm 
+            initialData={walkInInitialData}
+            onCancel={() => {
+              setIsWalkInExpressOpen(false);
+              setWalkInInitialData(undefined);
+            }}
+            onSuccess={(patientId, appointmentId) => {
               setIsWalkInExpressOpen(false);
               setWalkInInitialData(undefined);
               setRefreshTrigger(prev => prev + 1);
-              
-              const pin = qmsRes?.data?.patient?.pin || qmsRes?.patient?.pin || null;
-              if (pin) {
-                 toast.success(`Walk-In Checked-in successfully. Patient PIN: ${pin}`, { duration: 8000 });
-              } else {
-                 toast.success("Walk-In Registered & Checked-in successfully");
-              }
-            } catch (err: any) {
-              console.error("Registration failed:", err);
-              // Global error toast from api.ts will handle displaying the error
-            }
-          }}
-        />
+            }}
+          />
+        </div>
       )}
 
       {/* Express Token Success Modal */}
@@ -981,3 +949,4 @@ const NavItem: React.FC<{
     {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
   </div>
 );
+
