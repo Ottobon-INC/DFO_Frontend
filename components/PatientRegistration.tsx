@@ -22,13 +22,45 @@ export const DailyRegisterTable: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
 
+    const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'custom'>('today');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+
     const { doctors } = useDoctors();
 
     const fetchRegisterData = async () => {
         try {
             setLoading(true);
+            
+            let start_date = '';
+            let end_date = '';
+            const today = new Date();
+            
+            if (dateFilter === 'today') {
+                start_date = today.toISOString().split('T')[0];
+                end_date = start_date;
+            } else if (dateFilter === 'week') {
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay());
+                start_date = startOfWeek.toISOString().split('T')[0];
+                end_date = today.toISOString().split('T')[0];
+            } else if (dateFilter === 'month') {
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                start_date = startOfMonth.toISOString().split('T')[0];
+                end_date = today.toISOString().split('T')[0];
+            } else if (dateFilter === 'custom') {
+                start_date = customStartDate;
+                end_date = customEndDate;
+            }
+            
+            if (dateFilter === 'custom' && (!start_date || !end_date)) {
+                setRegisterData([]);
+                setLoading(false);
+                return;
+            }
+
             const [apptsData, patientsData, doctorsData] = await Promise.all([
-                api.getAppointments(),
+                api.getAppointments({ start_date, end_date, limit: 500 }),
                 api.getPatients(),
                 api.getDoctors()
             ]);
@@ -56,9 +88,7 @@ export const DailyRegisterTable: React.FC = () => {
                     phone: item.phone_snapshot || item.patient_phone_snapshot || patientObj?.mobile || item.phone || '-',
                     visit: item.type || 'Consultation',
                     consultant: docName,
-                    payment: item.status === 'Completed' || item.status === 'Checked-In' ? 'Paid' : 'Pending',
-                    referredBy: item.referral_doctor || patientObj?.referralDoctor || 'Self',
-                    remarks: item.visit_reason || item.notes || '-'
+                    notes: item.visit_reason || item.notes || '-'
                 };
             });
 
@@ -75,7 +105,7 @@ export const DailyRegisterTable: React.FC = () => {
 
     React.useEffect(() => {
         fetchRegisterData();
-    }, []);
+    }, [dateFilter, customStartDate, customEndDate]);
 
     const handleAddWalkIn = () => {
         setWalkInName('');
@@ -142,6 +172,34 @@ export const DailyRegisterTable: React.FC = () => {
                     <FileText className="mr-2 text-brand-primary" size={20} /> Daily Patient Register
                 </h3>
                 <div className="flex space-x-2">
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary"
+                    >
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+
+                    {dateFilter === 'custom' && (
+                        <div className="flex space-x-2">
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary"
+                            />
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                    )}
+
                     <button onClick={handleAddWalkIn} className="px-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-bold text-brand-textSecondary hover:text-brand-primary transition-colors">
                         Add Walk-In
                     </button>
@@ -166,16 +224,13 @@ export const DailyRegisterTable: React.FC = () => {
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Phone No</th>
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Visit Type</th>
                                 <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Consultant</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Payment</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Referred By</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Remarks</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border text-right">Actions</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Notes</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
                             {registerData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={9} className="p-8 text-center text-sm text-brand-textSecondary">No register entries found for today.</td>
+                                    <td colSpan={7} className="p-8 text-center text-sm text-brand-textSecondary">No register entries found for the selected period.</td>
                                 </tr>
                             ) : (
                                 registerData.map((row, index) => (
@@ -186,24 +241,7 @@ export const DailyRegisterTable: React.FC = () => {
                                         <td className="p-4 text-sm text-brand-textSecondary font-mono">{row.phone}</td>
                                         <td className="p-4 text-sm text-brand-textPrimary">{row.visit}</td>
                                         <td className="p-4 text-sm text-brand-textPrimary">{row.consultant}</td>
-                                        <td className="p-4">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider border ${row.payment === 'Paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
-                                                }`}>
-                                                {row.payment}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-sm text-brand-textSecondary">{row.referredBy}</td>
-                                        <td className="p-4 text-sm text-brand-textSecondary italic">{row.remarks}</td>
-                                        <td className="p-4 text-right">
-                                            {!row.patientId && (
-                                                <button
-                                                    onClick={() => handleConvertToPatient(row)}
-                                                    className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded hover:bg-brand-primary hover:text-white transition-colors"
-                                                >
-                                                    Create Profile
-                                                </button>
-                                            )}
-                                        </td>
+                                        <td className="p-4 text-sm text-brand-textSecondary">{row.notes}</td>
                                     </tr>
                                 ))
                             )}

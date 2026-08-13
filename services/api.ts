@@ -135,7 +135,7 @@ const generateUUID = () => {
 
 export const api = {
     // Appointments
-    getAppointments: async (params?: { date?: string; doctor_id?: string }) => {
+    getAppointments: async (params?: { date?: string; doctor_id?: string; start_date?: string; end_date?: string; limit?: number }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
         const res = await fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
             headers: getHeaders()
