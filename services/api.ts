@@ -517,6 +517,34 @@ export const api = {
         });
     },
 
+    uploadUnassignedDocument: async (file: File) => {
+        const toBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(f);
+            reader.onload = () => {
+                const result = reader.result as string;
+                const base64 = result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
+        });
+
+        const base64 = await toBase64(file);
+
+        const payload = {
+            name: file.name,
+            document_type: 'Uploaded',
+            contentType: file.type || 'application/octet-stream',
+            base64: base64
+        };
+
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/upload-unassigned`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
     getUnassignedDocuments: async (page: number = 1, limit: number = 10) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/documents/unassigned?page=${page}&limit=${limit}`, {
             headers: getHeaders()

@@ -445,16 +445,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 blood_group: getVal('edit-bloodGroup'),
                 marital_status: getVal('edit-maritalStatus'),
                 referral_doctor: getVal('edit-referralDoctor'),
-                hospital_address: getVal('edit-hospitalAddress'),
-                registration_date: getVal('edit-registrationDate'),
+                                registration_date: getVal('edit-registrationDate'),
                 uhid: getVal('edit-uhid'),
                 aadhar: getVal('edit-aadhar'),
 
                 // Keeping camelCase just in case the backend uses specific DTOs
                 maritalStatus: getVal('edit-maritalStatus'),
                 referralDoctor: getVal('edit-referralDoctor'),
-                hospitalAddress: getVal('edit-hospitalAddress'),
-                registrationDate: getVal('edit-registrationDate'),
+                                registrationDate: getVal('edit-registrationDate'),
             };
 
             await api.updatePatient(patient.id, payload);
@@ -753,10 +751,6 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
                                                             <input name="referralDoctor" defaultValue={patient.referralDoctor} id="edit-referralDoctor" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
                                                         </div>
-                                                        <div className="col-span-2">
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Hospital Address</label>
-                                                            <input name="hospitalAddress" defaultValue={patient.hospitalAddress} id="edit-hospitalAddress" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                        </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
                                                             <input type="date" name="registrationDate" defaultValue={patient.registrationDate} id="edit-registrationDate" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
@@ -780,10 +774,6 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
                                                             <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.referralDoctor || 'N/A'}</p>
                                                         </div>
-                                                        <div className="col-span-2">
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Hospital Address</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.hospitalAddress || 'N/A'}</p>
-                                                        </div>
                                                         <div>
                                                             <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
                                                             <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.registrationDate || 'N/A'}</p>
@@ -799,13 +789,26 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                 <Stethoscope size={18} className="mr-2 text-brand-primary" /> Care Team
                                             </h3>
                                             <div className="space-y-4">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">DS</div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-brand-textPrimary">Dr. Sharma</p>
-                                                        <p className="text-xs text-brand-textSecondary">Consultant</p>
-                                                    </div>
-                                                </div>
+                                                {(() => {
+                                                    const assignedDoc = doctors.find(d => d.id === patient.assignedDoctorId || d.id === (patient as any).assigned_doctor_id);
+                                                    const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : (patient.referralDoctor || (patient as any).assignedDoctorName || null);
+                                                    const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Consultant') : (patient.referralDoctor ? 'Referral Specialist' : 'Consultant');
+                                                    const docInitials = docName ? docName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'CT';
+
+                                                    return docName ? (
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
+                                                                {docInitials}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-brand-textPrimary">{docName}</p>
+                                                                <p className="text-xs text-brand-textSecondary">{Array.isArray(docSpeciality) ? docSpeciality.join(', ') : docSpeciality}</p>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-brand-textSecondary italic">No care team assigned yet</p>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>

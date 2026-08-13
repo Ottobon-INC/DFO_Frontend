@@ -75,7 +75,6 @@ export interface Patient {
     assignedDoctorId?: string;
 
     referralDoctor?: string;
-    hospitalAddress?: string;
     registrationDate: string;
 
     // Clinical Data (Simplified for now)

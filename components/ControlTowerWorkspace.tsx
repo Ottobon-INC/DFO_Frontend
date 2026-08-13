@@ -356,7 +356,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       await api.assignWorkspaceThread(selectedThreadId, { assignTo, role });
       await fetchThreadContext(selectedThreadId);
     } catch (e) {
-      toast.error('Assignment failed: ' + (e as any);.message);
+      toast.error('Assignment failed: ' + (e as any).message);
     }
   };
 
