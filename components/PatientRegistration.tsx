@@ -12,8 +12,6 @@ export const DailyRegisterTable: React.FC = () => {
 
     // Modal state for Add Walk-In
     const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
-    const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
-    const [selectedWalkIn, setSelectedWalkIn] = useState<any>(null);
     const [walkInName, setWalkInName] = useState('');
     const [walkInPhone, setWalkInPhone] = useState('');
     const [walkInAge, setWalkInAge] = useState('');
