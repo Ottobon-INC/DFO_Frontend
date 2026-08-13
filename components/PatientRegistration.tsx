@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Save, ArrowRight, FileText, UserPlus, Calendar, X } from 'lucide-react';
-import { Patient } from '../types';
+import { FileText, UserPlus, X } from 'lucide-react';
 import { api } from '../services/api';
 import { useDoctors } from '../hooks/useDoctors';
 import { ClinicRegistrationForm } from './ClinicRegistrationForm';
@@ -116,10 +115,7 @@ export const DailyRegisterTable: React.FC = () => {
         setIsWalkInModalOpen(true);
     };
 
-    const handleConvertToPatient = (row: any) => {
-        setSelectedWalkIn(row);
-        setIsConversionModalOpen(true);
-    };
+
 
     const handleModalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
