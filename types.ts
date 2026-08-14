@@ -87,6 +87,13 @@ export interface Patient {
         relation: string;
         phone: string;
     };
+    abha?: {
+        abha_number: string | null;
+        abha_address: string | null;
+        verification_status: string;
+        is_active: boolean;
+        verified_at: string | null;
+    } | null;
 }
 
 export interface Doctor {

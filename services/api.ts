@@ -257,7 +257,7 @@ export const api = {
         });
     },
 
-    qmsWalkIn: async (data: { 
+    qmsWalkIn: async (data: {
         doctor_id: string; date: string; time: string; mobile: string; name: string;
         patient_id?: string; type?: string; visit_reason?: string;
         doctor_name_snapshot?: string; referral_doctor?: string; referral_doctor_phone?: string;
@@ -1170,6 +1170,76 @@ export const api = {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/clinics/${id}`, {
             method: 'DELETE',
             headers: getHeaders()
+        });
+    },
+
+    // --- ABDM / ABHA ---
+    requestAadhaarOtpForCreation: async (aadhaar: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/test-aadhaar-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ aadhaar })
+        });
+    },
+    enrolAbhaViaAadhaarOtp: async (patientId: string, txnId: string, otp: string, mobile: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/enrol-aadhaar-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, txnId, otp, mobile })
+        });
+    },
+    getAbhaAddressSuggestions: async (patientId: string, txnId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/enrol-abha-address-suggestions?patientId=${patientId}&txnId=${txnId}`, {
+            headers: getHeaders()
+        });
+    },
+    createAbhaAddress: async (patientId: string, txnId: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/enrol-abha-address`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, txnId, abhaAddress })
+        });
+    },
+    searchAuthMethods: async (patientId: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/search-auth-methods`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, abhaAddress })
+        });
+    },
+    requestMobileOtp: async (patientId: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/request-mobile-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, abhaAddress })
+        });
+    },
+    verifyMobileOtp: async (patientId: string, txnId: string, otp: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/verify-mobile-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, txnId, otp, abhaAddress })
+        });
+    },
+    searchAuthMethodsAadhaar: async (patientId: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/verification/aadhaar/search`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, abhaAddress })
+        });
+    },
+    requestAadhaarOtpForVerification: async (patientId: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/verification/aadhaar/request-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, abhaAddress })
+        });
+    },
+    verifyAadhaarOtpForVerification: async (patientId: string, txnId: string, otp: string, abhaAddress: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/abdm/verification/aadhaar/verify-otp`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ patientId, txnId, otp, abhaAddress })
         });
     }
 };

@@ -13,6 +13,7 @@ import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
 import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';import toast from 'react-hot-toast';
+import AbhaIntegrationWidget from './AbhaIntegrationWidget';
 
 
 interface PatientProfileProps {
@@ -783,7 +784,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             </div>
                                         </div>
 
-                                        {/* Assigned Staff */}
+                                        <AbhaIntegrationWidget patient={patient} onUpdate={fetchPatientDetails} />
+
+                                            {/* Assigned Staff */}
                                         <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
                                             <h3 className="font-bold text-brand-textPrimary mb-6 flex items-center">
                                                 <Stethoscope size={18} className="mr-2 text-brand-primary" /> Care Team
