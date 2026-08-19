@@ -104,9 +104,11 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
           address,
           kin_name: kinName,
           kin_relation: kinRelation,
-          kin_phone: kinPhone,
-          source
-        };
+            kin_phone: kinPhone,
+            source,
+            assigned_doctor_id: doctorId,
+            referral_doctor: referralDoctor
+          };
         
         try {
           const patientRes = await api.createPatient(patientPayload);
@@ -358,11 +360,9 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
                   className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
                 >
                   <option value="">Select...</option>
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Divorced">Divorced</option>
-                  <option value="Widowed">Widowed</option>
-                  <option value="Separated">Separated</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Other">Other</option>
                 </select>
               </div>
               <div>
@@ -422,7 +422,11 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
                     <option value="Spouse">Spouse</option>
                     <option value="Father">Father</option>
                     <option value="Mother">Mother</option>
-                    <option value="Child">Child</option>
+                    
+                      <option value="Partner">Partner</option>
+                      <option value="Son">Son</option>
+                      <option value="Daughter">Daughter</option>
+                      <option value="Friend">Friend</option>
                     <option value="Sibling">Sibling</option>
                     <option value="Other">Other</option>
                   </select>
@@ -454,7 +458,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
                   <option value="Walk-In">Walk-In</option>
                   <option value="Referral">Doctor Referral</option>
                   <option value="Google">Google / Online</option>
-                  <option value="Practo">Practo / Lybrate</option>
+                  <option value="WhatsApp">WhatsApp</option>
                   <option value="Social Media">Social Media</option>
                 </select>
               </div>
@@ -515,3 +519,4 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
     </div>
   );
 };
+

@@ -9,6 +9,7 @@ import { api } from '../services/api';
 import { Lead } from '../types';
 import { useDoctors } from '../hooks/useDoctors';
 import { Card } from './ui/Card';
+import { Pagination } from './Pagination';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';import toast from 'react-hot-toast';
 
@@ -70,7 +71,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
             // the new data from 'leads' prop once parent updates it.
         }
     };
-
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     const filteredLeads = leads.filter(lead =>
         (filterStatus === 'All' || lead.status === filterStatus) &&
@@ -114,7 +117,22 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
         // Include filter status in filename
         const dateStr = new Date().toISOString().split('T')[0];
         const statusLabel = filterStatus === 'All' ? 'All_Leads' : filterStatus.replace(/ /g, '_');
-        a.download = `JanmaSethu_Leads_${statusLabel}_${dateStr}.csv`;
+        
+          let clinicPrefix = 'Clinic';
+          try {
+              const userStr = localStorage.getItem('user');
+              if (userStr) {
+                  const userObj = JSON.parse(userStr);
+                  if (userObj.clinic_name) {
+                      clinicPrefix = userObj.clinic_name;
+                  } else if (userObj.hospital_name) {
+                      clinicPrefix = userObj.hospital_name;
+                  }
+              }
+          } catch(e) {}
+          const safeClinicName = clinicPrefix.replace(/[^a-zA-Z0-9_-]/g, '_');
+          a.download = `${safeClinicName}_Leads_${statusLabel}_${dateStr}.csv`;
+
 
         document.body.appendChild(a);
         a.click();
@@ -257,15 +275,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                         </Button>
 
                         <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-2 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border text-brand-textSecondary font-bold rounded-xl hover:bg-brand-bg flex items-center text-sm outline-none focus:border-brand-primary h-10"
-                        >
-                            <option value="All">All</option>
-                            <option value="New Inquiry">New</option>
-                            <option value="Stalling - Sent to CRO">CRO</option>
-                            <option value="Converted - Active Patient">Converted</option>
-                        </select>
+                              value={filterStatus}
+                              onChange={(e) => setFilterStatus(e.target.value)}
+                              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border text-brand-textSecondary font-bold rounded-xl hover:bg-brand-bg flex items-center text-sm outline-none focus:border-brand-primary h-10"
+                          >
+                              <option value="All">All Leads</option>
+                              <option value="New Inquiry">New Inquiries</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="Stalling - Sent to CRO">CRO Queue</option>
+                              <option value="Converted">Converted</option>
+                              <option value="Lost">Dropped / Lost</option>
+                          </select>
                         <Button
                             variant="primary"
                             onClick={onOpenAddModal}
@@ -289,7 +309,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
-                            {filteredLeads.map(lead => (
+                            {filteredLeads.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(lead => (
                                 <tr
                                     key={lead.id}
                                     onClick={() => setSelectedLeadId(lead.id)}
@@ -594,3 +614,4 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
         </div>
     );
 };
+

@@ -353,6 +353,7 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                         <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Source</label>
                                         <select name="source" value={(formData as any).source} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
                                             <option value="Walk-In">Walk-In</option>
+                                            <option value="WhatsApp">WhatsApp</option>
                                             <option value="Social Media">Social Media</option>
                                             <option value="Google">Google</option>
                                             <option value="Referral">Referral</option>

@@ -9,7 +9,9 @@ import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { api } from '../services/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';import toast from 'react-hot-toast';
+import { Input } from './ui/Input';
+import toast from 'react-hot-toast';
+import { Pagination } from './Pagination';
 
 
 interface PatientsViewProps {
@@ -25,10 +27,26 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isNewPatientMode, setIsNewPatientMode] = useState(false);
     const [patients, setPatients] = useState<Patient[]>([]);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 20;
 
     const fetchPatients = async () => {
         try {
-            const response = await api.getPatients();
+            const response = await api.getPatients({ 
+                page: currentPage, 
+                limit: itemsPerPage, 
+                q: searchTerm 
+            });
+
+            // Handle pagination metadata
+            if (response?.pagination) {
+                setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+                setTotalItems(response.pagination.total);
+            }
 
             // Robust data extraction to handle varied API shapes
             let items: any[] = [];
@@ -70,8 +88,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     };
 
     useEffect(() => {
-        fetchPatients();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            fetchPatients();
+        }, 300); // Debounce search
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, searchTerm, filterStatus, filterGender, filterMonth]);
 
     // --- Export Patients to CSV ---
     const handleExportCSV = () => {
@@ -207,17 +228,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     const [patientForBooking, setPatientForBooking] = useState<Patient | null>(null);
 
     const filteredPatients = patients.filter(patient => {
-        const matchesSearch = (
-            (patient.name && String(patient.name).toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (patient.id && String(patient.id).toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (patient.mobile && String(patient.mobile).includes(searchTerm)) ||
-            (patient.uhid && String(patient.uhid).toLowerCase().includes(searchTerm.toLowerCase()))
-        );
         const matchesStatus = filterStatus === 'All Patients' || (patient.status && String(patient.status).toLowerCase() === filterStatus.toLowerCase());
         const matchesGender = filterGender === 'All Genders' || (patient.gender && String(patient.gender).toLowerCase() === filterGender.toLowerCase());
         const matchesMonth = !filterMonth || (patient.registrationDate && String(patient.registrationDate).startsWith(filterMonth));
 
-        return matchesSearch && matchesStatus && matchesGender && matchesMonth;
+        return matchesStatus && matchesGender && matchesMonth;
     });
 
     const handleBookingConfirm = (details: unknown) => {
@@ -402,6 +417,14 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                             )}
                         </tbody>
                     </table>
+                    
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                    />
                 </div>
             </div>
 
@@ -438,3 +461,4 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
         </div>
     );
 };
+

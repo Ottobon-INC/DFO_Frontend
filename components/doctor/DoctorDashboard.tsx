@@ -3,8 +3,14 @@ import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, Refresh
 import { api } from '../../services/api';import toast from 'react-hot-toast';
 
 
-export const DoctorDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'escalations' | 'patients' | 'consultations'>('escalations');
+
+interface DoctorDashboardProps {
+  appointments?: any[];
+  onPatientSelect?: (patient: any, tab?: string) => void;
+}
+
+export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: propAppointments, onPatientSelect }) => {
+  
   const [loading, setLoading] = useState(true);
 
   // Escalations state
@@ -20,7 +26,13 @@ export const DoctorDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Appointments / Consultations state
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>(propAppointments || []);
+
+  useEffect(() => {
+    if (propAppointments && propAppointments.length > 0) {
+      setAppointments(propAppointments);
+    }
+  }, [propAppointments]);
 
   // Fetch Escalations Queue
   const fetchEscalations = async () => {
@@ -90,10 +102,27 @@ export const DoctorDashboard: React.FC = () => {
   };
 
   // Fetch Consultations
-  const fetchAppointments = async () => {
+      const fetchAppointments = async () => {
+    // if (propAppointments && propAppointments.length > 0) return; // FORCE REFETCH
     try {
       const res = await api.getAppointments();
-      setAppointments(res.data || res.items || res || []);
+      let pRes = null;
+      try { pRes = await api.getPatients(); } catch(e) {}
+      const pts = pRes?.data || pRes?.items || pRes || [];
+      const ptMap = new Map();
+      if (Array.isArray(pts)) {
+         pts.forEach((p: any) => ptMap.set(p.id, p.name || p.full_name));
+      }
+
+      const rawAppts = res.data || res.items || res || [];
+      const mapped = rawAppts.map((a: any) => {
+         let pName = a.patient?.name || a.patient?.full_name || a.patientName || a.patient_name_snapshot || a.patient_name;
+         if (!pName || pName === 'Unknown') {
+            pName = ptMap.get(a.patient_id || a.patientId) || (a.patient_id ? 'ID:' + a.patient_id.substring(0,6) : 'No ID');
+         }
+         return { ...a, patientName: pName };
+      });
+      setAppointments(mapped);
     } catch (err) {
       console.error("Failed to fetch appointments", err);
       setAppointments([
@@ -105,19 +134,13 @@ export const DoctorDashboard: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    if (activeTab === 'escalations') {
-      await fetchEscalations();
-    } else if (activeTab === 'patients') {
-      await fetchPatients();
-    } else if (activeTab === 'consultations') {
-      await fetchAppointments();
-    }
+    await fetchEscalations();
     setLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, []);
 
   return (
     <div className="p-6 space-y-8 bg-brand-bg min-h-full">
@@ -126,8 +149,8 @@ export const DoctorDashboard: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Stethoscope className="text-brand-primary" size={28} />
           <div>
-            <h1 className="text-2xl font-bold text-brand-textPrimary">Doctor Dashboard</h1>
-            <p className="text-sm text-brand-textSecondary">Clinical Lifecycle & Escalations console</p>
+            <h1 className="text-2xl font-bold text-brand-textPrimary">Clinical Escalations</h1>
+            <p className="text-sm text-brand-textSecondary">Critical Triage Queue & Clinical Handoff</p>
           </div>
         </div>
         <button onClick={loadData} className="p-2.5 rounded-xl bg-brand-surface border border-brand-border text-brand-textSecondary hover:text-brand-primary transition-all">
@@ -135,27 +158,7 @@ export const DoctorDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-brand-border space-x-6">
-        <button
-          onClick={() => setActiveTab('escalations')}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'escalations' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
-        >
-          <ShieldAlert size={18} /> Medical Escalations (Red Queue)
-        </button>
-        <button
-          onClick={() => setActiveTab('patients')}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'patients' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
-        >
-          <Users size={18} /> Patient Directory
-        </button>
-        <button
-          onClick={() => setActiveTab('consultations')}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === 'consultations' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'}`}
-        >
-          <Calendar size={18} /> Consultations & Appointments
-        </button>
-      </div>
+
 
       {/* Content Area */}
       {loading ? (
@@ -165,7 +168,6 @@ export const DoctorDashboard: React.FC = () => {
       ) : (
         <div className="animate-slide-up">
           {/* Medical Escalations (Red Queue) */}
-          {activeTab === 'escalations' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* List */}
               <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden h-[500px] flex flex-col">
@@ -237,95 +239,8 @@ export const DoctorDashboard: React.FC = () => {
                 )}
               </div>
             </div>
-          )}
 
-          {/* Patients Directory */}
-          {activeTab === 'patients' && (
-            <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 space-y-6">
-              <div className="flex items-center bg-brand-bg px-4 py-2.5 rounded-xl border border-brand-border max-w-sm">
-                <Search size={16} className="text-brand-textSecondary mr-2" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search patient record directory..."
-                  className="bg-transparent outline-none text-xs w-full text-brand-textPrimary"
-                />
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-brand-bg text-brand-textSecondary text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Contact</th>
-                      <th className="p-4">Age</th>
-                      <th className="p-4">Blood Group</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-border text-xs">
-                    {patients
-                      .filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((patient) => (
-                        <tr key={patient.id} className="hover:bg-brand-bg/30 transition-colors">
-                          <td className="p-4 font-bold text-brand-textPrimary">{patient.name || patient.full_name}</td>
-                          <td className="p-4 text-brand-textSecondary">{patient.mobile || patient.phone_number}</td>
-                          <td className="p-4 text-brand-textPrimary font-semibold">{patient.age || 'N/A'}</td>
-                          <td className="p-4 text-brand-textSecondary">{patient.bloodGroup || 'N/A'}</td>
-                          <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
-                              {patient.status || 'Active'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Consultations & Appointments */}
-          {activeTab === 'consultations' && (
-            <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden">
-              <div className="p-6 border-b border-brand-border bg-brand-bg/10">
-                <h3 className="text-sm font-bold text-brand-textPrimary">Your Roster & Active Consultations</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-brand-bg text-brand-textSecondary text-xs font-bold uppercase tracking-wider">
-                      <th className="p-4">Time</th>
-                      <th className="p-4">Patient</th>
-                      <th className="p-4">Date</th>
-                      <th className="p-4">Consultation Type</th>
-                      <th className="p-4">Handoff / Reason</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-border text-xs">
-                    {appointments.map((appt) => (
-                      <tr key={appt.id} className="hover:bg-brand-bg/30 transition-colors">
-                        <td className="p-4 font-bold text-brand-primary">{appt.time}</td>
-                        <td className="p-4 font-bold text-brand-textPrimary">{appt.patientName}</td>
-                        <td className="p-4 text-brand-textSecondary">{appt.date || appt.appointment_date}</td>
-                        <td className="p-4 text-brand-textSecondary font-medium">{appt.type || 'General Consult'}</td>
-                        <td className="p-4 text-brand-textSecondary italic text-[11px] max-w-[200px] truncate" title={appt.visit_reason || appt.notes || 'No notes'}>
-                          {appt.visit_reason || appt.notes || '—'}
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
-                            {appt.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+                            </div>
       )}
       {showSummaryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
@@ -368,3 +283,5 @@ export const DoctorDashboard: React.FC = () => {
     </div>
   );
 };
+
+

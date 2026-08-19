@@ -135,7 +135,7 @@ const generateUUID = () => {
 
 export const api = {
     // Appointments
-    getAppointments: async (params?: { date?: string; doctor_id?: string; start_date?: string; end_date?: string; limit?: number }) => {
+    getAppointments: async (params?: { date?: string; doctor_id?: string; start_date?: string; end_date?: string; limit?: number; page?: number }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
         const res = await fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments${query}`, {
             headers: getHeaders()
@@ -280,70 +280,37 @@ export const api = {
     },
 
     updateAppointmentStatus: async (id: string, data: AppointmentStatusPayload) => {
-        // Backend expects PUT to specific transition endpoints, OR PUT /status?status=...
-        // We will map based on data.status
-        const s = data.status.toUpperCase();
-        if (s === 'CONFIRMED') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/confirm`, { method: 'PUT', headers: getHeaders() });
-        } else if (s === 'CHECKED-IN') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/check-in`, { method: 'PUT', headers: getHeaders() });
-        } else if (s === 'IN PROGRESS') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/start-consultation`, { method: 'PUT', headers: getHeaders() });
-        } else if (s === 'COMPLETED') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/complete`, { method: 'PUT', headers: getHeaders() });
-        } else if (s === 'NO SHOW') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/no-show`, { method: 'PUT', headers: getHeaders() });
-        } else if (s === 'CANCELLED') {
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/cancel`, { method: 'PUT', headers: getHeaders() });
-        } else {
-            // Force status update (fallback)
-            return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/status?status=${data.status}`, { method: 'PUT', headers: getHeaders() });
-        }
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/status`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: data.status })
+        });
     },
 
     // Leads
-    getLeads: async (params?: { phone?: string; status?: string; q?: string }) => {
+    getLeads: async (params?: { phone?: string; status?: string; q?: string; page?: number; limit?: number }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients${query}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads${query}`, {
             headers: getHeaders()
         });
     },
 
     getLeadById: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads/${id}`, {
             headers: getHeaders()
         });
     },
 
     createLead: async (data: any) => {
-        const names = (data.name || '').trim().split(' ');
-        const firstName = names[0] || 'Unknown';
-        const lastName = names.length > 1 ? names.slice(1).join(' ') : 'Unknown';
-
-        let genderEnum = 'OTHER';
-        if (data.gender?.toLowerCase() === 'male') genderEnum = 'MALE';
-        if (data.gender?.toLowerCase() === 'female') genderEnum = 'FEMALE';
-
-        const backendPayload = {
-            firstName,
-            lastName,
-            gender: genderEnum,
-            age: parseInt(data.age) || 30,
-            dateOfBirth: '1990-01-01', // Leads might not have DOB
-            phone: data.phone || data.mobile || '0000000000',
-            email: data.email || null,
-            status: 'ACTIVE'
-        };
-
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(backendPayload)
+            body: JSON.stringify(data)
         });
     },
 
     updateLead: async (id: string, data: any) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads/${id}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify(data)
@@ -351,7 +318,7 @@ export const api = {
     },
 
     reEngageLead: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/re-engage`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/leads/${id}/re-engage`, {
             method: 'POST',
             headers: getHeaders()
         });
@@ -365,8 +332,9 @@ export const api = {
     },
 
     // patients
-    getPatients: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients`, {
+    getPatients: async (params?: { page?: number; limit?: number; q?: string; phone?: string }) => {
+        const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients${query}`, {
             headers: getHeaders()
         });
     },
@@ -412,6 +380,8 @@ export const api = {
             kin_name: data.kin_name || undefined,
             kin_relation: data.kin_relation || undefined,
             kin_phone: data.kin_phone || undefined,
+            assigned_doctor_id: data.assigned_doctor_id || data.assignedDoctorId || undefined,
+            referral_doctor: data.referral_doctor || data.referralDoctor || undefined,
             status: 'ACTIVE'
         };
 
@@ -1039,12 +1009,15 @@ export const api = {
         });
     },
 
-    saveVitals: async (data: { patientId: string; appointmentId?: string; systolic?: number; diastolic?: number; temperature?: number; temp_unit?: string; heartRate?: number; pulse?: number; weight?: number; weight_unit?: string; height?: number; height_unit?: string; notes?: string }) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/vitals`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
-        });
+    savePatientVitalsBulk: async (payload: { vitals: any[] }) => {
+        const promises = payload.vitals.map(v =>
+            api.addPatientVitals(v.patient_id, {
+                vital_type: v.vital_type,
+                vital_value: v.value,
+                recorded_at: v.recorded_at
+            })
+        );
+        return Promise.all(promises);
     },
 
     getVitals: async (patientId: string) => {
@@ -1173,3 +1146,4 @@ export const api = {
         });
     }
 };
+

@@ -36,7 +36,8 @@ export const LoginCard: React.FC<LoginCardProps> = ({ className = '', onLoginSuc
           const backendRole = (userPayload.role || '').toLowerCase();
           let userRole: UserRole = UserRole.FRONT_DESK; // Default
           if (backendRole === 'doctor') userRole = UserRole.DOCTOR;
-          else if (backendRole === 'cro' || backendRole === 'receptionist') userRole = UserRole.FRONT_DESK;
+          else if (backendRole === 'cro') userRole = UserRole.CRO;
+          else if (backendRole === 'receptionist') userRole = UserRole.FRONT_DESK;
           else if (backendRole === 'nurse' || backendRole === 'lab_staff') userRole = UserRole.NURSE;
           else if (backendRole === 'admin' || backendRole === 'hospital_admin') userRole = UserRole.ADMIN;
           else if (backendRole === 'frontdesk' || backendRole === 'front_desk' || backendRole === 'front desk') userRole = UserRole.FRONT_DESK;

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Appointment, Lead, UserRole, Patient } from '../types';
 import { AppointmentWidget, QuickLeadWidget, LeadsWidget, CROStatusWidget, InterventionQueueWidget, FinancialSnapshotWidget, KPIWidget, ConversionFunnelWidget, KPIData, FunnelData } from './DashboardWidgets';
 import { DoctorDashboard } from './DoctorDashboard';
+import { NurseDashboard } from './nurse/NurseDashboard';
 import { PremiumDashboard } from './PremiumDashboard';
 import { LeadDetailsModal } from './LeadDetailsModal';
 import { api } from '../services/api';
@@ -118,12 +119,17 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                 // --- Premium Admin / CRO Layout ---
                 <PremiumDashboard />
             ) : (userRole === UserRole.DOCTOR) ? (
-                // --- Doctor / Nurse Dashboard ---
+                // --- Doctor Dashboard ---
                 <div>
                     <DoctorDashboard
-                        appointments={appointments.filter(a => a.doctorId === 'dr1')}
+                        appointments={appointments}
                         onPatientSelect={onPatientSelect}
                     />
+                </div>
+            ) : (userRole === UserRole.NURSE) ? (
+                // --- Nurse Dashboard ---
+                <div>
+                    <NurseDashboard />
                 </div>
             ) : (
                 // --- Front Desk Layout - Stack on mobile/tablet, side-by-side on lg+ ---

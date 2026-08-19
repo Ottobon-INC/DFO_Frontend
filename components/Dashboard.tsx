@@ -19,6 +19,8 @@ import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './doctor/DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
+import { TriageConsole } from './nurse/TriageConsole';
+import { LobbyRoster } from './nurse/LobbyRoster';
 import { ControlTowerConsole } from './cro/ControlTowerConsole';
 import { CroInbox } from './cro/CroInbox';
 import { CroAnalytics } from './cro/CroAnalytics';
@@ -84,7 +86,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         const apptItems = Array.isArray(apptsData?.data) ? apptsData.data : (apptsData?.data?.items ?? []);
         const mappedAppts: Appointment[] = Array.isArray(apptItems) ? apptItems.map((item: any) => {
           // patient_name might be missing or 'Unknown', so handle explicitly
-          let resolvedName = item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
+          let resolvedName = item.patient?.name || item.patient?.full_name || item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
 
           if (!resolvedName || resolvedName === 'Unknown') {
             if (item.patient_id || item.patientId) {
@@ -452,10 +454,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 opacity-80">Operations</div>
             <NavItem
               icon={<LayoutDashboard size={20} />}
-              label="Dashboard"
-              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'}
-              onClick={() => navigate('/dashboard')}
+              label={userRole === UserRole.NURSE ? "Vitals Intake" : "Dashboard"}
+              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/' || (userRole === UserRole.NURSE && location.pathname === '/dashboard/nurse')}
+              onClick={() => navigate(userRole === UserRole.NURSE ? '/dashboard/nurse' : '/dashboard')}
             />
+              {userRole === UserRole.NURSE && (
+                <>
+                  <NavItem
+                    icon={<MessageSquare size={20} />}
+                    label="Triage Console"
+                    active={location.pathname === '/dashboard/nurse/triage'}
+                    onClick={() => navigate('/dashboard/nurse/triage')}
+                  />
+                  <NavItem
+                    icon={<Users size={20} />}
+                    label="Lobby Roster"
+                    active={location.pathname === '/dashboard/nurse/lobby'}
+                    onClick={() => navigate('/dashboard/nurse/lobby')}
+                  />
+                </>
+              )}
             {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
               <NavItem
                 icon={<Users size={20} />}
@@ -541,19 +559,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             {userRole === UserRole.DOCTOR && (
               <NavItem
                 icon={<Stethoscope size={20} />}
-                label="Doctor Dashboard"
+                label="Clinical Escalations"
                 active={location.pathname === '/dashboard/doctor'}
                 onClick={() => navigate('/dashboard/doctor')}
               />
             )}
-            {userRole === UserRole.NURSE && (
-              <NavItem
-                icon={<Stethoscope size={20} />}
-                label="Nurse Dashboard"
-                active={location.pathname === '/dashboard/nurse'}
-                onClick={() => navigate('/dashboard/nurse')}
-              />
-            )}
+            
             {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
               <NavItem
                 icon={<Clock size={20} />}
@@ -672,13 +683,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           {/* Right Status / Toggles */}
           <div className="flex items-center space-x-4">
             
-            {/* Walk-in Express and Queue Pill */}
+            {/* Walk-In and Queue Pill */}
             <div className="flex items-center gap-2">
                <button 
                 onClick={() => setIsWalkInExpressOpen(true)}
                 className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-brand-primary to-brand-accent text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all"
                >
-                 <Activity size={14} /> Walk-in Express
+                 <Activity size={14} /> Walk-In
                </button>
                <button
                 onClick={() => navigate('/dashboard/waiting-room')}
@@ -718,7 +729,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <p className="text-sm font-semibold text-brand-textPrimary leading-tight">
                   {currentUser?.name || 'Suresh (Admin)'}
                 </p>
-                <p className="text-xs text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : 'Main Terminal'}</p>
+                <p className="text-xs text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
               </div>
               <div className="w-9 h-9 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-sm">
                 S(
@@ -738,6 +749,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-6 lg:p-8'}`}>
           <Routes>
             <Route index element={
+              userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
               <DashboardHome
                 userRole={userRole}
                 leads={leads}
@@ -788,6 +800,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             } />
             <Route path="doctor" element={<DoctorDashboard />} />
             <Route path="nurse" element={<NurseDashboard />} />
+            <Route path="nurse/triage" element={<TriageConsole />} />
+            <Route path="nurse/lobby" element={<LobbyRoster />} />
             <Route path="control-tower" element={<ControlTowerConsole />} />
             <Route path="cro-inbox" element={<CroInbox />} />
             <Route path="cro-analytics" element={<CroAnalytics />} />
@@ -949,4 +963,5 @@ const NavItem: React.FC<{
     {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
   </div>
 );
+
 

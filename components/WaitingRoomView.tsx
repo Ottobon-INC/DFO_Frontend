@@ -118,13 +118,13 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = () => {
                   <div key={appt.id} className="bg-brand-bg border border-brand-border rounded-xl p-5 hover:border-brand-primary/50 transition-colors flex justify-between items-center group">
                     <div className="flex items-center gap-5">
                       <div className="w-16 h-16 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
-                        <span className="text-2xl font-black text-brand-primary tracking-tighter">{appt.token_number || '-'}</span>
+                        <span className="text-2xl font-black text-brand-primary tracking-tighter">{appt.token_number || 'W-IN'}</span>
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-brand-textPrimary mb-1">{appt.patient_name_snapshot || 'Unknown'}</h3>
                         <div className="flex items-center gap-4 text-xs text-brand-textSecondary font-medium">
-                          <span className="flex items-center gap-1"><Stethoscope size={12}/> {appt.doctor_name_snapshot || 'Doctor'}</span>
-                          <span className="flex items-center gap-1"><Clock size={12}/> {new Date(appt.checked_in_at || appt.created_at).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}</span>
+                          <span className="flex items-center gap-1"><Stethoscope size={12}/> {appt.doctor_name_snapshot || (appt.doctor ? ('Dr. ' + appt.doctor.first_name + ' ' + appt.doctor.last_name) : 'Doctor')}</span>
+                          <span className="flex items-center gap-1"><Clock size={12}/> {new Date(appt.checked_in_at || appt.created_at || new Date()).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}</span>
                         </div>
                       </div>
                     </div>
@@ -164,12 +164,12 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = () => {
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-accent"></div>
                     <div className="flex items-center gap-5">
                       <div className="w-16 h-16 rounded-xl bg-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
-                        <span className="text-2xl font-black text-brand-accent tracking-tighter">{appt.token_number || '-'}</span>
+                        <span className="text-2xl font-black text-brand-accent tracking-tighter">{appt.token_number || 'W-IN'}</span>
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-brand-textPrimary mb-1">{appt.patient_name_snapshot || 'Unknown'}</h3>
                         <div className="flex items-center gap-4 text-xs text-brand-textSecondary font-medium">
-                          <span className="flex items-center gap-1"><Stethoscope size={12}/> {appt.doctor_name_snapshot || 'Doctor'}</span>
+                          <span className="flex items-center gap-1"><Stethoscope size={12}/> {appt.doctor_name_snapshot || (appt.doctor ? ('Dr. ' + appt.doctor.first_name + ' ' + appt.doctor.last_name) : 'Doctor')}</span>
                         </div>
                       </div>
                     </div>
@@ -190,3 +190,6 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = () => {
     </div>
   );
 };
+
+
+
