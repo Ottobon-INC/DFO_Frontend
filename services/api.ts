@@ -160,9 +160,20 @@ export const api = {
     },
 
     getDoctors: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/doctors`, {
+        const res = await fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/staff`, {
             headers: getHeaders()
         });
+        if (res && res.success && Array.isArray(res.data)) {
+            // Filter for doctors and map to expected format
+            res.data = res.data
+                .filter((staff: any) => staff.role?.toLowerCase() === 'doctor')
+                .map((staff: any) => ({
+                    id: staff.id,
+                    name: staff.sakhi_clinic_users?.name || staff.name || [staff.first_name, staff.last_name].filter(Boolean).join(' ') || 'Unknown Doctor',
+                    ...staff
+                }));
+        }
+        return res;
     },
 
     getSchedules: async (doctorId: string) => {

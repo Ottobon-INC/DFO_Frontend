@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://127.0.0.1:3005',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => {
