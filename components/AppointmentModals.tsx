@@ -273,7 +273,42 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                                     ))
                                                 ) : (
                                                     <div className="p-4 text-center text-sm text-brand-textSecondary">
-                                                        {isSearching ? 'Searching...' : 'No patients found.'}
+                                                        {isSearching ? (
+                                                            <span className="text-sm text-brand-textSecondary">Searching...</span>
+                                                        ) : (
+                                                            <div className="space-y-2">
+                                                                <p className="text-sm text-brand-textSecondary">No patients found.</p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({ ...prev, phone: searchQuery }));
+                                                                        setActiveTab('new');
+                                                                        setSearchQuery('');
+                                                                        setShowResults(false);
+                                                                    }}
+                                                                    className="w-full py-2.5 bg-brand-primary/10 text-brand-primary text-sm font-bold rounded-lg hover:bg-brand-primary/20 transition-colors"
+                                                                >
+                                                                    + Register new patient with {searchQuery}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {/* Register family member button */}
+                                                {searchResults.length > 0 && !isSearching && (
+                                                    <div className="p-3 border-t border-brand-border bg-brand-bg/50">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setFormData(prev => ({ ...prev, phone: searchQuery }));
+                                                                setActiveTab('new');
+                                                                setSearchQuery('');
+                                                                setShowResults(false);
+                                                            }}
+                                                            className="w-full py-2 text-brand-primary text-xs font-bold rounded-lg hover:bg-brand-primary/10 transition-colors"
+                                                        >
+                                                            + Register new family member with this number
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -436,10 +471,11 @@ interface AppointmentActionCardProps {
     onClose: () => void;
     onCancel: () => void;
     onReschedule?: () => void;
+    onCheckIn?: () => void;
     doctors?: any[];
 }
 
-export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ appointment, onClose, onCancel, onReschedule, doctors: passedDoctors }) => {
+export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ appointment, onClose, onCancel, onReschedule, onCheckIn, doctors: passedDoctors }) => {
     const { doctors: fetchedDoctors } = useDoctors();
     const doctors = passedDoctors || fetchedDoctors;
 
@@ -521,9 +557,17 @@ export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ ap
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="grid grid-cols-1 gap-3">
                         {appointment.status !== 'Canceled' && (
                             <>
+                                {onCheckIn && (appointment.status === 'Scheduled' || appointment.status === 'Expected') && (
+                                    <button
+                                        onClick={onCheckIn}
+                                        className="w-full py-3 bg-brand-primary text-white font-bold rounded-xl transition-all hover:bg-brand-secondary shadow-md"
+                                    >
+                                        Check In Patient
+                                    </button>
+                                )}
                                 {onReschedule && (
                                     <button
                                         onClick={onReschedule}
@@ -547,4 +591,6 @@ export const AppointmentActionCard: React.FC<AppointmentActionCardProps> = ({ ap
         document.body
     );
 };
+
+
 

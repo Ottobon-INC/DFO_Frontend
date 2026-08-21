@@ -113,7 +113,7 @@ export const NurseDashboard: React.FC = () => {
       
       if (activeAppointmentId) {
          try {
-           await api.updateAppointmentStatus(activeAppointmentId, 'Waiting');
+           await api.updateAppointmentStatus(activeAppointmentId, { status: 'Expected' as any });
          } catch(e) { console.error("Could not update status to waiting", e) }
       }
 
@@ -328,3 +328,4 @@ export const NurseDashboard: React.FC = () => {
     </div>
   );
 };
+

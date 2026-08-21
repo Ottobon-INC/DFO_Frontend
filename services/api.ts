@@ -287,6 +287,14 @@ export const api = {
         });
     },
 
+    checkinAndConvert: async (id: string, notes?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}/checkin-convert`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ clinicalNotes: notes })
+        });
+    },
+
     // Leads
     getLeads: async (params?: { phone?: string; status?: string; q?: string; page?: number; limit?: number }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';

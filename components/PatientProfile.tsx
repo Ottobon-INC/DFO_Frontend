@@ -59,12 +59,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         e.preventDefault();
         setSavingVitals(true);
         try {
-            await api.saveVitals({
-                patientId: patient.id,
-                vital_type: vitalType,
-                vital_value: vitalValue,
-                unit: vitalUnit
-            } as any);
+            await api.addPatientVitals(patient.id, { vital_type: vitalType, value: vitalValue, unit: vitalUnit });
             setIsVitalsModalOpen(false);
             setVitalValue('');
             fetchDashboardMetrics();
@@ -1323,3 +1318,4 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         document.body
     );
 };
+

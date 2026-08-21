@@ -65,7 +65,7 @@ export const LobbyRoster: React.FC = () => {
 
   const handleCheckInPatient = async (appointmentId: string) => {
     try {
-      await api.updateAppointmentStatus(appointmentId, 'Checked-In');
+      await api.updateAppointmentStatus(appointmentId, { status: 'Checked-In' });
       toast.success("Patient Checked-In successfully!");
       loadData();
     } catch (err) {
@@ -146,3 +146,4 @@ export const LobbyRoster: React.FC = () => {
     </div>
   );
 };
+

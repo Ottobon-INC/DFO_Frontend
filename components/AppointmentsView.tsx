@@ -571,23 +571,32 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const handleCheckIn = async () => {
         if (selectedAppointment) {
             try {
-                // Determine target status. Using 'Checked-In' to match the button text more closely, but backend might expect 'Arrived'.
-                // Using 'Checked-In' for clarity if backend supports it, otherwise fallback to 'Arrived'.
+                let pinMsg = "";
+                // If the appointment doesn't have a linked patient profile yet (e.g. from WhatsApp lead)
+                if (!selectedAppointment.patientId) {
+                    const result = await api.checkinAndConvert(selectedAppointment.id);
+                    const pin = result.data?.pin || result.pin || 'Unknown';
+                    pinMsg = `\n\nPatient Profile Created!\nPlease provide this Registration PIN to the patient:\n\nPIN: ${pin}`;
+                } else {
+                    const status = 'Checked-In';
+                    await api.updateAppointmentStatus(selectedAppointment.id, { status });
+                }
+
                 const status = 'Checked-In';
-                await api.updateAppointmentStatus(selectedAppointment.id, { status });
-
                 // Update Local State List
-                setAppointments(prev => prev.map(a => a.id === selectedAppointment.id ? { ...a, status } : a));
+                setAppointments(prev => prev.map(a => a.id === selectedAppointment.id ? { ...a, status, patientId: a.patientId || 'new-patient' } : a));
 
-                // Update Selected Appointment State (Crucial for Modal UI Update)
-                setSelectedAppointment(prev => prev ? ({ ...prev, status }) : null);
+                // Update Selected Appointment State
+                setSelectedAppointment(prev => prev ? ({ ...prev, status, patientId: prev.patientId || 'new-patient' }) : null);
 
-                // Close modal after brief delay or immediately? User said "buttons not working", so likely they want visual feedback.
-                // Let's close it to show the change on the board.
                 setIsActionCardOpen(false);
-            } catch (error) {
+                
+                if (pinMsg) {
+                    alert(`Check-in complete.${pinMsg}\n\nPlease proceed to update the rest of their information in their profile.`);
+                }
+            } catch (error: any) {
                 console.error("Check-in failed", error);
-                alert("Failed to check in. Please try again.");
+                alert(error?.message || error?.error || "Failed to check in. Please try again.");
             }
         }
     };
@@ -1114,6 +1123,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     appointment={selectedAppointment}
                     onReschedule={handleRescheduleInit}
                     onCancel={handleCancel}
+                    onCheckIn={handleCheckIn}
                     doctors={doctors}
                 />
             )}
