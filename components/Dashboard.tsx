@@ -32,6 +32,8 @@ import { DoctorSchedulesView } from './settings/DoctorSchedulesView';
 import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
 import DoctorScheduleSettings from './settings/DoctorScheduleSettings';
 import { ProfileSettingsModal } from './settings/ProfileSettingsModal';
+import { RequireTier } from './common/RequireTier';
+import { getRoleTier } from '../constants/roles.constants';
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -474,22 +476,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                   />
                 </>
               )}
-            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<Users size={20} />}
                 label="Leads Pipeline"
                 active={location.pathname === '/dashboard/leads'}
                 onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
               />
-            )}
-            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+            </RequireTier>
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<FileText size={20} />}
                 label="Daily Register"
                 active={location.pathname === '/dashboard/daily-register'}
                 onClick={() => navigate('/dashboard/daily-register')}
               />
-            )}
+            </RequireTier>
             <NavItem
               icon={<Users size={20} />}
               label="Waiting Room"
@@ -534,7 +536,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse shadow-sm"></span>
               Operations Dashboards
             </div>
-            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
+            <RequireTier minTier={3} userRole={userRole}>
               <>
                 <NavItem
                   icon={<Activity size={20} />}
@@ -555,24 +557,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                   onClick={() => navigate('/dashboard/cro-analytics')}
                 />
               </>
-            )}
-            {userRole === UserRole.DOCTOR && (
+            </RequireTier>
+            <RequireTier minTier={1} userRole={userRole}>
               <NavItem
                 icon={<Stethoscope size={20} />}
                 label="Clinical Escalations"
                 active={location.pathname === '/dashboard/doctor'}
                 onClick={() => navigate('/dashboard/doctor')}
               />
-            )}
+            </RequireTier>
             
-            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<Clock size={20} />}
                 label="Audit Logs"
                 active={location.pathname === '/dashboard/audit-logs'}
                 onClick={() => navigate('/dashboard/audit-logs')}
               />
-            )}
+            </RequireTier>
           </div>
 
           {/* Team Management - Only for Clinic Admins */}
@@ -681,35 +683,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           </div>
 
           {/* Right Status / Toggles */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             
-            {/* Walk-In and Queue Pill */}
-            <div className="flex items-center gap-2">
+            {/* Walk-In and Queue Action Buttons */}
+            <div className="flex items-center gap-1.5">
                <button 
                 onClick={() => setIsWalkInExpressOpen(true)}
-                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-brand-primary to-brand-accent text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all"
+                className="hidden md:flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-xs active:scale-95 transition-all"
                >
                  <Activity size={14} /> Walk-In
                </button>
                <button
                 onClick={() => navigate('/dashboard/waiting-room')}
-                className="hidden lg:flex items-center gap-1.5 bg-brand-hover border border-brand-border text-brand-textPrimary px-3 py-1.5 rounded-full text-xs font-bold hover:bg-brand-surface transition-colors"
+                className="hidden lg:flex items-center gap-1.5 bg-brand-surface border border-brand-border text-brand-textPrimary hover:border-brand-primary px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-2xs"
                >
                  <Users size={14} className="text-brand-primary" /> Queue
                </button>
             </div>
 
             {/* Language Toggles */}
-            <div className="hidden sm:flex items-center bg-brand-hover rounded-full p-1 border border-brand-border">
-              <span className="bg-brand-primary text-white text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer">EN</span>
-              <span className="text-brand-textSecondary text-[10px] font-bold px-3 py-1 cursor-pointer">HI</span>
+            <div className="hidden sm:flex items-center bg-slate-100 rounded-md p-0.5 border border-brand-border">
+              <span className="bg-brand-primary text-white text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer shadow-2xs">EN</span>
+              <span className="text-brand-textSecondary text-[10px] font-bold px-2 py-0.5 cursor-pointer hover:text-brand-textPrimary">HI</span>
             </div>
 
             {/* Time / Date */}
-            <div className="hidden md:flex items-center gap-1.5 bg-brand-hover border border-brand-border rounded-full px-3 py-1.5">
+            <div className="hidden md:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
-              <span className="text-[11px] font-medium text-brand-textSecondary">IST</span>
-              <span className="text-[11px] font-medium text-brand-textPrimary ml-1">
+              <span className="text-[11px] font-semibold text-brand-textSecondary">IST</span>
+              <span className="text-[11px] font-bold text-brand-textPrimary ml-0.5">
                 {currentTime.toLocaleString('en-GB', {
                   timeZone: 'Asia/Kolkata',
                   day: '2-digit',
@@ -724,15 +726,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </div>
 
             {/* User Profile */}
-            <div className="flex items-center space-x-3 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
-              <div className="text-right hidden sm:block mr-2">
-                <p className="text-sm font-semibold text-brand-textPrimary leading-tight">
-                  {currentUser?.name || 'Suresh (Admin)'}
+            <div className="flex items-center space-x-2.5 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+              <div className="text-right hidden sm:block mr-1">
+                <p className="text-xs font-bold text-brand-textPrimary leading-tight">
+                  {currentUser?.name || 'Dr. Rajia'}
                 </p>
-                <p className="text-xs text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
+                <p className="text-[11px] text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
               </div>
-              <div className="w-9 h-9 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-sm">
-                S(
+              <div className="w-8 h-8 bg-brand-primary/10 border border-brand-primary/20 rounded-md flex items-center justify-center text-brand-primary font-bold text-xs">
+                {(currentUser?.name || 'D').charAt(0)}
               </div>
 
               {isProfileDropdownOpen && (
@@ -746,7 +748,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </header>
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-6 lg:p-8'}`}>
+        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-4 lg:p-5'}`}>
           <Routes>
             <Route index element={
               userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
@@ -947,20 +949,20 @@ const NavItem: React.FC<{
   <div
     onClick={onClick}
     className={`
-      flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group mb-1
-      ${isSubItem ? 'pl-8' : ''}
+      flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer transition-all duration-150 group mb-0.5 select-none
+      ${isSubItem ? 'pl-7' : ''}
       ${customClass ? customClass : active
-        ? 'bg-brand-primary text-white shadow-md'
-        : 'text-brand-textSecondary hover:bg-brand-hover'}
+        ? 'bg-brand-primary text-white shadow-xs font-semibold'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'}
     `}
   >
-    <div className="flex items-center space-x-3">
-      <div className={`transition-transform duration-200 flex-shrink-0 ${active || customClass ? '' : 'text-brand-textSecondary group-hover:text-brand-textSecondary'}`}>
-        {icon}
+    <div className="flex items-center space-x-2.5">
+      <div className={`transition-transform duration-150 flex-shrink-0 ${active || customClass ? '' : 'text-slate-500 group-hover:text-slate-700'}`}>
+        {React.cloneElement(icon as React.ReactElement, { size: 16 })}
       </div>
-      <span className={`text-[13px] tracking-wide ${active || (customClass && customClass.includes('font-medium')) ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+      <span className={`text-xs tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
     </div>
-    {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
+    {rightIcon && <div className="text-slate-400">{rightIcon}</div>}
   </div>
 );
 

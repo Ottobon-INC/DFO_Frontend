@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Appointment, Lead, UserRole, Patient } from '../types';
+import { getRoleTier } from '../constants/roles.constants';
 import { AppointmentWidget, QuickLeadWidget, LeadsWidget, CROStatusWidget, InterventionQueueWidget, FinancialSnapshotWidget, KPIWidget, ConversionFunnelWidget, KPIData, FunnelData } from './DashboardWidgets';
 import { DoctorDashboard } from './DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
@@ -66,7 +67,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
     // Fetch CRO dashboard data when component mounts (for Admin/CRO users)
     useEffect(() => {
-        if (userRole === UserRole.ADMIN || userRole === UserRole.CRO) {
+        if (getRoleTier(userRole) <= 1) { // Tier 1: Only Doctors and Admins see CRO dashboard data
             const fetchCRODashboard = async () => {
                 setKpiLoading(true);
                 setKpiError(null);

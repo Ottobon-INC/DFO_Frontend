@@ -241,17 +241,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
             <div className={`flex-1 flex flex-col h-full transition-all duration-300 min-w-0 ${selectedLead ? 'lg:w-2/3' : 'w-full'}`}>
 
                 {/* Toolbar */}
-                <div className="p-3 sm:p-4 lg:p-6 border-b border-brand-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-brand-bg/50">
-                    <div className="flex items-center w-full sm:w-auto sm:max-w-xs lg:w-96">
+                <div className="p-3 sm:p-3.5 border-b border-brand-border flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2.5 bg-slate-50/70">
+                    <div className="flex items-center w-full sm:w-auto sm:max-w-xs lg:w-80">
                         <Input
-                            placeholder="Search Leads..."
+                            placeholder="Search Leads by name, phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full"
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
+                    <div className="flex flex-wrap gap-2 items-center">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -264,33 +264,33 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                             onClick={handleExportCSV}
                             title="Export to CSV"
                         >
-                            <Download size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Export</span>
+                            <Download size={14} className="sm:mr-1.5" /> <span className="hidden sm:inline">Export</span>
                         </Button>
                         <Button
                             variant="outline"
                             onClick={handleImportClick}
                             title="Import from CSV"
                         >
-                            <Upload size={16} className="sm:mr-2" /> <span className="hidden sm:inline">Import</span>
+                            <Upload size={14} className="sm:mr-1.5" /> <span className="hidden sm:inline">Import</span>
                         </Button>
 
                         <select
-                              value={filterStatus}
-                              onChange={(e) => setFilterStatus(e.target.value)}
-                              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-brand-surface border border-brand-border text-brand-textSecondary font-bold rounded-xl hover:bg-brand-bg flex items-center text-sm outline-none focus:border-brand-primary h-10"
-                          >
-                              <option value="All">All Leads</option>
-                              <option value="New Inquiry">New Inquiries</option>
-                              <option value="In Progress">In Progress</option>
-                              <option value="Stalling - Sent to CRO">CRO Queue</option>
-                              <option value="Converted">Converted</option>
-                              <option value="Lost">Dropped / Lost</option>
-                          </select>
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="px-2.5 py-1 bg-white border border-brand-border text-brand-textPrimary font-semibold rounded-md hover:bg-slate-50 flex items-center text-xs outline-none focus:border-brand-primary h-8.5 shadow-2xs cursor-pointer"
+                        >
+                            <option value="All">All Leads</option>
+                            <option value="New Inquiry">New Inquiries</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Stalling - Sent to CRO">CRO Queue</option>
+                            <option value="Converted">Converted</option>
+                            <option value="Lost">Dropped / Lost</option>
+                        </select>
                         <Button
                             variant="primary"
                             onClick={onOpenAddModal}
                         >
-                            <UserPlus size={16} className="mr-1 sm:mr-2" /> <span className="hidden sm:inline">Add Lead</span><span className="sm:hidden">Add</span>
+                            <UserPlus size={14} className="mr-1 sm:mr-1.5" /> <span className="hidden sm:inline">Add Lead</span><span className="sm:hidden">Add</span>
                         </Button>
                     </div>
                 </div>
@@ -298,14 +298,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                 {/* Table */}
                 <div className="flex-1 overflow-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm">
+                        <thead className="bg-slate-50 sticky top-0 z-10 shadow-2xs border-b border-brand-border">
                             <tr>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Name</th>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Status</th>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border hidden md:table-cell">Source</th>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border hidden lg:table-cell">Staff</th>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border hidden md:table-cell">Time</th>
-                                <th className="p-2 sm:p-4 text-[10px] sm:text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Actions</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Name</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Status</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider hidden md:table-cell">Source</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider hidden lg:table-cell">Staff</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider hidden md:table-cell">Time</th>
+                                <th className="py-2.5 px-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
@@ -313,44 +313,44 @@ export const LeadsView: React.FC<LeadsViewProps> = ({ leads, onUpdateLead, onOpe
                                 <tr
                                     key={lead.id}
                                     onClick={() => setSelectedLeadId(lead.id)}
-                                    className={`hover:bg-brand-bg/50 transition-colors cursor-pointer group ${selectedLead?.id === lead.id ? 'bg-brand-primary/10' : ''}`}
+                                    className={`hover:bg-slate-50/80 transition-colors cursor-pointer group ${selectedLead?.id === lead.id ? 'bg-brand-primary/5 border-l-2 border-brand-primary' : ''}`}
                                 >
-                                    <td className="p-2 sm:p-4">
-                                        <div className="flex items-center space-x-2 sm:space-x-3">
-                                            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-brand-bg flex items-center justify-center text-brand-textSecondary font-bold text-xs sm:text-sm border border-brand-border flex-shrink-0">
+                                    <td className="py-2.5 px-3.5">
+                                        <div className="flex items-center space-x-2.5">
+                                            <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 flex-shrink-0">
                                                 {lead.name.charAt(0)}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="font-bold text-brand-textPrimary text-xs sm:text-sm truncate max-w-[80px] sm:max-w-none">{lead.name}</p>
-                                                <p className="text-[10px] sm:text-xs text-brand-textSecondary truncate">{lead.phone}</p>
+                                                <p className="font-bold text-slate-900 text-xs truncate max-w-[120px] sm:max-w-none">{lead.name}</p>
+                                                <p className="text-[11px] text-slate-500 truncate">{lead.phone}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-2 sm:p-4">
-                                        <span className={`text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 sm:py-1 rounded uppercase tracking-wider border whitespace-nowrap ${lead.status === 'New Inquiry' ? 'bg-brand-warning/10 text-brand-warning border-brand-warning/20' :
-                                            lead.status === 'Contacted' ? 'bg-brand-primary/10 text-brand-primary border-brand-primary/20' :
-                                                lead.status === 'Converted - Active Patient' ? 'bg-brand-success/10 text-brand-success border-brand-success/20' :
-                                                    'bg-brand-error/10 text-brand-error border-brand-error/20'
+                                    <td className="py-2.5 px-3.5">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap inline-flex items-center ${lead.status === 'New Inquiry' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                            lead.status === 'Contacted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                lead.status === 'Converted - Active Patient' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                    'bg-red-50 text-red-700 border-red-200'
                                             }`}>
                                             <span className="hidden sm:inline">{lead.status}</span>
                                             <span className="sm:hidden">{lead.status.split(' ')[0]}</span>
                                         </span>
                                     </td>
-                                    <td className="p-2 sm:p-4 text-xs sm:text-sm text-brand-textSecondary font-medium hidden md:table-cell">{lead.source}</td>
-                                    <td className="p-2 sm:p-4 text-[10px] sm:text-xs text-brand-textSecondary font-bold hidden lg:table-cell">
+                                    <td className="py-2.5 px-3.5 text-xs text-slate-600 font-medium hidden md:table-cell">{lead.source}</td>
+                                    <td className="py-2.5 px-3.5 text-xs text-slate-600 font-medium hidden lg:table-cell">
                                         {lead.status.includes('CRO') ? 'CRO Anjali' : 'Front Desk'}
                                     </td>
-                                    <td className="p-2 sm:p-4 text-[10px] sm:text-xs text-brand-textSecondary font-medium hidden md:table-cell">
+                                    <td className="py-2.5 px-3.5 text-[11px] text-slate-500 font-medium hidden md:table-cell">
                                         {lead.dateAdded.includes('Days') ? lead.dateAdded : 'Today'}
                                     </td>
-                                    <td className="p-4">
-                                        <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <td className="py-2.5 px-3.5">
+                                        <div className="flex space-x-1.5">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setSelectedLeadId(lead.id); }}
-                                                className="text-brand-primary hover:bg-brand-primary/10 p-2 rounded-lg transition-colors"
+                                                className="text-slate-400 hover:text-brand-primary hover:bg-slate-100 p-1.5 rounded-md transition-colors"
                                                 title="View Details"
                                             >
-                                                <ChevronRight size={16} />
+                                                <ChevronRight size={14} />
                                             </button>
                                         </div>
                                     </td>

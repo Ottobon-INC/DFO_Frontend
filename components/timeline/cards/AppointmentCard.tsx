@@ -1,23 +1,17 @@
 import React from 'react';
-import { Calendar, User, Clock, CheckCircle } from 'lucide-react';
+import { Calendar, Stethoscope, CheckCircle, Clock } from 'lucide-react';
 
 interface AppointmentCardProps {
     event: any;
 }
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({ event }) => {
-    // patient_timeline_view returns:
-    // title: COALESCE(visit_reason, type)
-    // description: (type || ' - ' || status) OR just status for consultations
-    // For a consultation, description is the raw note
-
-    const title = event.title || 'Appointment';
+    const title = event.title || 'Clinical Consultation';
     const isConsultation = event.event_type === 'CONSULTATION';
     const description = event.description || '';
     
-    // Attempt to extract status if it's formatted as "Type - Status"
     let statusLabel = 'Completed';
-    let doctorName = 'Care Provider'; // Doctor name isn't directly exposed in the view right now, so we fall back
+    let doctorName = event.doctor_name || event.provider_name || 'Assigned Consultant';
 
     if (!isConsultation && description.includes(' - ')) {
         const parts = description.split(' - ');
@@ -25,35 +19,36 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({ event }) => {
     }
 
     return (
-        <div className="bg-brand-surface rounded-xl border border-blue-500/20 shadow-sm p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center space-x-2 text-brand-textPrimary">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                        <Calendar size={16} />
+        <div className="bg-white rounded-lg border border-slate-200/90 shadow-2xs p-3 hover:border-slate-300 transition-colors">
+            <div className="flex justify-between items-start gap-2">
+                <div className="flex items-center space-x-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-md bg-sky-50 text-brand-primary flex items-center justify-center border border-sky-100 flex-shrink-0">
+                        {isConsultation ? <Stethoscope size={13} /> : <Calendar size={13} />}
                     </div>
-                    <div>
-                        <h4 className="font-bold text-sm">{title}</h4>
-                        {!isConsultation && <p className="text-xs text-brand-textSecondary">{statusLabel}</p>}
+                    <div className="min-w-0">
+                        <h4 className="font-bold text-xs text-slate-900 truncate">{title}</h4>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <Stethoscope size={10} className="text-slate-400" />
+                            <span>{doctorName}</span>
+                        </p>
                     </div>
                 </div>
-                {statusLabel.toLowerCase() === 'completed' && (
-                    <span className="flex items-center text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-md">
-                        <CheckCircle size={12} className="mr-1" /> Completed
-                    </span>
-                )}
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex-shrink-0 ${
+                    statusLabel.toLowerCase() === 'completed' 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        : 'bg-sky-50 text-sky-700 border-sky-200'
+                }`}>
+                    {statusLabel}
+                </span>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-brand-border/50 flex flex-col space-y-2 text-xs text-brand-textSecondary">
-                <div className="flex items-center font-bold">
-                    <User size={12} className="mr-1.5 text-brand-primary" />
-                    <span>{doctorName}</span>
+            {isConsultation && description && (
+                <div className="mt-2.5 pt-2 border-t border-slate-100">
+                    <p className="text-xs text-slate-700 whitespace-pre-line leading-relaxed bg-slate-50 p-2.5 rounded-md border border-slate-200/80">
+                        {description}
+                    </p>
                 </div>
-                {isConsultation && description && (
-                    <div className="bg-brand-bg p-2 rounded-lg border border-brand-border/50 mt-2">
-                        <p className="line-clamp-3 leading-relaxed">{description}</p>
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     );
 };

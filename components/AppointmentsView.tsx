@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon, Upload, Download } from 'lucide-react';
 import { Doctor, Appointment, Patient, UserRole } from '../types';
+import { getRoleTier } from '../constants/roles.constants';
 import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
 import { RescheduleModal } from './Modals';
 import { PatientProfile } from './PatientProfile';
@@ -661,7 +662,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
         <div className="flex flex-col lg:flex-row h-[calc(100vh-90px)] gap-3 md:gap-4 relative w-full overflow-hidden">
             {/* Sidebar Filters - Hidden on mobile, narrower on tablet */}
             <div className="hidden md:flex w-48 lg:w-56 xl:w-64 flex-shrink-0 flex-col gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
-                {userRole !== UserRole.DOCTOR && (
+                {getRoleTier(userRole) >= 2 && ( // Hide filters sidebar for Doctors (Tier 1)
                     <div className="bg-brand-surface p-3 lg:p-4 xl:p-6 rounded-xl lg:rounded-2xl shadow-sm border border-brand-border">
                         <div className="flex items-center space-x-2 mb-3 lg:mb-4 xl:mb-6 text-brand-textPrimary">
                             <Filter size={16} className="text-brand-primary" />
