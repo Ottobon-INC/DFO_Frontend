@@ -14,6 +14,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/thread': {
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          changeOrigin: true,
+          secure: false,
+        },
         '/janmasethu': {
           target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
           changeOrigin: true,
