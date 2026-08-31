@@ -1,265 +1,464 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Clock, AlertCircle, ChevronDown, Check } from 'lucide-react';
-import { api } from '../../services/api';import toast from 'react-hot-toast';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Save, Clock, AlertCircle, CheckCircle2, Plus, Trash2, Calendar, 
+  Sparkles, Sun, Sunset, Stethoscope, ChevronRight, RefreshCw, Layers
+} from 'lucide-react';
+import { api } from '../../services/api';
+import toast from 'react-hot-toast';
 
-
-interface ScheduleRule {
-    day_of_week: number;
-    start_time: string;
-    end_time: string;
-    slot_duration_minutes: number;
+export interface ShiftSession {
+  id?: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  slot_duration_minutes: number;
+  session_name?: string;
+  room_number?: string;
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export default function DoctorScheduleSettings({ userRole, currentUser }: { userRole: string, currentUser: any }) {
-    const [doctors, setDoctors] = useState<any[]>([]);
-    const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
-    const [schedules, setSchedules] = useState<ScheduleRule[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
-    const [globalSlotDuration, setGlobalSlotDuration] = useState<number>(15);
+interface DoctorScheduleSettingsProps {
+  userRole: string;
+  currentUser: any;
+  onNavigateToCalendar?: (doctorId: string) => void;
+}
 
-    useEffect(() => {
-        if (userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk') {
-            fetchDoctors();
-        } else if (userRole === 'Doctor') {
-            // Doctors can only edit their own schedule
-            setSelectedDoctorId(currentUser?.id || '');
+export default function DoctorScheduleSettings({ userRole, currentUser, onNavigateToCalendar }: DoctorScheduleSettingsProps) {
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+  const [schedules, setSchedules] = useState<ShiftSession[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [globalSlotDuration, setGlobalSlotDuration] = useState<number>(15);
+  
+  // Generation Range
+  const [generateRange, setGenerateRange] = useState<'7' | '30' | '90' | 'custom'>('30');
+  const [customStartDate, setCustomStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [customEndDate, setCustomEndDate] = useState<string>(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+
+  useEffect(() => {
+    if (userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk' || userRole === 'Super Admin') {
+      fetchDoctors();
+    } else if (userRole === 'Doctor') {
+      setSelectedDoctorId(currentUser?.id || '');
+    }
+  }, [userRole, currentUser]);
+
+  useEffect(() => {
+    if (selectedDoctorId) {
+      fetchSchedules(selectedDoctorId);
+    }
+  }, [selectedDoctorId]);
+
+  const fetchDoctors = async () => {
+    try {
+      const res = await api.getDoctors();
+      if (res.success && res.data) {
+        setDoctors(res.data);
+        if (res.data.length > 0 && !selectedDoctorId) {
+          setSelectedDoctorId(res.data[0].id);
         }
-    }, [userRole, currentUser]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch doctors", error);
+      toast.error("Failed to load doctor list");
+    }
+  };
 
-    useEffect(() => {
-        if (selectedDoctorId) {
-            fetchSchedules(selectedDoctorId);
+  const fetchSchedules = async (doctorId: string) => {
+    setLoading(true);
+    try {
+      const res = await api.getSchedules(doctorId);
+      if (Array.isArray(res)) {
+        setSchedules(res);
+        if (res.length > 0 && res[0].slot_duration_minutes) {
+          setGlobalSlotDuration(res[0].slot_duration_minutes);
         }
-    }, [selectedDoctorId]);
+      } else {
+        setSchedules([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch schedules", error);
+      toast.error("Failed to load existing schedule rules");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const fetchDoctors = async () => {
-        try {
-            const res = await api.getDoctors();
-            if (res.success && res.data) {
-                // The backend getDoctors endpoint already filters doctors
-                const docs = res.data;
-                setDoctors(docs);
-                if (docs.length > 0 && !selectedDoctorId) {
-                    setSelectedDoctorId(docs[0].id);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch doctors", error);
+  // Check if a day has any active sessions
+  const isDayActive = (dayIndex: number) => {
+    return schedules.some(s => s.day_of_week === dayIndex);
+  };
+
+  // Toggle all sessions for a day ON/OFF
+  const handleToggleDay = (dayIndex: number) => {
+    if (isDayActive(dayIndex)) {
+      setSchedules(schedules.filter(s => s.day_of_week !== dayIndex));
+    } else {
+      // Add default Morning Session
+      const newSession: ShiftSession = {
+        day_of_week: dayIndex,
+        start_time: '09:30',
+        end_time: '13:30',
+        slot_duration_minutes: globalSlotDuration,
+        session_name: 'Morning Session'
+      };
+      setSchedules([...schedules, newSession]);
+    }
+  };
+
+  // Add Split Session (e.g. Evening) to a day
+  const handleAddSession = (dayIndex: number) => {
+    const existingDaySessions = schedules.filter(s => s.day_of_week === dayIndex);
+    const isFirstEvening = existingDaySessions.length >= 1;
+
+    const newSession: ShiftSession = {
+      day_of_week: dayIndex,
+      start_time: isFirstEvening ? '17:00' : '09:30',
+      end_time: isFirstEvening ? '20:30' : '13:30',
+      slot_duration_minutes: globalSlotDuration,
+      session_name: isFirstEvening ? 'Evening Session' : 'Morning Session'
+    };
+    setSchedules([...schedules, newSession]);
+  };
+
+  // Remove a single session
+  const handleRemoveSession = (dayIndex: number, sessionIndex: number) => {
+    let dayCount = 0;
+    const updated = schedules.filter(s => {
+      if (s.day_of_week === dayIndex) {
+        const matches = dayCount === sessionIndex;
+        dayCount++;
+        return !matches;
+      }
+      return true;
+    });
+    setSchedules(updated);
+  };
+
+  // Update specific session property
+  const handleUpdateSession = (
+    dayIndex: number, 
+    sessionIndex: number, 
+    field: keyof ShiftSession, 
+    value: any
+  ) => {
+    let dayCount = 0;
+    const updated = schedules.map(s => {
+      if (s.day_of_week === dayIndex) {
+        if (dayCount === sessionIndex) {
+          dayCount++;
+          return { ...s, [field]: value };
         }
+        dayCount++;
+      }
+      return s;
+    });
+    setSchedules(updated);
+  };
+
+  const handleGlobalDurationChange = (duration: number) => {
+    setGlobalSlotDuration(duration);
+    setSchedules(schedules.map(s => ({ ...s, slot_duration_minutes: duration })));
+  };
+
+  // Calculate total weekly consultation capacity
+  const weeklyStats = useMemo(() => {
+    let totalMinutes = 0;
+    let totalSlots = 0;
+
+    schedules.forEach(s => {
+      const [sH, sM] = s.start_time.split(':').map(Number);
+      const [eH, eM] = s.end_time.split(':').map(Number);
+      const diff = (eH * 60 + (eM || 0)) - (sH * 60 + (sM || 0));
+      if (diff > 0) {
+        totalMinutes += diff;
+        totalSlots += Math.floor(diff / (s.slot_duration_minutes || globalSlotDuration || 15));
+      }
+    });
+
+    const activeDays = new Set(schedules.map(s => s.day_of_week)).size;
+
+    return {
+      totalHours: (totalMinutes / 60).toFixed(1),
+      totalSlots,
+      activeDays
     };
+  }, [schedules, globalSlotDuration]);
 
-    const fetchSchedules = async (doctorId: string) => {
-        setLoading(true);
-        try {
-            const res = await api.getSchedules(doctorId);
-            if (res) {
-                // Initialize state
-                setSchedules(res);
-                if (res.length > 0) {
-                    setGlobalSlotDuration(res[0].slot_duration_minutes || 15);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to fetch schedules", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleSave = async () => {
+    if (!selectedDoctorId) {
+      toast.error("Please select a doctor");
+      return;
+    }
+    setSaving(true);
 
-    const handleToggleDay = (dayIndex: number) => {
-        const exists = schedules.some(s => s.day_of_week === dayIndex);
-        if (exists) {
-            setSchedules(schedules.filter(s => s.day_of_week !== dayIndex));
-        } else {
-            setSchedules([...schedules, {
-                day_of_week: dayIndex,
-                start_time: '09:00',
-                end_time: '17:00',
-                slot_duration_minutes: globalSlotDuration
-            }]);
-        }
-    };
+    try {
+      // Calculate date range
+      const today = new Date();
+      let startStr = today.toISOString().split('T')[0];
+      let endStr = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const handleTimeChange = (dayIndex: number, field: 'start_time' | 'end_time', value: string) => {
-        setSchedules(schedules.map(s => {
-            if (s.day_of_week === dayIndex) {
-                return { ...s, [field]: value };
-            }
-            return s;
-        }));
-    };
+      if (generateRange === '7') {
+        endStr = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      } else if (generateRange === '90') {
+        endStr = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      } else if (generateRange === 'custom') {
+        startStr = customStartDate;
+        endStr = customEndDate;
+      }
 
-    const handleGlobalDurationChange = (duration: number) => {
-        setGlobalSlotDuration(duration);
-        setSchedules(schedules.map(s => ({ ...s, slot_duration_minutes: duration })));
-    };
+      // Format clean time strings (HH:mm:00)
+      const payload = schedules.map(s => ({
+        day_of_week: s.day_of_week,
+        start_time: s.start_time.length === 5 ? `${s.start_time}:00` : s.start_time,
+        end_time: s.end_time.length === 5 ? `${s.end_time}:00` : s.end_time,
+        slot_duration_minutes: s.slot_duration_minutes || globalSlotDuration || 15,
+        slot_capacity: 1,
+        session_name: s.session_name || 'General Session',
+        room_number: s.room_number || null
+      }));
 
-    const handleSave = async () => {
-        if (!selectedDoctorId) return;
-        setSaving(true);
-        setSuccessMessage('');
-        try {
-            // Append seconds for backend TIME field
-            const payload = schedules.map(s => ({
-                ...s,
-                start_time: s.start_time.length === 5 ? `${s.start_time}:00` : s.start_time,
-                end_time: s.end_time.length === 5 ? `${s.end_time}:00` : s.end_time,
-            }));
-            
-            await api.saveSchedules(selectedDoctorId, payload);
-            setSuccessMessage('Schedules saved successfully! Slots have been auto-generated for the next 30 days.');
-            setTimeout(() => setSuccessMessage(''), 5000);
-        } catch (error) {
-            console.error("Failed to save schedules", error);
-            toast.error("Failed to save schedules. Please try again.");
-        } finally {
-            setSaving(false);
-        }
-    };
+      await api.saveSchedules(selectedDoctorId, payload, startStr, endStr);
+      toast.success(`Schedule saved! Consultation slots generated from ${startStr} to ${endStr}`);
+    } catch (error: any) {
+      console.error("Failed to save schedules", error);
+      toast.error(error?.message || "Failed to save schedule");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    return (
-        <div className="max-w-4xl mx-auto p-6 animate-fade-in">
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-brand-textPrimary flex items-center gap-2">
-                    <Clock className="text-brand-primary" />
-                    {userRole === 'Front Desk' ? 'Doctor Schedules Overview' : 'Working Hours Configuration'}
-                </h2>
-                <p className="text-brand-textSecondary mt-2">
-                    {userRole === 'Front Desk' 
-                        ? "View the weekly schedule for doctors."
-                        : "Define the weekly schedule for doctors. The system will use these rules to automatically generate bookable slots for the next 30 days."}
-                </p>
-            </div>
+  const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
 
-            {(userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk') && (
-                <div className="mb-8 p-4 bg-brand-surface border border-brand-border rounded-xl">
-                    <label className="block text-sm font-semibold text-brand-textPrimary mb-2">
-                        {userRole === 'Front Desk' ? 'Select Doctor to View' : 'Select Doctor to Configure'}
-                    </label>
-                    <select 
-                        value={selectedDoctorId} 
-                        onChange={(e) => setSelectedDoctorId(e.target.value)}
-                        className="w-full md:w-1/2 bg-brand-bg border border-brand-border rounded-lg px-4 py-2 outline-none focus:border-brand-primary text-brand-textPrimary"
-                    >
-                        {doctors.map(doc => (
-                            <option key={doc.id} value={doc.id}>{doc.name || doc.email}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
-            {loading ? (
-                <div className="text-center py-10 text-brand-textSecondary">Loading schedules...</div>
-            ) : (
-                <div className="bg-brand-surface border border-brand-border rounded-xl p-6 shadow-sm">
-                    <div className="mb-6 pb-6 border-b border-brand-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-bold text-brand-textPrimary">Weekly Schedule</h3>
-                            <p className="text-sm text-brand-textSecondary">Select the days and times the doctor is available.</p>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-semibold text-brand-textPrimary">Slot Duration:</span>
-                            <select 
-                                value={globalSlotDuration}
-                                onChange={(e) => handleGlobalDurationChange(Number(e.target.value))}
-                                disabled={userRole === 'Front Desk'}
-                                className="bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-sm text-brand-textPrimary disabled:opacity-50"
-                            >
-                                <option value={10}>10 Minutes</option>
-                                <option value={15}>15 Minutes</option>
-                                <option value={20}>20 Minutes</option>
-                                <option value={30}>30 Minutes</option>
-                                <option value={60}>60 Minutes</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        {DAYS.map((dayName, index) => {
-                            const schedule = schedules.find(s => s.day_of_week === index);
-                            const isActive = !!schedule;
-
-                            return (
-                                <div key={dayName} className={`flex flex-col md:flex-row md:items-center p-4 rounded-lg border ${isActive ? 'border-brand-primary/30 bg-brand-primary/5' : 'border-brand-border bg-brand-bg'} transition-colors`}>
-                                    <div className="flex items-center w-full md:w-48 mb-3 md:mb-0">
-                                        <label className="flex items-center cursor-pointer group">
-                                            <div className="relative">
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="sr-only" 
-                                                    checked={isActive}
-                                                    onChange={() => handleToggleDay(index)}
-                                                    disabled={userRole === 'Front Desk'}
-                                                />
-                                                <div className={`block w-11 h-6 rounded-full transition-colors ${isActive ? 'bg-brand-primary' : 'bg-slate-300 group-hover:bg-slate-400'} ${userRole === 'Front Desk' ? 'opacity-60 cursor-not-allowed' : ''}`}></div>
-                                                <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm ${isActive ? 'transform translate-x-5' : ''}`}></div>
-                                            </div>
-                                            <span className={`ml-3 font-medium ${isActive ? 'text-brand-textPrimary' : 'text-brand-textSecondary'}`}>
-                                                {dayName}
-                                            </span>
-                                        </label>
-                                    </div>
-
-                                    {isActive ? (
-                                        <div className="flex items-center gap-4 flex-1">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs text-brand-textSecondary mb-1">Start Time</span>
-                                                <input 
-                                                    type="time" 
-                                                    value={schedule.start_time.substring(0, 5)} // Handle HH:mm:ss vs HH:mm
-                                                    onChange={(e) => handleTimeChange(index, 'start_time', e.target.value)}
-                                                    disabled={userRole === 'Front Desk'}
-                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm disabled:opacity-50"
-                                                />
-                                            </div>
-                                            <span className="text-brand-textSecondary mt-5">-</span>
-                                            <div className="flex flex-col">
-                                                <span className="text-xs text-brand-textSecondary mb-1">End Time</span>
-                                                <input 
-                                                    type="time" 
-                                                    value={schedule.end_time.substring(0, 5)}
-                                                    onChange={(e) => handleTimeChange(index, 'end_time', e.target.value)}
-                                                    disabled={userRole === 'Front Desk'}
-                                                    className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 outline-none focus:border-brand-primary text-brand-textPrimary text-sm disabled:opacity-50"
-                                                />
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex-1 text-brand-textSecondary/50 text-sm italic">
-                                            Unavailable
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {successMessage && (
-                        <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-600">
-                            <Check size={20} />
-                            <p className="font-medium text-sm">{successMessage}</p>
-                        </div>
-                    )}
-
-                    {userRole !== 'Front Desk' && (
-                        <div className="mt-8 flex justify-end">
-                            <button 
-                                onClick={handleSave}
-                                disabled={saving || !selectedDoctorId}
-                                className="bg-brand-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-brand-primary/90 transition-colors disabled:opacity-50"
-                            >
-                                <Save size={18} />
-                                {saving ? 'Saving & Generating Slots...' : 'Save Schedule'}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
+  return (
+    <div className="space-y-6 w-full animate-fadeIn max-w-5xl mx-auto pb-12">
+      {/* Header Banner */}
+      <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-brand-textPrimary flex items-center gap-2">
+            <Clock className="text-brand-primary" size={22} />
+            Doctor Working Hours & Shift Rules
+          </h2>
+          <p className="text-xs text-brand-textSecondary mt-1">
+            Configure recurring weekly consultation hours and split shifts (Morning & Evening sessions).
+          </p>
         </div>
-    );
+
+        {/* Doctor Selector */}
+        {(userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk' || userRole === 'Super Admin') && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-brand-textSecondary">Doctor:</span>
+            <select
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              className="bg-brand-bg border border-brand-border rounded-xl px-3.5 py-2 text-xs font-bold text-brand-textPrimary outline-none focus:border-brand-primary shadow-2xs"
+            >
+              {doctors.map(doc => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.name ? `Dr. ${doc.name.replace(/^Dr\.\s*/i, '')}` : (doc.email || 'Doctor')}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-brand-surface border border-brand-border rounded-xl p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-brand-textSecondary uppercase tracking-wider">Active Working Days</p>
+          <p className="text-2xl font-extrabold text-brand-textPrimary mt-1">{weeklyStats.activeDays} <span className="text-xs font-medium text-brand-textSecondary">/ 7 days</span></p>
+        </div>
+        <div className="bg-brand-surface border border-brand-border rounded-xl p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-brand-textSecondary uppercase tracking-wider">Weekly Consult Time</p>
+          <p className="text-2xl font-extrabold text-brand-primary mt-1">{weeklyStats.totalHours} <span className="text-xs font-medium text-brand-textSecondary">hours / week</span></p>
+        </div>
+        <div className="bg-brand-surface border border-brand-border rounded-xl p-4 shadow-2xs">
+          <p className="text-xs font-semibold text-brand-textSecondary uppercase tracking-wider">Weekly Slot Capacity</p>
+          <p className="text-2xl font-extrabold text-emerald-600 mt-1">{weeklyStats.totalSlots} <span className="text-xs font-medium text-brand-textSecondary">patients / week</span></p>
+        </div>
+      </div>
+
+      {/* Controls & Generation Range */}
+      <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-border">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-brand-textPrimary">Consultation Duration:</span>
+            <select
+              value={globalSlotDuration}
+              onChange={(e) => handleGlobalDurationChange(Number(e.target.value))}
+              className="bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-xs font-bold text-brand-textPrimary outline-none focus:border-brand-primary"
+            >
+              <option value={10}>10 Minutes / Patient</option>
+              <option value={15}>15 Minutes / Patient (Standard)</option>
+              <option value={20}>20 Minutes / Patient</option>
+              <option value={30}>30 Minutes / Patient</option>
+              <option value={45}>45 Minutes / Patient</option>
+              <option value={60}>60 Minutes / Patient</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-brand-textPrimary">Generate Slots For:</span>
+            <div className="flex items-center bg-brand-bg p-1 rounded-xl border border-brand-border">
+              <button
+                type="button"
+                onClick={() => setGenerateRange('7')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${generateRange === '7' ? 'bg-brand-primary text-white shadow-xs' : 'text-brand-textSecondary hover:text-brand-textPrimary'}`}
+              >
+                7 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerateRange('30')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${generateRange === '30' ? 'bg-brand-primary text-white shadow-xs' : 'text-brand-textSecondary hover:text-brand-textPrimary'}`}
+              >
+                30 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerateRange('90')}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${generateRange === '90' ? 'bg-brand-primary text-white shadow-xs' : 'text-brand-textSecondary hover:text-brand-textPrimary'}`}
+              >
+                90 Days
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Weekly Day-by-Day Shift Cards */}
+        {loading ? (
+          <div className="py-12 flex justify-center items-center gap-2 text-sm text-brand-textSecondary">
+            <RefreshCw className="animate-spin text-brand-primary" size={18} />
+            Loading doctor schedule rules...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {DAYS.map((dayName, dayIndex) => {
+              const daySessions = schedules.filter(s => s.day_of_week === dayIndex);
+              const active = daySessions.length > 0;
+
+              return (
+                <div 
+                  key={dayName}
+                  className={`border rounded-xl p-4 transition-all ${
+                    active ? 'border-brand-primary/30 bg-brand-primary/[0.02] shadow-2xs' : 'border-brand-border bg-brand-bg/40 opacity-75'
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    {/* Day Toggle */}
+                    <div className="flex items-center gap-3 w-40 flex-shrink-0">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={active}
+                          onChange={() => handleToggleDay(dayIndex)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-primary"></div>
+                      </label>
+                      <span className={`text-sm font-bold ${active ? 'text-brand-textPrimary' : 'text-brand-textSecondary'}`}>
+                        {dayName}
+                      </span>
+                    </div>
+
+                    {/* Sessions Container */}
+                    <div className="flex-1 space-y-2">
+                      {!active ? (
+                        <p className="text-xs text-brand-textSecondary italic">Off Duty / Clinic Closed</p>
+                      ) : (
+                        daySessions.map((session, sIdx) => (
+                          <div 
+                            key={sIdx} 
+                            className="flex flex-wrap items-center gap-2.5 bg-brand-surface p-2.5 rounded-lg border border-brand-border"
+                          >
+                            <input
+                              type="text"
+                              value={session.session_name || (sIdx === 0 ? 'Morning Shift' : 'Evening Shift')}
+                              onChange={(e) => handleUpdateSession(dayIndex, sIdx, 'session_name', e.target.value)}
+                              placeholder="Session Name"
+                              className="text-xs font-bold text-brand-textPrimary bg-brand-bg px-2.5 py-1 rounded border border-brand-border w-32 outline-none"
+                            />
+
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="time"
+                                value={session.start_time.substring(0, 5)}
+                                onChange={(e) => handleUpdateSession(dayIndex, sIdx, 'start_time', e.target.value)}
+                                className="text-xs font-semibold bg-brand-bg px-2 py-1 rounded border border-brand-border outline-none focus:border-brand-primary"
+                              />
+                              <span className="text-xs text-brand-textSecondary">to</span>
+                              <input
+                                type="time"
+                                value={session.end_time.substring(0, 5)}
+                                onChange={(e) => handleUpdateSession(dayIndex, sIdx, 'end_time', e.target.value)}
+                                className="text-xs font-semibold bg-brand-bg px-2 py-1 rounded border border-brand-border outline-none focus:border-brand-primary"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                value={session.room_number || ''}
+                                onChange={(e) => handleUpdateSession(dayIndex, sIdx, 'room_number', e.target.value)}
+                                placeholder="Room (Optional)"
+                                className="text-xs bg-brand-bg px-2 py-1 rounded border border-brand-border w-24 outline-none placeholder:text-[10px]"
+                              />
+                            </div>
+
+                            {daySessions.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSession(dayIndex, sIdx)}
+                                className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors ml-auto"
+                                title="Remove Session"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Add Session Button */}
+                    {active && daySessions.length < 3 && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddSession(dayIndex)}
+                        className="px-2.5 py-1 text-xs font-bold text-brand-primary hover:bg-brand-primary/10 rounded-lg transition-colors flex items-center gap-1 self-start md:self-auto flex-shrink-0"
+                      >
+                        <Plus size={13} /> Add Shift
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Action Save Bar */}
+        <div className="pt-4 border-t border-brand-border flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-brand-textSecondary">
+            Saving will regenerate consultation slots for <span className="font-bold text-brand-textPrimary">Dr. {selectedDoctor?.name || 'Selected Doctor'}</span>.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="w-full sm:w-auto bg-brand-primary hover:bg-brand-primaryDark text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {saving ? <RefreshCw className="animate-spin" size={15} /> : <Save size={15} />}
+            <span>{saving ? 'Saving & Generating Slots...' : 'Save & Generate Slots'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

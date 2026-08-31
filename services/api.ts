@@ -171,8 +171,12 @@ export const api = {
         });
     },
 
-    getDoctorSlots: async (doctorId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/slots`, {
+    getDoctorSlots: async (doctorId: string, startDate?: string, endDate?: string) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        const queryStr = params.toString() ? `?${params.toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/slots${queryStr}`, {
             headers: getHeaders()
         });
     },
@@ -185,11 +189,36 @@ export const api = {
         });
     },
 
-    saveSchedules: async (doctorId: string, schedules: any[]) => {
+    saveSchedules: async (doctorId: string, schedules: any[], startDate?: string, endDate?: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ schedules })
+            body: JSON.stringify({ schedules, startDate, endDate })
+        });
+    },
+
+    setDoctorLeave: async (doctorId: string, leaveDate: string, leaveType?: string, reason?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leave`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ leaveDate, leaveType, reason })
+        });
+    },
+
+    removeDoctorLeave: async (doctorId: string, leaveDate: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leave/${leaveDate}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+
+    getDoctorLeaves: async (doctorId: string, startDate?: string, endDate?: string) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        const queryStr = params.toString() ? `?${params.toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leaves${queryStr}`, {
+            headers: getHeaders()
         });
     },
 

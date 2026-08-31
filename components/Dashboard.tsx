@@ -591,7 +591,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               icon={<Clock size={20} />}
               label="Doctor Schedules"
               active={location.pathname === '/dashboard/settings/schedules' || location.pathname === '/dashboard/schedules/view'}
-              onClick={() => navigate(userRole === 'Front Desk' ? '/dashboard/schedules/view' : '/dashboard/settings/schedules')}
+              onClick={() => navigate('/dashboard/schedules/view')}
             />
           </div>
 
