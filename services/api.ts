@@ -843,6 +843,41 @@ export const api = {
         });
     },
 
+    forgotPassword: async (data: { email: string; phone_number?: string; hospital_id?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    resetPassword: async (data: { email: string; reset_code: string; reset_session_token?: string; new_password: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
+    submitDemoRequest: async (data: {
+        name: string;
+        hospital_name: string;
+        email: string;
+        phone: string;
+        designation?: string;
+        city?: string;
+        patient_volume?: string;
+        preferred_contact_method?: string;
+        preferred_slot?: string;
+        message?: string;
+    }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/auth/demo-request`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
     verifySession: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/auth/me`, {
             headers: getHeaders()
@@ -1018,14 +1053,17 @@ export const api = {
     },
 
     savePatientVitalsBulk: async (payload: { vitals: any[] }) => {
-        const promises = payload.vitals.map(v =>
-            api.addPatientVitals(v.patient_id, {
-                vital_type: v.vital_type,
-                vital_value: v.value,
-                recorded_at: v.recorded_at
-            })
-        );
-        return Promise.all(promises);
+        if (!payload.vitals || payload.vitals.length === 0) return [];
+        const patientId = payload.vitals[0].patient_id;
+        const vitalsList = payload.vitals.map(v => ({
+            patient_id: v.patient_id,
+            vital_type: v.vital_type,
+            vital_value: v.value !== undefined ? v.value : v.vital_value,
+            value: v.value !== undefined ? v.value : v.vital_value,
+            appointment_id: v.appointment_id,
+            recorded_at: v.recorded_at || new Date().toISOString()
+        }));
+        return api.addPatientVitals(patientId, vitalsList);
     },
 
     getVitals: async (patientId: string) => {
@@ -1144,6 +1182,21 @@ export const api = {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(payload)
+        });
+    },
+
+    getSuperAdminDemoRequests: async (status?: string) => {
+        const query = status ? `?status=${status}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/demo-requests${query}`, {
+            headers: getHeaders()
+        });
+    },
+
+    updateSuperAdminDemoRequest: async (id: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/superadmin/demo-requests/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
         });
     },
 

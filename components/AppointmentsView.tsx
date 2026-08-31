@@ -478,7 +478,8 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 doctor_name_snapshot: doctorName, // Explicitly send name for storage
                 type: safeType,
                 status: 'Scheduled',
-                visit_reason: formData.speciality || 'Consultation', // Keep original detail here
+                visit_reason: (formData as any).visitReason || formData.speciality || 'Consultation',
+                notes: (formData as any).visitReason || '',
 
                 // Referral Details
                 referral_doctor: formData.referralDoctor,

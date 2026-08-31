@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, Users, CheckCircle, LogOut, AlertTriangle, Clock } from 'lucide-react';
+import { 
+  CalendarDays, Users, CheckCircle2, AlertTriangle, Clock, 
+  RefreshCw, TrendingUp, ShieldCheck, ArrowRight, UserCheck, CheckCircle
+} from 'lucide-react';
 import { api } from '../../services/api';
 
 export const ControlTowerConsole: React.FC = () => {
@@ -13,38 +16,20 @@ export const ControlTowerConsole: React.FC = () => {
   const fetchData = async () => {
     try {
       const [flowData, alertsData, queueData, docData, leadsData] = await Promise.all([
-        api.getPatientFlowSummary().catch(() => ({ scheduled: 12, arrived: 8, checkedIn: 5, completed: 3 })),
-        api.getWaitingAlerts().catch(() => ([])),
+        api.getPatientFlowSummary().catch(() => ({ scheduled: 0, arrived: 0, checkedIn: 0, completed: 0 })),
+        api.getWaitingAlerts().catch(() => ({ thresholdMinutes: 30, count: 0, patients: [] })),
         api.getLiveQueue().catch(() => ([])),
         api.getDoctorUtilization().catch(() => ([])),
-        api.getLeadSnapshot().catch(() => ({ data: { new: 5, contacted: 12, stalling: 3, converted: 2 } }))
+        api.getLeadSnapshot().catch(() => ({ new: 0, contacted: 0, stalling: 0, converted: 0 }))
       ]);
 
       setPatientFlow(flowData || { scheduled: 0, arrived: 0, checkedIn: 0, completed: 0 });
-      setWaitingAlerts(alertsData || []);
-      setLiveQueue(queueData || []);
-      setDoctorUtilization(docData || []);
+      setWaitingAlerts(alertsData?.patients || (Array.isArray(alertsData) ? alertsData : []));
+      setLiveQueue(Array.isArray(queueData) ? queueData : []);
+      setDoctorUtilization(Array.isArray(docData) ? docData : []);
       setLeadSnapshot(leadsData?.data || leadsData || { new: 0, contacted: 0, stalling: 0, converted: 0 });
-
-      if (!queueData?.length) {
-        setLiveQueue([
-          { patientName: "Ramesh Gupta", doctor: "Dr. Sireesha", status: "Arrived", waitingMinutes: 45 },
-          { patientName: "Sita Verma", doctor: "Dr. Ananya", status: "Checked-In", waitingMinutes: 12 },
-        ]);
-      }
-      if (!alertsData?.length) {
-        setWaitingAlerts([
-          { message: "Patient waiting > 30 mins", patientName: "Ramesh Gupta", doctor: "Dr. Sireesha", minutes: 45 }
-        ]);
-      }
-      if (!docData?.length) {
-        setDoctorUtilization([
-          { doctorName: "Dr. Sireesha", total: 15, completed: 5, pending: 10 },
-          { doctorName: "Dr. Ananya", total: 12, completed: 8, pending: 4 },
-        ]);
-      }
     } catch (err) {
-      console.error(err);
+      console.error("Control tower data load error:", err);
     } finally {
       setLoading(false);
     }
@@ -52,218 +37,298 @@ export const ControlTowerConsole: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000);
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <div className="flex justify-center items-center py-20">
         <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-slide-up">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <div className="bg-gradient-to-br from-brand-surface to-brand-bg border border-brand-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-500">
-                    <CalendarDays size={20} />
-                </div>
-            </div>
-            <h3 className="text-3xl font-black text-brand-textPrimary tracking-tight">{patientFlow.scheduled}</h3>
-            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest uppercase mt-1">Scheduled Today</p>
+    <div className="space-y-6 animate-fadeIn">
+      
+      {/* Top 4 KPI Metrics Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+        
+        {/* Scheduled Today */}
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-textSecondary block mb-1">
+              Scheduled Today
+            </span>
+            <span className="text-3xl font-extrabold text-brand-textPrimary">
+              {patientFlow.scheduled}
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center">
+            <CalendarDays size={20} />
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-brand-surface to-brand-bg border border-brand-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all"></div>
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 text-orange-500">
-                    <Users size={20} />
-                </div>
-            </div>
-            <h3 className="text-3xl font-black text-brand-textPrimary tracking-tight">{patientFlow.arrived}</h3>
-            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest uppercase mt-1">Arrived</p>
+        {/* Arrived */}
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-textSecondary block mb-1">
+              Arrived
+            </span>
+            <span className="text-3xl font-extrabold text-brand-textPrimary">
+              {patientFlow.arrived}
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center">
+            <Users size={20} />
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-brand-surface to-brand-bg border border-brand-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-green-500/10 rounded-full blur-2xl group-hover:bg-green-500/20 transition-all"></div>
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-500">
-                    <CheckCircle size={20} />
-                </div>
-            </div>
-            <h3 className="text-3xl font-black text-brand-textPrimary tracking-tight">{patientFlow.checkedIn}</h3>
-            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest uppercase mt-1">Checked-In</p>
+        {/* Checked In */}
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-textSecondary block mb-1">
+              Checked In
+            </span>
+            <span className="text-3xl font-extrabold text-brand-textPrimary">
+              {patientFlow.checkedIn}
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
+            <CheckCircle2 size={20} />
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-brand-surface to-brand-bg border border-brand-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute -right-6 -top-6 w-24 h-24 bg-brand-textSecondary/5 rounded-full blur-2xl group-hover:bg-brand-textSecondary/10 transition-all"></div>
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-xl bg-brand-textSecondary/10 flex items-center justify-center border border-brand-textSecondary/20 text-brand-textSecondary">
-                    <LogOut size={20} />
-                </div>
-            </div>
-            <h3 className="text-3xl font-black text-brand-textPrimary tracking-tight">{patientFlow.completed}</h3>
-            <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest uppercase mt-1">Completed</p>
+        {/* Completed */}
+        <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-textSecondary block mb-1">
+              Completed
+            </span>
+            <span className="text-3xl font-extrabold text-brand-textPrimary">
+              {patientFlow.completed}
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 flex items-center justify-center">
+            <UserCheck size={20} />
+          </div>
         </div>
+
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
-        <div className="xl:col-span-2 space-y-6 md:space-y-8 flex flex-col">
-          {/* Attention Required Alert */}
-          {waitingAlerts.length > 0 && (
-              <div className="bg-red-500/5 backdrop-blur-md border border-red-500/30 rounded-2xl p-5 shadow-[0_0_20px_rgba(239,68,68,0.15)] relative overflow-hidden animate-pulse-soft">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
-                  <h3 className="text-base font-bold text-red-500 flex items-center gap-2 mb-4 tracking-wide">
-                      <AlertTriangle size={18} /> CRITICAL ALERTS
-                  </h3>
-                  <div className="space-y-3">
-                      {waitingAlerts.map((alert, idx) => (
-                          <div key={idx} className="bg-brand-surface/90 backdrop-blur-sm border border-red-500/20 p-4 rounded-xl flex justify-between items-center shadow-sm">
-                              <div className="flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0 text-red-500 border border-red-500/20">
-                                      <AlertTriangle size={18} />
-                                  </div>
-                                  <div>
-                                      <p className="font-extrabold text-brand-textPrimary">{alert.message}</p>
-                                      <p className="text-xs font-bold text-brand-textSecondary mt-0.5">{alert.patientName} <span className="mx-1 text-brand-border">•</span> <span className="text-brand-primary">{alert.doctor}</span></p>
-                                  </div>
-                              </div>
-                              <div className="flex flex-col items-end">
-                                  <span className="text-2xl font-black text-red-500 tracking-tighter">{alert.minutes}</span>
-                                  <span className="text-[10px] font-bold text-red-500/70 uppercase">Minutes</span>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          )}
-
-          {/* Live Patient Queue */}
-          <div className="bg-brand-surface/80 backdrop-blur-xl rounded-2xl shadow-sm border border-brand-border overflow-hidden flex-1 flex flex-col">
-              <div className="p-5 border-b border-brand-border flex justify-between items-center bg-brand-surface">
-                  <h3 className="text-lg font-bold text-brand-textPrimary flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      Live Patient Queue
-                  </h3>
-                  <span className="text-[10px] font-bold tracking-widest uppercase text-brand-textSecondary flex items-center gap-1 bg-brand-bg px-2 py-1 rounded-md"><Clock size={12} /> Live Sync</span>
-              </div>
-              <div className="overflow-x-auto flex-1">
-                  <table className="w-full text-left border-collapse">
-                      <thead className="sticky top-0 bg-brand-surface/95 backdrop-blur-sm shadow-sm z-10">
-                          <tr className="text-brand-textSecondary text-[10px] font-extrabold uppercase tracking-widest">
-                              <th className="p-4 py-3">Patient</th>
-                              <th className="p-4 py-3">Doctor</th>
-                              <th className="p-4 py-3">Status</th>
-                              <th className="p-4 py-3 text-right">Wait Time</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-brand-border/50">
-                          {liveQueue.length === 0 ? (
-                              <tr><td colSpan={4} className="p-8 text-center font-bold text-brand-textSecondary">No patients currently in queue.</td></tr>
-                          ) : (
-                              liveQueue.map((item, idx) => (
-                                  <tr key={idx} className="hover:bg-brand-bg/50 transition-colors group">
-                                      <td className="p-4 font-bold text-brand-textPrimary group-hover:text-brand-primary transition-colors">{item.patientName}</td>
-                                      <td className="p-4 font-semibold text-brand-textSecondary text-sm">{item.doctor}</td>
-                                      <td className="p-4">
-                                          <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest inline-flex items-center gap-1.5 shadow-sm
-                                              ${item.status === 'Arrived' ? 'bg-gradient-to-r from-orange-500/20 to-orange-500/10 text-orange-600 border border-orange-500/30' : 'bg-gradient-to-r from-green-500/20 to-green-500/10 text-green-600 border border-green-500/30'}`}>
-                                              <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'Arrived' ? 'bg-orange-500' : 'bg-green-500'}`}></span>
-                                              {item.status}
-                                          </span>
-                                      </td>
-                                      <td className="p-4 font-black text-brand-textPrimary text-right">
-                                          <span className="text-lg">{item.waitingMinutes}</span> <span className="text-xs text-brand-textSecondary font-medium">m</span>
-                                      </td>
-                                  </tr>
-                              ))
-                          )}
-                      </tbody>
-                  </table>
-              </div>
-          </div>
-        </div>
-
-        <div className="space-y-6 md:space-y-8 flex flex-col">
-          <div className="bg-brand-surface/80 backdrop-blur-xl rounded-2xl shadow-sm border border-brand-border p-5 flex-1 flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-full blur-3xl"></div>
-              
-              <h3 className="text-base font-bold text-brand-textPrimary mb-5 flex items-center gap-2 tracking-wide relative z-10">
-                  <Clock size={18} className="text-brand-primary" /> DOCTOR LOAD
-              </h3>
-              
-              <div className="space-y-5 relative z-10 flex-1 overflow-y-auto custom-scrollbar pr-2">
-                  {doctorUtilization.map((doc, idx) => {
-                      const percentComplete = (doc.completed / doc.total) * 100;
-                      const percentPending = (doc.pending / doc.total) * 100;
-                      
-                      return (
-                          <div key={idx} className="group">
-                              <div className="flex justify-between items-end mb-2">
-                                  <div>
-                                      <h4 className="font-extrabold text-brand-textPrimary text-sm group-hover:text-brand-primary transition-colors">{doc.doctorName}</h4>
-                                      <p className="text-[10px] font-bold text-brand-textSecondary tracking-widest uppercase mt-0.5">{doc.total} Total Scheduled</p>
-                                  </div>
-                                  <div className="text-right">
-                                      <span className="font-black text-lg text-brand-textPrimary">{doc.pending}</span>
-                                      <span className="text-xs font-bold text-brand-textSecondary ml-1">waiting</span>
-                                  </div>
-                              </div>
-                              
-                              <div className="h-2.5 w-full bg-brand-bg rounded-full overflow-hidden flex shadow-inner border border-brand-border/50">
-                                  <div 
-                                      className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-1000" 
-                                      style={{ width: `${percentComplete}%` }}
-                                      title={`${doc.completed} Completed`}
-                                  ></div>
-                                  <div 
-                                      className="h-full bg-gradient-to-r from-brand-primary/80 to-brand-primary transition-all duration-1000 border-l border-white/20" 
-                                      style={{ width: `${percentPending}%` }}
-                                      title={`${doc.pending} Pending`}
-                                  ></div>
-                              </div>
-                              
-                              <div className="flex justify-between mt-1.5 text-[9px] font-extrabold tracking-widest uppercase">
-                                  <span className="text-green-600">{doc.completed} Done</span>
-                                  <span className="text-brand-primary">{doc.pending} Left</span>
-                              </div>
-                          </div>
-                      );
-                  })}
-              </div>
-          </div>
+      {/* Main Grid: Left Queue & Alerts, Right Doctor Load & Funnel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left 2 Cols: Alerts & Live Queue */}
+        <div className="lg:col-span-2 space-y-6">
           
-          <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border p-6">
-            <h3 className="text-lg font-bold text-brand-textPrimary mb-4">Funnel Snapshot</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <LeadCount label="New Inquiries" count={leadSnapshot.new} color="text-brand-primary" />
-              <LeadCount label="Contacted" count={leadSnapshot.contacted} color="text-blue-400" />
-              <LeadCount label="Stalling" count={leadSnapshot.stalling} color="text-orange-400" />
-              <LeadCount label="Converted" count={leadSnapshot.converted} color="text-green-400" />
+          {/* Critical Waiting Alerts */}
+          <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={17} className={waitingAlerts.length > 0 ? "text-rose-500" : "text-brand-textSecondary"} />
+                <h3 className="text-sm font-bold text-brand-textPrimary uppercase tracking-wider">
+                  Critical Queue Alerts
+                </h3>
+              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${waitingAlerts.length > 0 ? "bg-rose-500/10 text-rose-600 border-rose-500/20" : "bg-brand-bg text-brand-textSecondary border-brand-border"}`}>
+                {waitingAlerts.length} {waitingAlerts.length === 1 ? 'Alert' : 'Alerts'}
+              </span>
+            </div>
+
+            {waitingAlerts.length === 0 ? (
+              <div className="bg-brand-bg/50 border border-brand-border/60 rounded-xl p-4 text-center">
+                <p className="text-xs font-semibold text-brand-textSecondary">
+                  ✨ All patient waiting times are within normal operational limits (&lt; 30 mins).
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {waitingAlerts.map((alert, idx) => (
+                  <div key={idx} className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle size={15} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-brand-textPrimary">{alert.patientName}</h4>
+                        <p className="text-[11px] text-brand-textSecondary">{alert.doctorName}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-rose-600 bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20">
+                      {alert.waitingMinutes} mins wait
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Live Patient Queue Table */}
+          <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="p-4 px-5 border-b border-brand-border flex items-center justify-between bg-brand-bg/40">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-textPrimary">
+                  Live Patient Queue
+                </h3>
+              </div>
+              <button
+                onClick={fetchData}
+                className="text-xs text-brand-textSecondary hover:text-brand-textPrimary flex items-center gap-1 font-medium transition-colors"
+              >
+                <RefreshCw size={12} />
+                <span>Sync</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-brand-bg/60 border-b border-brand-border text-[11px] font-bold text-brand-textSecondary uppercase tracking-wider">
+                    <th className="p-3.5 px-5">Patient</th>
+                    <th className="p-3.5">Doctor</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5 text-right pr-5">Wait Time</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-brand-border text-xs">
+                  {liveQueue.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-brand-textSecondary">
+                        <Users size={28} className="mx-auto text-brand-textSecondary/40 mb-2" />
+                        <p className="font-bold text-sm text-brand-textPrimary">No Patients in Active Queue</p>
+                        <p className="text-xs mt-0.5">Checked-in or arrived patients for today will appear here in real-time.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    liveQueue.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-brand-bg/40 transition-colors">
+                        <td className="p-3.5 px-5 font-bold text-brand-textPrimary">
+                          {item.patientName}
+                        </td>
+                        <td className="p-3.5 text-brand-textSecondary font-medium">
+                          {item.doctor}
+                        </td>
+                        <td className="p-3.5">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border inline-flex items-center gap-1 ${
+                            item.status === 'Arrived' 
+                              ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' 
+                              : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                          }`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-right pr-5 font-mono text-brand-textPrimary font-semibold">
+                          {item.waitingMinutes} <span className="text-[10px] text-brand-textSecondary">mins</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
+
         </div>
+
+        {/* Right 1 Col: Doctor Load & Funnel Snapshot */}
+        <div className="space-y-6">
+          
+          {/* Doctor Load */}
+          <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={16} className="text-brand-primary" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-textPrimary">
+                Doctor Schedule Load
+              </h3>
+            </div>
+
+            {doctorUtilization.length === 0 ? (
+              <div className="bg-brand-bg/50 border border-brand-border/60 rounded-xl p-6 text-center">
+                <p className="text-xs font-semibold text-brand-textSecondary">
+                  No appointments scheduled for doctors today.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {doctorUtilization.map((doc, idx) => {
+                  const percentComplete = doc.total > 0 ? (doc.completed / doc.total) * 100 : 0;
+                  
+                  return (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-brand-textPrimary">{doc.doctorName}</span>
+                        <span className="font-mono text-brand-textSecondary text-[11px]">
+                          {doc.completed}/{doc.total} ({doc.pending} left)
+                        </span>
+                      </div>
+
+                      <div className="h-2 w-full bg-brand-bg rounded-full overflow-hidden border border-brand-border">
+                        <div 
+                          className="h-full bg-brand-primary rounded-full transition-all duration-500"
+                          style={{ width: `${percentComplete}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Funnel Snapshot */}
+          <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-textPrimary mb-4">
+              Inquiry Pipeline Snapshot
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-brand-bg border border-brand-border rounded-xl p-3.5 text-center">
+                <span className="text-2xl font-extrabold text-blue-500 block">
+                  {leadSnapshot.new}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-textSecondary mt-0.5 block">
+                  New Inquiries
+                </span>
+              </div>
+
+              <div className="bg-brand-bg border border-brand-border rounded-xl p-3.5 text-center">
+                <span className="text-2xl font-extrabold text-purple-500 block">
+                  {leadSnapshot.contacted}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-textSecondary mt-0.5 block">
+                  Contacted
+                </span>
+              </div>
+
+              <div className="bg-brand-bg border border-brand-border rounded-xl p-3.5 text-center">
+                <span className="text-2xl font-extrabold text-amber-500 block">
+                  {leadSnapshot.stalling}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-textSecondary mt-0.5 block">
+                  In Progress
+                </span>
+              </div>
+
+              <div className="bg-brand-bg border border-brand-border rounded-xl p-3.5 text-center">
+                <span className="text-2xl font-extrabold text-emerald-500 block">
+                  {leadSnapshot.converted}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-textSecondary mt-0.5 block">
+                  Converted
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
+
     </div>
   );
 };
-
-const KPICard = ({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) => (
-  <div className="bg-brand-surface rounded-2xl p-6 border border-brand-border shadow-sm flex flex-col items-center justify-center text-center">
-    <div className="bg-brand-bg p-3.5 rounded-2xl mb-3 border border-brand-border">{icon}</div>
-    <h2 className="text-3xl font-extrabold text-brand-textPrimary">{value}</h2>
-    <p className="text-xs text-brand-textSecondary font-bold uppercase tracking-wider mt-1">{title}</p>
-  </div>
-);
-
-const LeadCount = ({ label, count, color }: { label: string; count: number; color: string }) => (
-  <div className="bg-brand-bg border border-brand-border rounded-2xl p-4 flex flex-col items-center justify-center">
-    <span className={`text-2xl font-extrabold ${color}`}>{count}</span>
-    <span className="text-[10px] text-brand-textSecondary font-bold text-center mt-1 uppercase tracking-wider">{label}</span>
-  </div>
-);

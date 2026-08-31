@@ -224,7 +224,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments =
                                             </span>
                                             {appt.doctorName && (
                                                 <span className="text-[11px]">
-                                                    • Dr. {appt.doctorName}
+                                                    • {appt.doctorName.startsWith('Dr.') ? appt.doctorName : `Dr. ${appt.doctorName}`}
                                                 </span>
                                             )}
                                         </div>
