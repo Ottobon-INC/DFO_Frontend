@@ -7,29 +7,22 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: 4500,
-      host: '0.0.0.0',
+      host: true, // Exposes to local network (0.0.0.0)
       proxy: {
         '/api': {
           target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => {
-            const keepApiPrefixes = [
-              '/api/auth/',
-              '/api/v1/clinics',
-              '/api/leads',
-              '/api/knowledge',
-              '/api/dashboard',
-              '/api/control-tower',
-              '/api/internal-assistant',
-              '/api/clinic/',
-              '/api/janmasethu'
-            ];
-            if (keepApiPrefixes.some(prefix => path.startsWith(prefix))) {
-              return path;
-            }
-            return path.replace(/^\/api/, '');
-          },
+        },
+        '/janmasethu': {
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/events': {
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          changeOrigin: true,
+          secure: false,
         }
       },
     },

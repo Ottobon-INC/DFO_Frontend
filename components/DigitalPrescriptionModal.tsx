@@ -131,7 +131,7 @@ export const DigitalPrescriptionModal: React.FC<DigitalPrescriptionModalProps> =
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
                                             <label className="block text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1.5">
                                                 Dosage <span className="text-red-500">*</span>
@@ -160,7 +160,7 @@ export const DigitalPrescriptionModal: React.FC<DigitalPrescriptionModalProps> =
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                         <div>
                                             <label className="block text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1.5">
                                                 Frequency (Times per day) <span className="text-red-500">*</span>

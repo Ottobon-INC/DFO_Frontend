@@ -80,49 +80,49 @@ export const HealthMetricsEntryModal: React.FC<HealthMetricsEntryModalProps> = (
     };
 
     return (
-        <div className="fixed inset-0 bg-brand-bg/80 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fade-in">
-            <div className="bg-brand-surface w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-slide-in-up border border-brand-border">
+        <div className="fixed inset-0 bg-brand-bg/80 backdrop-blur-sm z-50 flex justify-center items-center p-3 sm:p-4 animate-fade-in">
+            <div className="bg-brand-surface w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col rounded-xl sm:rounded-2xl shadow-xl overflow-hidden animate-slide-in-up border border-brand-border">
                 {/* Header */}
-                <div className="p-4 sm:p-6 border-b border-brand-border flex justify-between items-center bg-brand-bg/50">
+                <div className="p-3.5 sm:p-5 border-b border-brand-border flex justify-between items-center bg-brand-bg/50 flex-shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-brand-textPrimary flex items-center">
-                            <Activity className="mr-2 text-brand-primary" size={24} />
+                        <h2 className="text-base sm:text-lg font-bold text-brand-textPrimary flex items-center">
+                            <Activity className="mr-2 text-brand-primary flex-shrink-0" size={20} />
                             Clinical Intake
                         </h2>
-                        <p className="text-xs text-brand-textSecondary mt-1">Record patient vitals, allergies, and history</p>
+                        <p className="text-[11px] sm:text-xs text-brand-textSecondary mt-0.5">Record patient vitals, allergies, and history</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-brand-bg rounded-full text-brand-textSecondary transition-colors">
-                        <X size={20} />
+                    <button onClick={onClose} className="p-1.5 hover:bg-brand-bg rounded-md text-brand-textSecondary transition-colors">
+                        <X size={18} />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-brand-border">
+                <div className="flex border-b border-brand-border flex-shrink-0 overflow-x-auto">
                     <button 
                         onClick={() => setActiveTab('vitals')}
-                        className={`flex-1 py-3 text-sm font-bold flex items-center justify-center transition-colors ${activeTab === 'vitals' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
+                        className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold flex items-center justify-center transition-colors whitespace-nowrap px-2 ${activeTab === 'vitals' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
                     >
-                        <Activity size={16} className="mr-2" /> Vitals
+                        <Activity size={14} className="mr-1.5" /> Vitals
                     </button>
                     <button 
                         onClick={() => setActiveTab('allergies')}
-                        className={`flex-1 py-3 text-sm font-bold flex items-center justify-center transition-colors ${activeTab === 'allergies' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
+                        className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold flex items-center justify-center transition-colors whitespace-nowrap px-2 ${activeTab === 'allergies' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
                     >
-                        <AlertCircle size={16} className="mr-2" /> Allergies
+                        <AlertCircle size={14} className="mr-1.5" /> Allergies
                     </button>
                     <button 
                         onClick={() => setActiveTab('history')}
-                        className={`flex-1 py-3 text-sm font-bold flex items-center justify-center transition-colors ${activeTab === 'history' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
+                        className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold flex items-center justify-center transition-colors whitespace-nowrap px-2 ${activeTab === 'history' ? 'text-brand-primary border-b-2 border-brand-primary bg-brand-primary/5' : 'text-brand-textSecondary hover:bg-brand-bg'}`}
                     >
-                        <FileText size={16} className="mr-2" /> Medical History
+                        <FileText size={14} className="mr-1.5" /> History
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-4 sm:p-6 bg-brand-bg/30">
+                <div className="p-4 sm:p-6 bg-brand-bg/30 overflow-y-auto flex-1 custom-scrollbar">
                     {activeTab === 'vitals' && (
                         <div className="space-y-4 animate-fade-in">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="text-xs text-brand-textSecondary font-bold block mb-1">Blood Pressure (mmHg)</label>
                                     <input placeholder="120/80" value={vitals.bp} onChange={e => setVitals({...vitals, bp: e.target.value})} className="w-full text-sm font-bold text-brand-textPrimary bg-brand-surface border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
@@ -137,7 +137,7 @@ export const HealthMetricsEntryModal: React.FC<HealthMetricsEntryModalProps> = (
                                 </div>
                                 <div>
                                     <label className="text-xs text-brand-textSecondary font-bold block mb-1">Weight (kg)</label>
-                                    <input placeholder="70" value={vitals.weight} onChange={e => setVitals({...vitals, weight: e.target.value})} className="w-full text-sm font-bold text-brand-textPrimary bg-brand-surface border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
+                                    <input placeholder="65" value={vitals.weight} onChange={e => setVitals({...vitals, weight: e.target.value})} className="w-full text-sm font-bold text-brand-textPrimary bg-brand-surface border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
                                 </div>
                             </div>
                             <button disabled={isSubmitting} onClick={handleSaveVitals} className="w-full mt-4 bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center">

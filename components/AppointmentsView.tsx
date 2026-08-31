@@ -659,7 +659,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-90px)] gap-3 md:gap-4 relative w-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-full min-h-0 flex-1 gap-3 md:gap-4 relative w-full overflow-hidden">
             {/* Sidebar Filters - Hidden on mobile, narrower on tablet */}
             <div className="hidden md:flex w-48 lg:w-56 xl:w-64 flex-shrink-0 flex-col gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
                 {getRoleTier(userRole) >= 2 && ( // Hide filters sidebar for Doctors (Tier 1)

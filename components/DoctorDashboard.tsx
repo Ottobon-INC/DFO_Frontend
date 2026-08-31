@@ -69,14 +69,14 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments =
             </div>
 
             {/* Quick Metrics Bar (Compact, High Density) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-brand-surface p-3.5 rounded-lg border border-brand-border shadow-sm flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="bg-brand-surface p-3 sm:p-3.5 rounded-lg border border-brand-border shadow-2xs flex items-center justify-between">
                     <div>
-                        <p className="text-xs font-medium text-brand-textSecondary">Total Patients</p>
-                        <p className="text-2xl font-black text-brand-textPrimary mt-0.5">{total}</p>
+                        <p className="text-[11px] sm:text-xs font-medium text-brand-textSecondary">Total Patients</p>
+                        <p className="text-xl sm:text-2xl font-black text-brand-textPrimary mt-0.5">{total}</p>
                     </div>
-                    <div className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <Calendar size={18} />
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Calendar size={17} />
                     </div>
                 </div>
 

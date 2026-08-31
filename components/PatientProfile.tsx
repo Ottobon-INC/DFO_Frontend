@@ -500,17 +500,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
     return createPortal(
         <div className="fixed inset-0 bg-brand-bg/80 z-50 flex justify-end animate-fade-in">
-            <div className="w-full max-w-[95vw] sm:max-w-[90vw] lg:max-w-6xl bg-brand-surface h-full shadow-2xl flex flex-col animate-slide-in-right border-l border-brand-border overflow-hidden">
+            <div className="w-full max-w-full sm:max-w-[90vw] lg:max-w-6xl bg-brand-surface h-full shadow-2xl flex flex-col animate-slide-in-right sm:border-l border-brand-border overflow-hidden">
 
                 {/* Header */}
-                <div className="p-3 sm:p-4 border-b border-brand-border flex justify-between items-start bg-slate-50/70 gap-3">
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-md bg-sky-50 text-brand-primary flex items-center justify-center text-base font-bold border border-sky-200 shadow-2xs flex-shrink-0">
+                <div className="p-3 sm:p-4 border-b border-brand-border flex justify-between items-start bg-slate-50/70 gap-2 sm:gap-3">
+                    <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-md bg-sky-50 text-brand-primary flex items-center justify-center text-sm sm:text-base font-bold border border-sky-200 shadow-2xs flex-shrink-0">
                             {(patient?.name || 'P').charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h2 className="text-base font-bold text-slate-900 truncate">{patient?.name || 'Patient'}</h2>
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">{patient?.name || 'Patient'}</h2>
                                 
                                 {patient?.gender && (
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
@@ -529,15 +529,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                         UHID: {patient.uhid}
                                     </span>
                                 )}
-
-                                {activeTab === 'overview' && (
-                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                                        {isConnected ? 'Live Sync' : 'Offline'}
-                                    </span>
-                                )}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-1">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1">
                                 <span className="flex items-center"><Phone size={11} className="mr-1 text-slate-400" /> {patient?.mobile || '-'}</span>
                                 {patient?.email && (
                                     <span className="hidden sm:flex items-center"><Mail size={11} className="mr-1 text-slate-400" /> {patient.email}</span>
@@ -546,37 +539,38 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-1.5 flex-shrink-0">
+                    <div className="flex items-center space-x-1 sm:space-x-1.5 flex-shrink-0">
                         {isClinical && (
                             <button
                                 onClick={() => setIsVitalsModalOpen(true)}
-                                className="px-3 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white font-bold rounded-md transition-all active:scale-95 text-xs flex items-center gap-1 shadow-xs"
+                                className="px-2.5 sm:px-3 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white font-bold rounded-md transition-all active:scale-95 text-xs flex items-center gap-1 shadow-xs"
                             >
                                 <Activity size={13} />
-                                <span>Record Vitals</span>
+                                <span className="hidden sm:inline">Record Vitals</span>
+                                <span className="sm:hidden">Vitals</span>
                             </button>
                         )}
                         {onCompleteConsultation && !isConsultationComplete && (
                             <button
                                 onClick={handleComplete}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-md shadow-xs flex items-center transition-all active:scale-95 text-xs gap-1"
+                                className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-md shadow-xs flex items-center transition-all active:scale-95 text-xs gap-1"
                             >
                                 <CheckCircle2 size={13} /> <span>Done</span>
                             </button>
                         )}
-                        <button onClick={onClose} className="p-1.5 hover:bg-slate-200 rounded-md text-slate-400 hover:text-slate-700 transition-colors">
+                        <button onClick={onClose} className="p-1 sm:p-1.5 hover:bg-slate-200 rounded-md text-slate-400 hover:text-slate-700 transition-colors">
                             <X size={16} />
                         </button>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="px-3 sm:px-4 border-b border-brand-border flex overflow-x-auto custom-scrollbar bg-white">
+                <div className="px-2 sm:px-4 border-b border-brand-border flex overflow-x-auto custom-scrollbar bg-white no-scrollbar">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-2.5 px-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
+                            className={`py-2 sm:py-2.5 px-2.5 sm:px-3 text-xs font-bold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
                                 ? 'border-brand-primary text-brand-primary'
                                 : 'border-transparent text-slate-500 hover:text-slate-800'
                                 }`}
@@ -621,9 +615,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                             )}
 
                             {activeTab === 'overview' && (
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
                                     {/* LEFT COLUMN: Patient Info & Demographics (40%) */}
-                                    <div className="space-y-4 lg:col-span-5 xl:col-span-4">
+                                    <div className="space-y-4 xl:col-span-5">
                                         {/* Demographics Card */}
                                         <div className="bg-white p-3.5 rounded-lg border border-brand-border shadow-2xs">
                                             <div className="flex justify-between items-center pb-2.5 mb-3 border-b border-brand-border">
@@ -818,7 +812,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                     </div>
 
                                     {/* RIGHT COLUMN: Clinical Health Summary & Vitals (60%) */}
-                                    <div className="space-y-4 lg:col-span-7 xl:col-span-8">
+                                    <div className="space-y-4 xl:col-span-7">
                                         {/* Vitals Summary Card */}
                                         <div className="bg-white p-3.5 rounded-lg border border-brand-border shadow-2xs space-y-3">
                                             <div className="flex justify-between items-center pb-2 border-b border-brand-border">
@@ -1092,12 +1086,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 try {
                                                                                     const res = await api.getSecureAssetUrl(doc.id);
                                                                                     if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                                } catch (e) {
+                                                                                    console.warn('Document URL resolution failed:', e);
+                                                                                }
                                                                             }
                                                                             if (url && url !== '#') {
                                                                                 setPreviewDoc({...doc, url});
                                                                             } else {
-                                                                                toast('Preview not available for this document.');
+                                                                                toast.error('Preview not available for this document.');
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
@@ -1112,12 +1108,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 try {
                                                                                     const res = await api.getSecureAssetUrl(doc.id);
                                                                                     if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                                } catch (e) {
+                                                                                    console.warn('Document URL resolution failed:', e);
+                                                                                }
                                                                             }
                                                                             if (url && url !== '#') {
-                                                                                window.open(url, '_blank');
+                                                                                window.open(url, '_blank', 'noopener,noreferrer');
                                                                             } else {
-                                                                                toast('Download not available for this document.');
+                                                                                toast.error('Download not available for this document.');
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
