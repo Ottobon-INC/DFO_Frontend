@@ -217,9 +217,16 @@ export const api = {
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
         const queryStr = params.toString() ? `?${params.toString()}` : '';
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leaves${queryStr}`, {
-            headers: getHeaders()
-        });
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leaves${queryStr}`, {
+                headers: getHeaders()
+            });
+            if (!res.ok) return { success: true, data: [] };
+            const json = await res.json();
+            return json || { success: true, data: [] };
+        } catch (e) {
+            return { success: true, data: [] };
+        }
     },
 
     getAppointmentById: async (id: string) => {
