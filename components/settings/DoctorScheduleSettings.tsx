@@ -114,24 +114,24 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
   const handleAddSession = (dayIndex: number) => {
     const existingDaySessions = schedules.filter(s => s.day_of_week === dayIndex);
     const hasMorning = existingDaySessions.some(s => s.session_name?.toLowerCase().includes('morning') || parseInt(s.start_time.split(':')[0]) < 13);
-    const hasEvening = existingDaySessions.some(s => s.session_name?.toLowerCase().includes('evening') || parseInt(s.start_time.split(':')[0]) >= 17);
+    const hasEvening = existingDaySessions.some(s => s.session_name?.toLowerCase().includes('evening') || parseInt(s.start_time.split(':')[0]) >= 16);
 
     let sessionName = 'Evening Shift';
-    let startTime = '17:00';
-    let endTime = '20:30';
+    let startTime = '16:00';
+    let endTime = '20:00';
 
     if (hasMorning && !hasEvening) {
       sessionName = 'Evening Shift';
-      startTime = '17:00';
-      endTime = '20:30';
+      startTime = '16:00';
+      endTime = '20:00';
     } else if (hasMorning && hasEvening) {
       sessionName = 'Afternoon Shift';
-      startTime = '13:30';
-      endTime = '17:00';
+      startTime = '13:00';
+      endTime = '16:00';
     } else if (!hasMorning) {
       sessionName = 'Morning Shift';
-      startTime = '09:30';
-      endTime = '13:30';
+      startTime = '09:00';
+      endTime = '13:00';
     }
 
     const newSession: ShiftSession = {
@@ -158,7 +158,7 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
     setSchedules(updated);
   };
 
-  // Handle shift type dropdown change with smart time defaults
+  // Handle shift type dropdown change with standard OPD time defaults
   const handleShiftTypeChange = (dayIndex: number, sessionIndex: number, shiftType: string) => {
     let dayCount = 0;
     const updated = schedules.map(s => {
@@ -169,17 +169,14 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
           let endTime = s.end_time;
 
           if (shiftType === 'Morning Shift') {
-            startTime = '09:30';
-            endTime = '13:30';
-          } else if (shiftType === 'Afternoon Shift') {
-            startTime = '13:30';
-            endTime = '17:00';
-          } else if (shiftType === 'Evening Shift') {
-            startTime = '17:00';
-            endTime = '20:30';
-          } else if (shiftType === 'Full Day Shift') {
             startTime = '09:00';
-            endTime = '18:00';
+            endTime = '13:00';
+          } else if (shiftType === 'Afternoon Shift') {
+            startTime = '13:00';
+            endTime = '16:00';
+          } else if (shiftType === 'Evening Shift') {
+            startTime = '16:00';
+            endTime = '20:00';
           }
 
           return { 
@@ -222,13 +219,11 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
       if (session.session_name.toLowerCase().includes('morning')) return 'Morning Shift';
       if (session.session_name.toLowerCase().includes('afternoon')) return 'Afternoon Shift';
       if (session.session_name.toLowerCase().includes('evening')) return 'Evening Shift';
-      if (session.session_name.toLowerCase().includes('full')) return 'Full Day Shift';
     }
     const hour = parseInt((session.start_time || '09:00').split(':')[0], 10);
     if (hour < 13) return 'Morning Shift';
-    if (hour >= 13 && hour < 17) return 'Afternoon Shift';
-    if (hour >= 17) return 'Evening Shift';
-    return 'Custom Timing';
+    if (hour >= 13 && hour < 16) return 'Afternoon Shift';
+    return 'Evening Shift';
   };
 
   // Calculate total weekly consultation capacity
@@ -448,11 +443,9 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
                               onChange={(e) => handleShiftTypeChange(dayIndex, sIdx, e.target.value)}
                               className="text-xs font-bold text-brand-textPrimary bg-brand-bg px-2.5 py-1.5 rounded-lg border border-brand-border outline-none focus:border-brand-primary cursor-pointer shadow-2xs"
                             >
-                              <option value="Morning Shift">☀️ Morning Shift (09:30 - 13:30)</option>
-                              <option value="Afternoon Shift">🌤️ Afternoon Shift (13:30 - 17:00)</option>
-                              <option value="Evening Shift">🌙 Evening Shift (17:00 - 20:30)</option>
-                              <option value="Full Day Shift">🏥 Full Day Shift (09:00 - 18:00)</option>
-                              <option value="Custom Timing">✏️ Custom Timing</option>
+                              <option value="Morning Shift">Morning Shift (09:00 - 13:00)</option>
+                              <option value="Afternoon Shift">Afternoon Shift (13:00 - 16:00)</option>
+                              <option value="Evening Shift">Evening Shift (16:00 - 20:00)</option>
                             </select>
 
                             <div className="flex items-center gap-1.5">

@@ -239,7 +239,7 @@ export const DoctorSchedulesView: React.FC<DoctorSchedulesViewProps> = ({ userRo
     return !!leavesByDate[selectedDate] || currentDaySlots.some((s: any) => s.status === 'LEAVE');
   }, [leavesByDate, selectedDate, currentDaySlots]);
 
-  // Time-of-Day Segments for Selected Day
+  // Time-of-Day Segments for Selected Day (Morning: <13:00, Afternoon: 13:00-16:00, Evening: 16:00+)
   const morningSlots = useMemo(() => {
     return currentDaySlots.filter((s: any) => {
       const hour = parseInt(s.start_time.split(':')[0], 10);
@@ -250,14 +250,14 @@ export const DoctorSchedulesView: React.FC<DoctorSchedulesViewProps> = ({ userRo
   const afternoonSlots = useMemo(() => {
     return currentDaySlots.filter((s: any) => {
       const hour = parseInt(s.start_time.split(':')[0], 10);
-      return hour >= 13 && hour < 17;
+      return hour >= 13 && hour < 16;
     });
   }, [currentDaySlots]);
 
   const eveningSlots = useMemo(() => {
     return currentDaySlots.filter((s: any) => {
       const hour = parseInt(s.start_time.split(':')[0], 10);
-      return hour >= 17;
+      return hour >= 16;
     });
   }, [currentDaySlots]);
 
