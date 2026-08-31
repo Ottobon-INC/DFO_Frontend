@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -18,6 +18,7 @@ import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './DoctorDashboard';
+import { DoctorDashboard as ClinicalEscalationsView } from './doctor/DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
 import { TriageConsole } from './nurse/TriageConsole';
 import { LobbyRoster } from './nurse/LobbyRoster';
@@ -624,10 +625,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </RequireTier>
             <RequireTier minTier={1} userRole={userRole}>
               <NavItem
-                icon={<Stethoscope size={20} />}
+                icon={<ShieldAlert size={20} />}
                 label="Clinical Escalations"
-                active={location.pathname === '/dashboard/doctor'}
-                onClick={() => navigate('/dashboard/doctor')}
+                active={location.pathname === '/dashboard/clinical-escalations'}
+                onClick={() => navigate('/dashboard/clinical-escalations')}
               />
             </RequireTier>
             
@@ -922,6 +923,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="doctor" element={
               <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <DoctorDashboard appointments={appointments} onPatientSelect={handlePatientSelect} />
+              </div>
+            } />
+            <Route path="clinical-escalations" element={
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <ClinicalEscalationsView appointments={appointments} onPatientSelect={handlePatientSelect} />
               </div>
             } />
             <Route path="nurse" element={<NurseDashboard />} />
