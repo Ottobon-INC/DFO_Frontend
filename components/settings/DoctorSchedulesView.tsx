@@ -369,17 +369,15 @@ export const DoctorSchedulesView: React.FC<DoctorSchedulesViewProps> = ({ userRo
             <span>Calendar & Slots</span>
           </button>
           
-          {(userRole === 'Admin' || userRole === 'Super Admin' || userRole === 'Doctor') && (
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTab === 'settings' ? 'bg-brand-primary text-white shadow-xs' : 'text-brand-textSecondary hover:text-brand-textPrimary'
-              }`}
-            >
-              <Settings size={14} />
-              <span>Shift Rules (Template)</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              activeTab === 'settings' ? 'bg-brand-primary text-white shadow-xs' : 'text-brand-textSecondary hover:text-brand-textPrimary'
+            }`}
+          >
+            <Settings size={14} />
+            <span>Shift Rules (Template)</span>
+          </button>
         </div>
       </div>
 
