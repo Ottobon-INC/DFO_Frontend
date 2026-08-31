@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -10,7 +10,7 @@ import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
-import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
+import { RescheduleModal, Toast, AddLeadModal } from './Modals';
 import { BookAppointmentModal } from './AppointmentModals';
 import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 
@@ -25,7 +25,7 @@ import { ControlTowerConsole } from './cro/ControlTowerConsole';
 import { CroInbox } from './cro/CroInbox';
 import { CroAnalytics } from './cro/CroAnalytics';
 import { AuditLogsView } from './cro/AuditLogsView';
-import { InternalAssistant } from './internal-assistant/InternalAssistant';
+
 import { DailyRegisterTable } from './PatientRegistration';
 import { TeamManagementView } from './TeamManagementView';
 import { DoctorSchedulesView } from './settings/DoctorSchedulesView';
@@ -222,14 +222,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         setCurrentUser(JSON.parse(userStr));
       }
     } catch (e) { }
+
+    const syncFreshProfile = async () => {
+      try {
+        const res = await api.verifySession();
+        if (res?.success && res?.user) {
+          setCurrentUser(res.user);
+          localStorage.setItem('user', JSON.stringify(res.user));
+        }
+      } catch (err) { }
+    };
+    syncFreshProfile();
   }, []);
+
+  const parseSearchQuery = (query: string) => {
+    const trimmed = (query || '').trim();
+    if (!trimmed) return {};
+
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    const isPhoneLike = digitsOnly.length >= 3 && (digitsOnly.length / trimmed.length >= 0.5);
+
+    if (isPhoneLike) {
+      let cleanPhone = digitsOnly;
+      if (cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.slice(2);
+      } else if (cleanPhone.startsWith('0') && cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.slice(1);
+      }
+      return { phone: cleanPhone, mobile: cleanPhone };
+    }
+
+    if (trimmed.includes('@')) {
+      return { email: trimmed };
+    }
+
+    return { name: trimmed, fullname: trimmed };
+  };
 
   const handleGlobalSearch = async () => {
     if (!globalSearch.trim()) {
@@ -260,22 +295,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const leadsInCROQueue = leads.filter(l => l.status === 'Stalling - Sent to CRO').length;
   const leadsConvertedToday = leads.filter(l => l.status === 'Converted - Active Patient').length;
 
-  // --- Handlers ---
-  const handleCheckIn = (id: string) => {
-    setCheckInId(id);
-  };
-
-  const handleCheckInConfirm = async (data: { visitType: string; remarks: string }) => {
-    if (checkInId) {
-      try {
-        await api.updateAppointmentStatus(checkInId, { status: 'Checked-In' });
-        setAppointments(prev => prev.map(a => a.id === checkInId ? { ...a, status: 'Checked-In' } : a));
-        showToast(`Checked in ${appointments.find(a => a.id === checkInId)?.patientName}`);
-        setCheckInId(null);
-      } catch (e) {
-        console.error(e);
-        showToast('Failed to check in');
+    // --- Handlers ---
+  const handleCheckIn = async (id: string) => {
+    const targetApt = appointments.find(a => a.id === id);
+    try {
+      await api.updateAppointmentStatus(id, { status: 'Checked-In' });
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'Checked-In' } : a));
+      
+      // Auto-enqueue to walk-in queue / waiting room if patientId and doctorId exist
+      if (targetApt?.patientId && targetApt?.doctorId) {
+        try {
+          await api.createWalkInQueue({
+            patient_id: targetApt.patientId,
+            doctor_id: targetApt.doctorId,
+            chief_complaint: targetApt.notes || targetApt.type || 'Scheduled Appointment',
+            priority: 'standard'
+          });
+        } catch (qmsErr) {
+          // Handled or already enqueued
+        }
       }
+      
+      const docInfo = targetApt?.doctorName ? ` for ${targetApt.doctorName}` : '';
+      showToast(`✓ ${targetApt?.patientName || 'Patient'} checked in${docInfo}! Added to waiting queue.`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (e: any) {
+      console.error('Check in failed:', e);
+      showToast(e?.message || 'Failed to check in');
     }
   };
 
@@ -705,12 +751,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                       ))}
                     </div>
                   ) : (
-                     <div className="p-6 text-center">
-                       <p className="text-sm text-brand-textSecondary mb-3">No existing patient found.</p>
-                       <button onClick={() => { setShowSearchResults(false); setIsWalkInExpressOpen(true); setGlobalSearch(''); }} className="bg-brand-primary text-white text-xs font-bold px-4 py-2 rounded-xl">
-                         Register New Walk-In
-                       </button>
-                     </div>
+                    <div className="p-6 text-center">
+                      <p className="text-sm font-bold text-brand-textPrimary mb-1">No existing patient found</p>
+                      <p className="text-xs text-brand-textSecondary mb-3">
+                        {globalSearch.trim().replace(/\D/g, '').length >= 3 
+                          ? `Mobile number "${globalSearch.trim()}" will be auto-filled in the registration form.`
+                          : `Patient name "${globalSearch.trim()}" will be auto-filled in the registration form.`}
+                      </p>
+                      <button 
+                        onClick={() => { 
+                          const initial = parseSearchQuery(globalSearch);
+                          setWalkInInitialData(initial);
+                          setShowSearchResults(false); 
+                          setIsWalkInExpressOpen(true); 
+                          setGlobalSearch(''); 
+                        }} 
+                        className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 mx-auto"
+                      >
+                        <UserPlus size={14} /> Register New Walk-In
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -741,7 +801,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               <span className="bg-brand-primary text-white text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer shadow-2xs">EN</span>
               <span className="text-brand-textSecondary text-[10px] font-bold px-2 py-0.5 cursor-pointer hover:text-brand-textPrimary">HI</span>
             </div>
-
             {/* Time / Date */}
             <div className="hidden xl:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
@@ -757,8 +816,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 </p>
                 <p className="text-[10px] text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
               </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-primary/10 border border-brand-primary/20 rounded-md flex items-center justify-center text-brand-primary font-bold text-xs">
-                {(currentUser?.name || 'D').charAt(0)}
+              <div className="w-8 h-8 rounded-md overflow-hidden bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-xs shadow-2xs">
+                {currentUser?.profile_image_url ? (
+                  <img src={currentUser.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.name || 'D').charAt(0).toUpperCase()
+                )}
               </div>
 
               {isProfileDropdownOpen && (
@@ -900,13 +963,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         patientName={appointments.find(a => a.id === rescheduleId)?.patientName || ''}
       />
 
-      <CheckInModal
-        isOpen={!!checkInId}
-        onClose={() => setCheckInId(null)}
-        onConfirm={handleCheckInConfirm}
-        patientName={appointments.find(a => a.id === checkInId)?.patientName || ''}
-      />
-
       <AddLeadModal
         isOpen={isAddLeadModalOpen}
         onClose={() => setIsAddLeadModalOpen(false)}
@@ -990,8 +1046,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         />
       )}
 
-      {/* Internal Assistant Chatbot */}
-      <InternalAssistant />
     </div>
   );
 };

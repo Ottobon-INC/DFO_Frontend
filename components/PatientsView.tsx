@@ -20,14 +20,26 @@ interface PatientsViewProps {
 }
 
 export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, userRole }) => {
+    const location = useLocation();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All Patients');
     const [filterGender, setFilterGender] = useState('All Genders');
     const [filterMonth, setFilterMonth] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isNewPatientMode, setIsNewPatientMode] = useState(false);
+    const [leadForConversion, setLeadForConversion] = useState<any>(null);
     const [patients, setPatients] = useState<Patient[]>([]);
     
+    // Check if redirected from Leads with leadToConvert data
+    useEffect(() => {
+        if (location.state && location.state.leadToConvert) {
+            setLeadForConversion(location.state.leadToConvert);
+            setIsNewPatientMode(true);
+            // Clear history state so refresh doesn't reopen modal
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -298,23 +310,43 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                         </div>
 
                         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5">
-                            <option>All Patients</option>
-                            <option>Active</option>
-                            <option>Discharged</option>
-                            <option>Archived</option>
+                            <option value="All Patients">All Patients</option>
+                            <option value="Active">Active</option>
+                            <option value="Discharged">Discharged</option>
+                            <option value="Archived">Archived</option>
                         </select>
 
                         <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5">
-                            <option>All Genders</option>
-                            <option>Female</option>
-                            <option>Male</option>
+                            <option value="All Genders">All Genders</option>
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
                         </select>
 
-                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5" />
+                        <input 
+                            type="month" 
+                            value={filterMonth} 
+                            onChange={(e) => setFilterMonth(e.target.value)} 
+                            className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5"
+                            title="Filter by Registration Month"
+                        />
+
+                        {(searchTerm || filterStatus !== 'All Patients' || filterGender !== 'All Genders' || filterMonth) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterStatus('All Patients');
+                                    setFilterGender('All Genders');
+                                    setFilterMonth('');
+                                }}
+                                className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors px-2 py-1"
+                            >
+                                Reset Filters
+                            </button>
+                        )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end xl:self-auto">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -341,7 +373,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => setIsNewPatientMode(true)}
+                            onClick={() => {
+                                setLeadForConversion(null);
+                                setIsNewPatientMode(true);
+                            }}
                         >
                             <UserPlus size={13} className="mr-1.5" /> New Patient
                         </Button>
@@ -431,12 +466,16 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
             {isNewPatientMode && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 md:p-10 py-10">
                     <ClinicRegistrationForm
-                        initialData={{}} // Empty for new patient
+                        initialData={leadForConversion || {}}
                         onSuccess={() => {
                             setIsNewPatientMode(false);
+                            setLeadForConversion(null);
                             fetchPatients();
                         }}
-                        onCancel={() => setIsNewPatientMode(false)}
+                        onCancel={() => {
+                            setIsNewPatientMode(false);
+                            setLeadForConversion(null);
+                        }}
                     />
                 </div>,
                 document.body
@@ -461,4 +500,3 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
         </div>
     );
 };
-

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { User, Phone, MapPin, Calendar, HeartPulse, Stethoscope, ChevronDown, CheckCircle, Activity, UserPlus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Phone, MapPin, Calendar, HeartPulse, Stethoscope, ChevronDown, CheckCircle, Activity, UserPlus, FileText } from 'lucide-react';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -14,6 +14,10 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
   const [doctors, setDoctors] = useState<any[]>([]);
   const [successModalData, setSuccessModalData] = useState<any>(null);
   
+  // Input Refs for Smart Auto-Focus
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+
   // Duplicate Detection
   const [duplicateMatch, setDuplicateMatch] = useState<any | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
@@ -27,32 +31,89 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
   const [age, setAge] = useState(initialData?.age || '');
   const [gender, setGender] = useState(initialData?.gender || '');
   const [maritalStatus, setMaritalStatus] = useState(initialData?.marital_status || initialData?.maritalStatus || '');
-  const [bloodGroup, setBloodGroup] = useState(initialData?.bloodGroup || '');
+  const [bloodGroup, setBloodGroup] = useState(initialData?.bloodGroup || initialData?.blood_group || '');
   const [address, setAddress] = useState(initialData?.address || initialData?.location || '');
 
   // Emergency / Kin
-  const [kinName, setKinName] = useState('');
-  const [kinRelation, setKinRelation] = useState('');
-  const [kinPhone, setKinPhone] = useState('');
+  const [kinName, setKinName] = useState(initialData?.kin_name || initialData?.guardian_name || '');
+  const [kinRelation, setKinRelation] = useState(initialData?.kin_relation || '');
+  const [kinPhone, setKinPhone] = useState(initialData?.kin_phone || '');
 
   // Visit Details
-  const [source, setSource] = useState('Walk-In');
-  const [referralDoctor, setReferralDoctor] = useState('');
-  const [doctorId, setDoctorId] = useState('');
-  const [visitReason, setVisitReason] = useState('');
+  const [source, setSource] = useState(initialData?.source || 'Walk-In');
+  const [referralDoctor, setReferralDoctor] = useState(initialData?.referralDoctor || initialData?.referral_doctor || '');
+  const [doctorId, setDoctorId] = useState(initialData?.doctorId || initialData?.doctor_id || '');
+  const [visitReason, setVisitReason] = useState(initialData?.visitReason || initialData?.visit_reason || initialData?.problem || '');
+
+  // Sync state if initialData changes
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.name || initialData.fullname) setName(initialData.name || initialData.fullname || '');
+      if (initialData.phone || initialData.mobile) setMobile(initialData.phone || initialData.mobile || '');
+      if (initialData.email) setEmail(initialData.email || '');
+      if (initialData.dob) setDob(initialData.dob || '');
+      if (initialData.age) setAge(initialData.age || '');
+      if (initialData.gender) setGender(initialData.gender || '');
+      if (initialData.marital_status || initialData.maritalStatus) setMaritalStatus(initialData.marital_status || initialData.maritalStatus || '');
+      if (initialData.bloodGroup || initialData.blood_group) setBloodGroup(initialData.bloodGroup || initialData.blood_group || '');
+      if (initialData.address || initialData.location) setAddress(initialData.address || initialData.location || '');
+      if (initialData.kin_name || initialData.guardian_name) setKinName(initialData.kin_name || initialData.guardian_name || '');
+      if (initialData.kin_relation) setKinRelation(initialData.kin_relation || '');
+      if (initialData.kin_phone) setKinPhone(initialData.kin_phone || '');
+      if (initialData.source) setSource(initialData.source || 'Walk-In');
+      if (initialData.referralDoctor || initialData.referral_doctor) setReferralDoctor(initialData.referralDoctor || initialData.referral_doctor || '');
+      if (initialData.doctorId || initialData.doctor_id) setDoctorId(initialData.doctorId || initialData.doctor_id || '');
+      if (initialData.visitReason || initialData.visit_reason || initialData.problem) {
+        setVisitReason(initialData.visitReason || initialData.visit_reason || initialData.problem || '');
+      }
+    }
+  }, [initialData]);
+
+  // Smart Auto-Focus & Cursor Management
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const phoneVal = (initialData?.phone || initialData?.mobile || mobile || '').toString();
+      if (phoneVal) {
+        if (phoneVal.length < 10 && mobileInputRef.current) {
+          mobileInputRef.current.focus();
+          const len = mobileInputRef.current.value.length;
+          mobileInputRef.current.setSelectionRange(len, len);
+        } else if (nameInputRef.current) {
+          nameInputRef.current.focus();
+        }
+      } else if (initialData?.name && mobileInputRef.current) {
+        mobileInputRef.current.focus();
+      } else if (nameInputRef.current) {
+        nameInputRef.current.focus();
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [initialData]);
 
   useEffect(() => {
     const fetchDocs = async () => {
       try {
         const res = await api.getDoctors();
         const docs = res?.data || res;
-        if (Array.isArray(docs)) setDoctors(docs);
+        if (Array.isArray(docs)) {
+          setDoctors(docs);
+          // Auto match doctor by name if lead had treatmentDoctor
+          if (initialData?.treatmentDoctor && !doctorId) {
+            const matchedDoc = docs.find((d: any) => {
+              const docName = d.name || `${d.first_name || ''} ${d.last_name || ''}`.trim();
+              return docName.toLowerCase() === initialData.treatmentDoctor.toLowerCase();
+            });
+            if (matchedDoc) {
+              setDoctorId(matchedDoc.id || matchedDoc.doctorId);
+            }
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch doctors", err);
       }
     };
     fetchDocs();
-  }, []);
+  }, [initialData]);
 
   useEffect(() => {
     if (mobile.length >= 7 && !useExistingPatient) {
@@ -70,119 +131,119 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
         setIsCheckingDuplicate(false);
       }, 500);
       return () => clearTimeout(timeout);
-    } else if (mobile.length < 7) {
+    } else {
       setDuplicateMatch(null);
-      setUseExistingPatient(false);
     }
   }, [mobile, useExistingPatient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !mobile || !doctorId || !visitReason) {
-      toast("Name, Mobile, Assigned Doctor, and Visit Reason are mandatory.");
+    if (!name && !useExistingPatient) {
+      toast.error("Please enter the patient's full name.");
+      return;
+    }
+    if (!mobile && !useExistingPatient) {
+      toast.error("Please enter a mobile contact number.");
+      return;
+    }
+    if (!doctorId) {
+      toast.error("Please assign a consultation doctor.");
+      return;
+    }
+    if (!visitReason) {
+      toast.error("Please enter the visit reason / handoff notes.");
       return;
     }
 
     setLoading(true);
     try {
-      let finalPatientId = '';
-      let generatedPin = '';
+      let finalPatientId = duplicateMatch?.id || duplicateMatch?.patientId;
 
-      if (useExistingPatient && duplicateMatch) {
-        finalPatientId = duplicateMatch.id || duplicateMatch.patientId;
-      } else {
-        // 1. Create Patient (or find existing if already registered)
+      if (!useExistingPatient || !finalPatientId) {
+        // Create or Convert Lead to New Patient
         const patientPayload = {
-          name,
-          mobile,
-          email,
-          dob,
-          age,
+          name: name.trim(),
+          phone: mobile.trim(),
+          email: email.trim() || undefined,
+          dob: dob || undefined,
+          age: age ? parseInt(age) : undefined,
           gender: gender || undefined,
           marital_status: maritalStatus || undefined,
-          bloodGroup,
-          address,
-          kin_name: kinName,
-          kin_relation: kinRelation,
-            kin_phone: kinPhone,
-            source,
-            assigned_doctor_id: doctorId,
-            referral_doctor: referralDoctor
-          };
+          blood_group: bloodGroup || undefined,
+          address: address.trim() || undefined,
+          kin_name: kinName.trim() || undefined,
+          kin_relation: kinRelation || undefined,
+          kin_phone: kinPhone.trim() || undefined,
+          source: source,
+          referral_doctor: referralDoctor.trim() || undefined,
+        };
         
         try {
-          const patientRes = await api.createPatient(patientPayload);
-          const newPatientId = patientRes?.data?.id || patientRes?.id || patientRes?.patientId;
+          let patientRes: any;
+          if (initialData?.id && initialData?.status && initialData?.status !== 'Converted') {
+            try {
+              patientRes = await api.convertLead(initialData.id, patientPayload);
+            } catch (convertErr: any) {
+              console.warn("Convert lead API failed, falling back to createPatient:", convertErr);
+              patientRes = await api.createPatient(patientPayload);
+            }
+          } else {
+            patientRes = await api.createPatient(patientPayload);
+          }
+
+          const newPatientId = patientRes?.data?.patient_id || patientRes?.data?.id || patientRes?.id || patientRes?.patientId;
           if (!newPatientId) {
             throw new Error("Patient ID not returned from creation.");
           }
           finalPatientId = newPatientId;
           
           if (patientRes?.generatedPin) {
-            generatedPin = patientRes.generatedPin;
+            toast.success(`Patient Registered! Security PIN: ${patientRes.generatedPin}`, { duration: 6000 });
+          } else {
+            toast.success("Patient registered successfully!");
           }
         } catch (patientErr: any) {
-          // If patient already exists (409 Conflict), find them by mobile and continue
-          const is409 = patientErr?.message?.includes('409') || patientErr?.message?.includes('already exists') || String(patientErr).includes('409') || String(patientErr).includes('already exists');
-          if (is409) {
-            const searchRes = await api.searchPatients(mobile);
-            const items = searchRes?.data?.items || searchRes?.data || (Array.isArray(searchRes) ? searchRes : []);
-            const found = items.find((p: any) => p.mobile === mobile || p.phone === mobile);
-            if (found) {
-              finalPatientId = found.id || found.patientId;
-            } else {
-              throw new Error("Patient already exists but could not be found. Please use 'Existing Patient' option.");
-            }
-          } else {
-            throw patientErr;
-          }
+          throw new Error(patientErr?.message || "Failed to save patient record.");
         }
       }
 
-      // 2. QMS Walk-In: Creates appointment + generates token + enqueues in one call
-      const now = new Date();
-      const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-      
-      const qmsPayload = {
-        doctor_id: doctorId,
-        date: now.toISOString().split('T')[0],
-        time: currentTime,
-        mobile: mobile,
-        name: name,
+      // Check-In Walk-In Appointment / Queue
+      const appointmentPayload = {
         patient_id: finalPatientId,
-        type: 'Consultation',
+        doctor_id: doctorId,
+        appointment_date: new Date().toISOString(),
         visit_reason: visitReason,
-        patient_email_snapshot: email,
-        patient_age_snapshot: age,
-        sex_snapshot: gender,
-        patient_marital_status_snapshot: maritalStatus,
-        patient_address_snapshot: address
+        source: source,
+        status: 'Waiting in Clinic'
       };
 
-      const qmsRes = await api.qmsWalkIn(qmsPayload);
-      const newApptId = qmsRes?.appointment_id || qmsRes?.data?.appointment_id;
+      const apptRes = await api.createAppointment(appointmentPayload);
+      const newAppointmentId = apptRes?.data?.id || apptRes?.id;
 
-      if (generatedPin) {
-        setSuccessModalData({
-          patientId: finalPatientId,
-          appointmentId: newApptId,
-          pin: generatedPin,
-          message: "Patient registered and checked in successfully!"
+      // Also create QMS token if enabled
+      let generatedToken: string | null = null;
+      try {
+        const qmsRes = await api.createWalkInQueue({
+          patient_id: finalPatientId,
+          doctor_id: doctorId,
+          chief_complaint: visitReason,
+          priority: 'standard'
         });
-      } else {
-        setSuccessModalData({
-          patientId: finalPatientId,
-          appointmentId: newApptId,
-          pin: null,
-          message: "Patient registered and checked in successfully!"
-        });
+        generatedToken = qmsRes?.data?.token_number || qmsRes?.token_number || null;
+      } catch (qmsErr) {
+        console.warn("QMS direct enqueue fallback (already enqueued by trigger):", qmsErr);
       }
-      
-      // Delay onSuccess until modal is closed
+
+      setSuccessModalData({
+        patientName: name || duplicateMatch?.name,
+        patientId: finalPatientId,
+        appointmentId: newAppointmentId,
+        token: generatedToken,
+        doctorName: doctors.find(d => (d.id || d.doctorId) === doctorId)?.name || 'Doctor'
+      });
+
     } catch (err: any) {
-      console.error("Registration failed:", err);
-      // We will also use an error modal state or generic alert for errors, for now just use a simple state error or keep alert
-      toast.error(err.message || "Failed to register patient.");
+      toast.error(err?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -190,29 +251,41 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
 
   if (successModalData) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-        <div className="bg-brand-surface border border-brand-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-center p-8">
-          <div className="mx-auto w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-brand-text mb-2">Success!</h2>
-          <p className="text-brand-text/70 mb-6">{successModalData.message}</p>
-          
-          {successModalData.pin && (
-            <div className="bg-brand-dark/50 border border-brand-border rounded-xl p-4 mb-6">
-              <p className="text-sm text-brand-text/50 uppercase tracking-wider font-semibold mb-1">Patient Portal PIN</p>
-              <p className="text-4xl font-mono text-brand-accent font-bold tracking-widest">{successModalData.pin}</p>
-              <p className="text-xs text-brand-text/50 mt-2">Please share this with the patient</p>
-            </div>
-          )}
-          
-          <button 
-            onClick={() => onSuccess(successModalData.patientId, successModalData.appointmentId)}
-            className="w-full bg-brand-accent hover:bg-brand-accent/90 text-white font-semibold py-3 px-4 rounded-xl transition-all"
-          >
-            Continue
-          </button>
+      <div className="bg-brand-surface border border-brand-border rounded-2xl p-8 max-w-lg mx-auto shadow-2xl animate-fade-in text-center">
+        <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/20">
+          <CheckCircle size={36} />
         </div>
+        <h2 className="text-2xl font-bold text-brand-textPrimary mb-1">Patient Check-In Complete!</h2>
+        <p className="text-sm text-brand-textSecondary mb-6">
+          <span className="font-semibold text-brand-textPrimary">{successModalData.patientName}</span> is now active in the OPD consultation queue.
+        </p>
+
+        {successModalData.token && (
+          <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-2xl p-4 mb-6 inline-block">
+            <span className="text-xs uppercase tracking-widest text-brand-primary font-bold block mb-1">Queue Token</span>
+            <span className="text-4xl font-extrabold text-brand-primary font-mono tracking-tight">#{successModalData.token}</span>
+          </div>
+        )}
+
+        <div className="bg-brand-bg rounded-xl p-4 text-xs text-left mb-6 space-y-2 border border-brand-border">
+          <div className="flex justify-between">
+            <span className="text-brand-textSecondary">Assigned Doctor:</span>
+            <span className="font-bold text-brand-textPrimary">{successModalData.doctorName}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-brand-textSecondary">Status:</span>
+            <span className="font-bold text-amber-500">Waiting in Clinic</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            onSuccess(successModalData.patientId, successModalData.appointmentId);
+          }}
+          className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 rounded-xl transition-colors shadow-md"
+        >
+          Done & Return to Dashboard
+        </button>
       </div>
     );
   }
@@ -223,9 +296,11 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
       <div className="bg-brand-primary p-6 text-white flex justify-between items-center flex-shrink-0">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <UserPlus size={24} /> New Patient Registration
+            <UserPlus size={24} /> {initialData?.name ? `Finalize Lead: ${initialData.name}` : 'New Patient Registration'}
           </h2>
-          <p className="text-white/80 text-sm mt-1">Generic clinic intake form. Note: UHID is auto-generated.</p>
+          <p className="text-white/80 text-sm mt-1">
+            {initialData?.name ? 'Review pre-filled lead details and complete patient registration. Note: UHID is auto-generated.' : 'Generic clinic intake form. Note: UHID is auto-generated.'}
+          </p>
         </div>
         <button onClick={onCancel} className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors">
           <ChevronDown size={20} />
@@ -295,104 +370,114 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
               <h3 className="text-sm font-bold text-brand-primary mb-4 flex items-center gap-2 uppercase tracking-wide border-b border-brand-border pb-2">
                 <User size={16} /> Personal Details
               </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Full Name *</label>
-                <input 
-                  type="text" required value={name} onChange={e => setName(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" 
-                  placeholder="John Doe" 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Mobile Number *</label>
-                <div className="relative">
-                  <Phone size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Full Name *</label>
                   <input 
-                    type="tel" required value={mobile} onChange={e => setMobile(e.target.value)} 
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" 
-                    placeholder="10-digit number" 
+                    ref={nameInputRef}
+                    type="text" required value={name} onChange={e => setName(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" 
+                    placeholder="e.g. Ananya Sharma" 
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Email Address</label>
-                <input 
-                  type="email" value={email} onChange={e => setEmail(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
-                  placeholder="john@example.com" 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Date of Birth</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Mobile Number *</label>
+                  <div className="relative">
+                    <Phone size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
+                    <input 
+                      ref={mobileInputRef}
+                      type="tel" required value={mobile} onChange={e => setMobile(e.target.value)} 
+                      className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary font-medium" 
+                      placeholder="10-digit mobile number" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Email Address</label>
                   <input 
-                    type="date" value={dob} onChange={e => setDob(e.target.value)} 
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
+                    type="email" value={email} onChange={e => setEmail(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
+                    placeholder="patient@example.com" 
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Age</label>
-                <input 
-                  type="number" value={age} onChange={e => setAge(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
-                  placeholder="e.g. 30" 
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Gender</label>
-                <select 
-                  value={gender} onChange={e => setGender(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
-                >
-                  <option value="">Select...</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Marital Status</label>
-                <select 
-                  value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
-                >
-                  <option value="">Select...</option>
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Date of Birth</label>
+                  <div className="relative">
+                    <Calendar size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
+                    <input 
+                      type="date" value={dob} onChange={e => {
+                        setDob(e.target.value);
+                        if (e.target.value) {
+                          const diff = Date.now() - new Date(e.target.value).getTime();
+                          const calculatedAge = Math.abs(new Date(diff).getUTCFullYear() - 1970);
+                          setAge(calculatedAge.toString());
+                        }
+                      }} 
+                      className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Age</label>
+                  <input 
+                    type="number" min="0" max="120" value={age} onChange={e => setAge(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
+                    placeholder="e.g. 30" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Gender</label>
+                  <select 
+                    value={gender} onChange={e => setGender(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
+                  >
+                    <option value="">Select...</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
                     <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Blood Group</label>
-                <select 
-                  value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} 
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
-                >
-                  <option value="">Select...</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Full Address</label>
-                <div className="relative">
-                  <MapPin size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
-                  <input 
-                    type="text" value={address} onChange={e => setAddress(e.target.value)} 
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
-                    placeholder="Street, City, State, ZIP" 
-                  />
+                  </select>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Marital Status</label>
+                  <select 
+                    value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
+                  >
+                    <option value="">Select...</option>
+                    <option value="Married">Married</option>
+                    <option value="Single">Single</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Blood Group</label>
+                  <select 
+                    value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} 
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary"
+                  >
+                    <option value="">Select...</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Full Address</label>
+                  <div className="relative">
+                    <MapPin size={14} className="absolute left-3 top-3.5 text-brand-textSecondary" />
+                    <input 
+                      type="text" value={address} onChange={e => setAddress(e.target.value)} 
+                      className="w-full bg-brand-bg border border-brand-border rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-brand-primary" 
+                      placeholder="Street, City, State, ZIP" 
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -422,11 +507,10 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
                     <option value="Spouse">Spouse</option>
                     <option value="Father">Father</option>
                     <option value="Mother">Mother</option>
-                    
-                      <option value="Partner">Partner</option>
-                      <option value="Son">Son</option>
-                      <option value="Daughter">Daughter</option>
-                      <option value="Friend">Friend</option>
+                    <option value="Partner">Partner</option>
+                    <option value="Son">Son</option>
+                    <option value="Daughter">Daughter</option>
+                    <option value="Friend">Friend</option>
                     <option value="Sibling">Sibling</option>
                     <option value="Other">Other</option>
                   </select>
@@ -445,7 +529,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
 
           {/* 3. Visit Details */}
           <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-sm">
-            <h3 className="text-sm font-bold text-brand-accent mb-4 flex items-center gap-2 uppercase tracking-wide border-b border-brand-border pb-2">
+            <h3 className="text-sm font-bold text-brand-primary mb-4 flex items-center gap-2 uppercase tracking-wide border-b border-brand-border pb-2">
               <Activity size={16} /> Visit Details
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -519,4 +603,3 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
     </div>
   );
 };
-
