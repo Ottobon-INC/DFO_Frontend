@@ -271,6 +271,20 @@ export const api = {
         });
     },
 
+    createWalkInQueue: async (data: {
+        patient_id?: string;
+        doctor_id?: string;
+        chief_complaint?: string;
+        priority?: string;
+        [key: string]: any;
+    }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/qms/queue/walk-in`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+    },
+
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
             method: 'PATCH',
@@ -530,13 +544,13 @@ export const api = {
     },
 
     getSecureAssetUrl: async (documentId: string) => {
-        return fetchJson<{ success: boolean, data: { url: string, expiresIn: number } }>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/resolve`, {
+        return fetchJson<{ success: boolean, data?: { url: string, expiresIn: number }, error?: string }>(`${API_BASE_URL}/api/v1/clinics/documents/${documentId}/resolve`, {
             headers: getHeaders()
         });
     },
 
     getPatientSecureAssetUrl: async (documentId: string) => {
-        return fetchJson<{ success: boolean, data: { url: string, expiresIn: number } }>(`${API_BASE_URL}/api/patient-portal/documents/${documentId}/resolve`, {
+        return fetchJson<{ success: boolean, data?: { url: string, expiresIn: number }, error?: string }>(`${API_BASE_URL}/api/patient-portal/documents/${documentId}/resolve`, {
             headers: getHeaders()
         });
     },
