@@ -1,65 +1,61 @@
 import React from 'react';
-import { Calendar, Pill, Activity, User, FileText, CheckCircle2 } from 'lucide-react';
+import { Calendar, Pill, Activity, User, FileText, CheckCircle2, Stethoscope, FileSpreadsheet } from 'lucide-react';
 import { formatLocalDate, formatLocalTime } from '../../utils/dateFormatter';
 
 interface TimelineItemProps {
-    date: string;
+    date: string | null | undefined;
     type: string;
     children: React.ReactNode;
 }
 
 export const TimelineItem: React.FC<TimelineItemProps> = ({ date, type, children }) => {
-    // Format date string beautifully using explicit timezone parser
+    // Format date string
     const formattedDate = formatLocalDate(date);
     const formattedTime = formatLocalTime(date);
 
-    // Determine Icon and Color based on type
-    let Icon = CheckCircle2;
-    let bgColor = 'bg-brand-primary';
-    let ringColor = 'ring-brand-primary/20';
+    const normalizedType = String(type || '').toLowerCase();
 
-    switch (type) {
-        case 'appointment':
-        case 'consultation':
-            Icon = User;
-            bgColor = 'bg-blue-500';
-            ringColor = 'ring-blue-500/20';
-            break;
-        case 'prescription':
-            Icon = Pill;
-            bgColor = 'bg-emerald-500';
-            ringColor = 'ring-emerald-500/20';
-            break;
-        case 'investigation':
-            Icon = Activity;
-            bgColor = 'bg-purple-500';
-            ringColor = 'ring-purple-500/20';
-            break;
+    // Determine Icon and Color based on normalized type
+    let Icon = CheckCircle2;
+    let iconBg = 'bg-sky-50 text-sky-700 border-sky-200';
+
+    if (normalizedType.includes('appointment')) {
+        Icon = Calendar;
+        iconBg = 'bg-sky-50 text-sky-700 border-sky-300';
+    } else if (normalizedType.includes('consultation')) {
+        Icon = Stethoscope;
+        iconBg = 'bg-blue-50 text-blue-700 border-blue-300';
+    } else if (normalizedType.includes('prescription')) {
+        Icon = Pill;
+        iconBg = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+    } else if (normalizedType.includes('investigation') || normalizedType.includes('lab') || normalizedType.includes('document')) {
+        Icon = FileText;
+        iconBg = 'bg-violet-50 text-violet-700 border-violet-300';
     }
 
     return (
-        <div className="relative z-10 flex gap-4 sm:gap-6 w-full animate-fade-in">
+        <div className="relative z-10 flex gap-3 sm:gap-4 w-full animate-fade-in items-start">
             {/* Left Date Column (Desktop) */}
-            <div className="hidden sm:block w-24 text-right flex-shrink-0 pt-2">
-                <p className="text-sm font-bold text-brand-textPrimary">{formattedDate}</p>
-                <p className="text-xs text-brand-textSecondary">{formattedTime}</p>
+            <div className="hidden sm:block w-24 text-right flex-shrink-0 pt-1 -ml-28 pr-3">
+                <p className="text-xs font-bold text-slate-800 tracking-tight leading-tight">{formattedDate}</p>
+                <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{formattedTime}</p>
             </div>
 
-            {/* Center Node */}
-            <div className="absolute left-[-39px] sm:left-[-47px] flex flex-col items-center top-0 sm:top-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ring-4 ${ringColor} ${bgColor} z-10 flex-shrink-0`}>
-                    <Icon size={14} />
+            {/* Center Node on the vertical timeline border */}
+            <div className="absolute left-[-25px] sm:left-[-33px] flex items-center justify-center top-1">
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center border shadow-2xs ${iconBg} z-10 flex-shrink-0 bg-white`}>
+                    <Icon size={12} />
                 </div>
             </div>
 
-            {/* Right Content Column */}
-            <div className="flex-1 pb-2">
-                <div className="sm:hidden mb-2">
-                    <span className="text-xs font-bold text-brand-textPrimary bg-brand-bg px-2 py-1 rounded-md border border-brand-border">
-                        {formattedDate} {formattedTime}
-                    </span>
+            {/* Right Event Card */}
+            <div className="flex-1 min-w-0">
+                <div className="sm:hidden mb-1 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                    <span className="font-bold text-slate-800">{formattedDate}</span>
+                    <span>•</span>
+                    <span>{formattedTime}</span>
                 </div>
-                <div className="w-full transition-transform hover:-translate-y-0.5 duration-200">
+                <div className="w-full">
                     {children}
                 </div>
             </div>

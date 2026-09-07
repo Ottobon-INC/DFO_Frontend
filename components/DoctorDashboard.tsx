@@ -1,19 +1,21 @@
-
 import React, { useState } from 'react';
 import {
     Calendar, Clock, Activity, Stethoscope, ClipboardList,
-    CheckCircle2, Users, ArrowUpRight
+    CheckCircle2, Users, ArrowUpRight, Search, Filter,
+    UserCheck, AlertCircle, Sparkles, HeartPulse, User
 } from 'lucide-react';
 import { Appointment, Patient } from '../types';
 
-// Mock Data (Fallback if no props)
-// Mocks removed to rely on API data
+interface DoctorDashboardProps {
+    appointments?: Appointment[];
+    onPatientSelect: (patient: Patient, initialTab?: string) => void;
+}
 
-export const DoctorDashboard: React.FC<{ appointments?: Appointment[]; onPatientSelect: (patient: Patient, initialTab?: string) => void }> = ({ appointments = [], onPatientSelect }) => {
+export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments = [], onPatientSelect }) => {
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'WAITING' | 'COMPLETED'>('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleStartConsultation = (appt: Appointment) => {
-        // Construct minimal patient object from appointment to initiate profile
-        // The profile component will fetch full details using patient.id
         const patient: any = {
             id: appt.patientId || 'unknown',
             name: appt.patientName,
@@ -26,132 +28,246 @@ export const DoctorDashboard: React.FC<{ appointments?: Appointment[]; onPatient
 
     // Metrics
     const total = displayAppointments.length;
-    const checkedIn = displayAppointments.filter(a => a.status === 'Checked-In').length;
+    const checkedIn = displayAppointments.filter(a => a.status === 'Checked-In' || a.status === 'Waiting').length;
     const completed = displayAppointments.filter(a => a.status === 'Completed' || a.status === 'Done').length;
+    const scheduled = total - checkedIn - completed;
+
+    // Filtered Queue
+    const filteredQueue = displayAppointments.filter(appt => {
+        const matchesSearch = !searchQuery || 
+            appt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (appt.id && appt.id.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        if (!matchesSearch) return false;
+
+        if (filterStatus === 'WAITING') return appt.status === 'Checked-In' || appt.status === 'Waiting';
+        if (filterStatus === 'COMPLETED') return appt.status === 'Completed' || appt.status === 'Done';
+        return true;
+    });
 
     return (
-        <div className="p-6 space-y-8 bg-brand-bg min-h-full">
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-4 w-full animate-fade-in">
+            {/* Top Clinical Header & Stat Cards */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-brand-border">
                 <div>
-                    <h1 className="text-2xl font-bold text-brand-textPrimary flex items-center">
-                        <Activity className="mr-3 text-brand-primary" /> Overview
+                    <h1 className="text-xl font-bold text-brand-textPrimary flex items-center gap-2">
+                        <Stethoscope className="text-brand-primary" size={22} />
+                        OPD Consultation Queue
                     </h1>
-                    <p className="text-brand-textSecondary mt-1">Today's clinical summary</p>
-                </div>
-                <div className="bg-brand-surface px-4 py-2 rounded-xl border border-brand-border shadow-sm flex items-center">
-                    <Clock size={18} className="text-brand-primary mr-2" />
-                    <span className="font-bold text-brand-textPrimary">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-            </div>
-
-            {/* Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-brand-surface p-5 rounded-2xl border border-brand-border shadow-sm flex items-center justify-between group hover:border-brand-primary/50 transition-colors">
-                    <div>
-                        <p className="text-brand-textSecondary text-sm font-medium mb-1">Total Appointments</p>
-                        <h3 className="text-3xl font-bold text-brand-textPrimary">{total}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Calendar size={24} />
-                    </div>
+                    <p className="text-xs text-brand-textSecondary mt-0.5">
+                        Live patient queue & clinical consultation workspace
+                    </p>
                 </div>
 
-                <div className="bg-brand-surface p-5 rounded-2xl border border-brand-border shadow-sm flex items-center justify-between group hover:border-brand-primary/50 transition-colors">
-                    <div>
-                        <p className="text-brand-textSecondary text-sm font-medium mb-1">Waiting Now</p>
-                        <h3 className="text-3xl font-bold text-brand-primary">{checkedIn}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Users size={24} />
-                    </div>
-                </div>
-
-                <div className="bg-brand-surface p-5 rounded-2xl border border-brand-border shadow-sm flex items-center justify-between group hover:border-brand-primary/50 transition-colors">
-                    <div>
-                        <p className="text-brand-textSecondary text-sm font-medium mb-1">Assessed</p>
-                        <h3 className="text-3xl font-bold text-emerald-600">{completed}</h3>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <CheckCircle2 size={24} />
+                <div className="flex items-center gap-2">
+                    <div className="bg-brand-surface px-3 py-1.5 rounded-md border border-brand-border text-xs font-semibold text-brand-textPrimary flex items-center gap-1.5 shadow-sm">
+                        <Clock size={14} className="text-brand-primary" />
+                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-brand-textSecondary uppercase">IST</span>
                     </div>
                 </div>
             </div>
 
-            {/* Full Width Schedule List */}
-            <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-brand-border flex justify-between items-center bg-brand-bg/50">
-                    <h2 className="font-bold text-lg text-brand-textPrimary flex items-center">
-                        <ClipboardList size={20} className="mr-2 text-brand-primary" /> Today's Schedule
-                    </h2>
-                    <button className="text-xs font-bold text-brand-primary border border-brand-primary/20 px-3 py-1.5 rounded-lg hover:bg-brand-primary/5 transition-colors">
-                        View All
-                    </button>
+            {/* Quick Metrics Bar (Compact, High Density) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-brand-surface p-3.5 rounded-lg border border-brand-border shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-brand-textSecondary">Total Patients</p>
+                        <p className="text-2xl font-black text-brand-textPrimary mt-0.5">{total}</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Calendar size={18} />
+                    </div>
                 </div>
-                <div className="divide-y divide-brand-border">
-                    {displayAppointments.map((appt) => (
-                        <div key={appt.id} className="p-6 hover:bg-brand-bg/50 transition-colors flex flex-col md:flex-row items-center justify-between gap-4 group">
 
-                            {/* Time & Avatar */}
-                            <div className="flex items-center w-full md:w-auto space-x-6">
-                                <div className={`flex flex-col items-center justify-center w-20 h-20 rounded-2xl border shrink-0 ${appt.status === 'Checked-In' ? 'bg-brand-primary text-brand-bg border-brand-primary shadow-lg shadow-brand-primary/20' : 'bg-brand-bg border-brand-border text-brand-textSecondary'}`}>
-                                    <span className="text-xs font-bold uppercase tracking-wider opacity-80">{appt.time.split(' ')[1]}</span>
-                                    <span className="text-2xl font-bold">{appt.time.split(' ')[0]}</span>
-                                </div>
+                <div className="bg-brand-surface p-3.5 rounded-lg border border-brand-border shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-amber-600 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                            Waiting in Clinic
+                        </p>
+                        <p className="text-2xl font-black text-amber-600 mt-0.5">{checkedIn}</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <Users size={18} />
+                    </div>
+                </div>
 
-                                <div>
-                                    <h3 className="font-bold text-brand-textPrimary text-xl mb-1">{appt.patientName}</h3>
-                                    <div className="flex items-center text-sm text-brand-textSecondary space-x-3">
-                                        <span className="flex items-center font-medium bg-brand-bg px-2 py-1 rounded text-xs border border-brand-border">
-                                            <Stethoscope size={12} className="mr-1.5 text-brand-primary" />
-                                            {appt.type}
+                <div className="bg-brand-surface p-3.5 rounded-lg border border-brand-border shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-brand-textSecondary">Scheduled Later</p>
+                        <p className="text-2xl font-black text-brand-textPrimary mt-0.5">{scheduled > 0 ? scheduled : 0}</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center">
+                        <Clock size={18} />
+                    </div>
+                </div>
+
+                <div className="bg-brand-surface p-3.5 rounded-lg border border-brand-border shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-emerald-600">Completed</p>
+                        <p className="text-2xl font-black text-emerald-600 mt-0.5">{completed}</p>
+                    </div>
+                    <div className="w-9 h-9 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 size={18} />
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Clinical Queue Surface */}
+            <div className="bg-brand-surface rounded-lg border border-brand-border shadow-sm overflow-hidden flex flex-col">
+                {/* Filter & Search Toolbar */}
+                <div className="p-3 border-b border-brand-border bg-slate-50/70 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    {/* Status Tabs */}
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-md border border-brand-border shadow-2xs">
+                        <button
+                            onClick={() => setFilterStatus('ALL')}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                filterStatus === 'ALL'
+                                    ? 'bg-brand-primary text-white shadow-xs'
+                                    : 'text-brand-textSecondary hover:text-brand-textPrimary'
+                            }`}
+                        >
+                            All ({total})
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('WAITING')}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors flex items-center gap-1.5 ${
+                                filterStatus === 'WAITING'
+                                    ? 'bg-amber-500 text-white shadow-xs'
+                                    : 'text-brand-textSecondary hover:text-amber-600'
+                            }`}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            Waiting ({checkedIn})
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('COMPLETED')}
+                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                filterStatus === 'COMPLETED'
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'text-brand-textSecondary hover:text-emerald-600'
+                            }`}
+                        >
+                            Completed ({completed})
+                        </button>
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="relative flex-1 sm:max-w-xs">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-textSecondary" />
+                        <input
+                            type="text"
+                            placeholder="Search patient name or ID..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 bg-white border border-brand-border rounded-md text-xs font-medium text-brand-textPrimary placeholder:text-brand-textSecondary outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                        />
+                    </div>
+                </div>
+
+                {/* Queue Patient Rows */}
+                <div className="divide-y divide-brand-border overflow-x-auto">
+                    {filteredQueue.map((appt, idx) => {
+                        const isCheckedIn = appt.status === 'Checked-In' || appt.status === 'Waiting';
+                        const isDone = appt.status === 'Completed' || appt.status === 'Done';
+
+                        return (
+                            <div 
+                                key={appt.id || idx} 
+                                className={`p-3.5 hover:bg-slate-50/80 transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+                                    isCheckedIn ? 'bg-amber-50/20' : ''
+                                }`}
+                            >
+                                {/* Left: Token / Time + Patient Details */}
+                                <div className="flex items-center gap-3.5 min-w-0">
+                                    {/* Token / Time Badge */}
+                                    <div className={`w-14 h-12 rounded-md border flex flex-col items-center justify-center shrink-0 ${
+                                        isCheckedIn 
+                                            ? 'bg-amber-500 text-white border-amber-600 shadow-xs' 
+                                            : isDone
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                                    }`}>
+                                        <span className="text-[9px] font-extrabold uppercase tracking-tight">
+                                            #{String(idx + 1).padStart(2, '0')}
                                         </span>
-                                        {appt.status === 'Checked-In' && (
-                                            <span className="font-bold text-brand-primary animate-pulse flex items-center">
-                                                <span className="w-2 h-2 rounded-full bg-brand-primary mr-1.5"></span>
-                                                Checked In
+                                        <span className="text-xs font-bold leading-tight">
+                                            {appt.time || '10:00 AM'}
+                                        </span>
+                                    </div>
+
+                                    {/* Patient Info */}
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-sm text-brand-textPrimary truncate hover:text-brand-primary cursor-pointer" onClick={() => handleStartConsultation(appt)}>
+                                                {appt.patientName}
+                                            </h3>
+                                            {isCheckedIn && (
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                                    Waiting in Room
+                                                </span>
+                                            )}
+                                            {isDone && (
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                    <CheckCircle2 size={10} /> Completed
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Secondary metadata: Type, Doctor, Vitals */}
+                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-brand-textSecondary">
+                                            <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-medium text-slate-700">
+                                                <Stethoscope size={11} className="text-brand-primary" />
+                                                {appt.type || 'General Consultation'}
                                             </span>
-                                        )}
-                                        {appt.status === 'Completed' && (
-                                            <span className="font-bold text-emerald-600 flex items-center">
-                                                <CheckCircle2 size={12} className="mr-1.5" />
-                                                Done
-                                            </span>
-                                        )}
+                                            {appt.doctorName && (
+                                                <span className="text-[11px]">
+                                                    • {appt.doctorName.startsWith('Dr.') ? appt.doctorName : `Dr. ${appt.doctorName}`}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Actions */}
-                            <div className="flex items-center w-full md:w-auto justify-end gap-3">
-                                {appt.status === 'Completed' ? (
-                                    <button
-                                        disabled
-                                        className="px-6 py-3 rounded-xl bg-brand-hover border border-brand-border text-brand-textSecondary font-bold flex items-center cursor-not-allowed"
-                                    >
-                                        <CheckCircle2 size={18} className="mr-2" /> Completed
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => handleStartConsultation(appt)}
-                                        className={`px-8 py-3 font-bold rounded-xl shadow-sm flex items-center transition-all active:scale-95 ${appt.status === 'Checked-In'
-                                            ? 'bg-brand-primary hover:bg-brand-secondary text-white shadow-brand-primary/30 hover:shadow-brand-primary/40'
-                                            : 'bg-brand-surface border border-brand-border text-brand-textSecondary hover:border-brand-primary hover:text-brand-primary'
+                                {/* Right: Fast Actions */}
+                                <div className="flex items-center gap-2 w-full md:w-auto justify-end shrink-0">
+                                    {isDone ? (
+                                        <button
+                                            onClick={() => handleStartConsultation(appt)}
+                                            className="px-3.5 py-1.5 text-xs font-semibold rounded-md border border-brand-border bg-white text-brand-textSecondary hover:text-brand-textPrimary hover:bg-slate-50 transition-colors flex items-center gap-1"
+                                        >
+                                            <CheckCircle2 size={13} className="text-emerald-600" />
+                                            View Summary
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleStartConsultation(appt)}
+                                            className={`px-4 py-1.5 text-xs font-bold rounded-md shadow-xs flex items-center gap-1.5 transition-all active:scale-98 ${
+                                                isCheckedIn
+                                                    ? 'bg-brand-primary hover:bg-brand-primaryDark text-white shadow-brand-primary/20'
+                                                    : 'bg-white border border-brand-border text-brand-textPrimary hover:border-brand-primary hover:text-brand-primary'
                                             }`}
-                                    >
-                                        <div className="flex items-center">
-                                            <span>{appt.status === 'Checked-In' ? 'Start Consult' : 'View Profile'}</span>
-                                            {appt.status === 'Checked-In' && <ArrowUpRight size={18} className="ml-2" />}
-                                        </div>
-                                    </button>
-                                )}
+                                        >
+                                            <span>{isCheckedIn ? 'Start Consult' : 'Open Patient'}</span>
+                                            <ArrowUpRight size={14} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+                        );
+                    })}
 
-                        </div>
-                    ))}
-                    {displayAppointments.length === 0 && (
-                        <div className="p-12 text-center text-brand-textSecondary">
-                            <p>No appointments scheduled for today.</p>
+                    {filteredQueue.length === 0 && (
+                        <div className="py-12 px-4 text-center">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                                <ClipboardList size={20} />
+                            </div>
+                            <h4 className="text-xs font-bold text-brand-textPrimary">No patients found</h4>
+                            <p className="text-xs text-brand-textSecondary mt-0.5 max-w-sm mx-auto">
+                                {searchQuery ? 'No patients matched your search query.' : 'There are no patients currently scheduled in this queue.'}
+                            </p>
                         </div>
                     )}
                 </div>

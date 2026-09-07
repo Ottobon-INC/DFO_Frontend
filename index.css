@@ -4,16 +4,17 @@
 @tailwind utilities;
 
 html {
-  font-size: 18px; /* Scales up the entire Tailwind rem-based UI */
+  font-size: 14px; /* Crisp, high-density professional SaaS scaling */
 }
 
 body {
-  font-family: 'Product Sans', 'Google Sans', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom Shake Animation */

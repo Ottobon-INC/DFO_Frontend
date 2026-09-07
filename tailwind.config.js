@@ -42,7 +42,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['"Product Sans"', '"Google Sans"', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       animation: {
         'float-slow': 'float 15s infinite ease-in-out',

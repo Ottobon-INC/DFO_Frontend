@@ -77,14 +77,18 @@ export const AppointmentWidget: React.FC<{
 
                             {/* Quick Actions */}
                             <div className="mt-3 pt-3 border-t border-brand-border flex space-x-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                {(apt.queueStatus === 'WAITING' || apt.queueStatus === 'ARRIVED' || apt.queueStatus === 'IN_CONSULTATION') ? (
+                                {apt.status === 'Checked-In' ? (
+                                    <div className="flex-1 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg flex items-center justify-center">
+                                        <CheckCircle2 size={12} className="mr-1 text-emerald-600" /> In Waiting Room
+                                    </div>
+                                ) : (apt.queueStatus === 'WAITING' || apt.queueStatus === 'ARRIVED' || apt.queueStatus === 'IN_CONSULTATION') ? (
                                     <div className="flex-1 py-1.5 bg-brand-surface border border-brand-accent text-brand-accent text-xs font-bold rounded-lg flex items-center justify-center">
                                         <Activity size={12} className="mr-1 animate-pulse" /> In Queue
                                     </div>
-                                ) : apt.status !== 'Checked-In' && apt.status !== 'Canceled' ? (
+                                ) : apt.status !== 'Canceled' ? (
                                     <button
                                         onClick={() => onCheckIn(apt.id)}
-                                        className="flex-1 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center"
+                                        className="flex-1 py-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white text-xs font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center justify-center"
                                     >
                                         <CheckCircle2 size={12} className="mr-1" /> Check In
                                     </button>
@@ -529,6 +533,43 @@ export const ConversionFunnelWidget: React.FC<{ data?: FunnelData; onViewDropOff
                 >
                     View detailed report <ArrowRight size={14} />
                 </button>
+            </div>
+        </div>
+    );
+};
+// --- Upcoming Appointments Alert Widget ---
+export const UpcomingAppointmentsAlert: React.FC<{ upcomingAppointments: Appointment[] }> = ({ upcomingAppointments }) => {
+    if (!upcomingAppointments || upcomingAppointments.length === 0) return null;
+
+    return (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-start">
+                <div className="flex-shrink-0 mt-0.5">
+                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                </div>
+                <div className="ml-3 w-full">
+                    <h3 className="text-sm font-bold text-amber-800">
+                        Upcoming Appointments (Next 48 Hours)
+                    </h3>
+                    <div className="mt-2 flex flex-wrap gap-3">
+                        {upcomingAppointments.map((apt) => (
+                            <div key={apt.id} className="bg-white border border-amber-100 rounded-lg p-3 shadow-sm flex items-center space-x-3 min-w-[250px] flex-1 max-w-[300px]">
+                                <div className="flex-shrink-0">
+                                    <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                        <CalendarDays className="h-5 w-5 text-amber-600" />
+                                    </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{apt.patientName}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {apt.date} • {apt.time}
+                                    </p>
+                                    <p className="text-xs font-medium text-amber-600 truncate">{apt.type}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );

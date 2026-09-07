@@ -1,28 +1,43 @@
-/* Mint & Champagne Tokens (from Landing Page) */
+/* ==========================================================================
+   Professional Medical SaaS Design Tokens (Docon / Modern Clinical Standard)
+   ========================================================================== */
+
 :root {
-  /* Mint Accents */
-  --color-primary: #0d1f1a; /* Mint 900 */
-  --color-primary-dark: #31524a; /* Mint 700 */
-  --color-accent: #c9b086; /* Champagne */
+  /* Core Clinical Brand Colors */
+  --color-primary: #0284c7;        /* Medical Sky/Cyan 600 */
+  --color-primary-dark: #0369a1;   /* Deep Blue 700 */
+  --color-accent: #0ea5e9;         /* Sky 500 */
+  --color-accent-soft: #e0f2fe;    /* Sky 100 */
 
-  /* Mint Backgrounds */
-  --color-bg: #f4fbf9; /* Mint 50 */
-  --color-surface: #FFFFFF; /* Pure White */
-  --color-surface-light: #e5f5f0; /* Mint 100 */
+  /* Neutral Backgrounds & Surfaces */
+  --color-bg: #f8fafc;             /* Slate 50 — Crisp, clean clinical backdrop */
+  --color-surface: #ffffff;        /* Pure White */
+  --color-surface-hover: #f1f5f9;  /* Slate 100 */
+  --color-surface-active: #e2e8f0; /* Slate 200 */
 
-  /* Crisp Mint Text */
-  --color-text-primary: #0d1f1a; /* Mint 900 */
-  --color-text-secondary: #31524a; /* Mint 700 */
+  /* High-Contrast Typography */
+  --color-text-primary: #0f172a;   /* Slate 900 — Maximum readability */
+  --color-text-secondary: #64748b; /* Slate 500 — Clean secondary info */
+  --color-text-muted: #94a3b8;     /* Slate 400 */
 
-  /* Subtle Borders & Interactions */
-  --color-border: #ccebe4; /* Mint 200 */
-  --color-hover: #e5f5f0; /* Mint 100 */
+  /* Borders & Dividers */
+  --color-border: #e2e8f0;         /* Slate 200 — Sharp, subtle card borders */
+  --color-border-hover: #cbd5e1;   /* Slate 300 */
+  --color-hover: #f1f5f9;          /* Slate 100 */
+
+  /* Clinical Status Tokens */
+  --color-success: #10b981;        /* Emerald 500 */
+  --color-success-bg: #ecfdf5;     /* Emerald 50 */
+  --color-warning: #f59e0b;        /* Amber 500 */
+  --color-warning-bg: #fffbeb;     /* Amber 50 */
+  --color-error: #ef4444;          /* Red 500 */
+  --color-error-bg: #fef2f2;        /* Red 50 */
 }
 
 /* Global Selection */
 ::selection {
-  background-color: #ccebe4; /* Mint 200 */
-  color: #0d1f1a; /* Mint 900 */
+  background-color: #bae6fd;       /* Sky 200 */
+  color: #0c4a6e;                  /* Sky 900 */
 }
 
 /* Base Utility Classes */
@@ -30,11 +45,10 @@
   background-color: var(--color-bg); 
 }
 
-/* Enhanced Surface Utilities */
 .bg-brand-surface { 
   background-color: var(--color-surface); 
   border: 1px solid var(--color-border);
-  box-shadow: 0 4px 20px rgba(13, 31, 26, 0.05); /* Soft Mint 900 shadow */
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
 }
 
 .text-brand-primary { color: var(--color-primary); }

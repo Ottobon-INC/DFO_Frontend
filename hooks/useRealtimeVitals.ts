@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export const useRealtimeVitals = (
@@ -7,6 +7,12 @@ export const useRealtimeVitals = (
     onReconnect?: () => void
 ) => {
     const [isConnected, setIsConnected] = useState(false);
+
+    const onVitalUpdateRef = useRef(onVitalUpdate);
+    onVitalUpdateRef.current = onVitalUpdate;
+
+    const onReconnectRef = useRef(onReconnect);
+    onReconnectRef.current = onReconnect;
 
     useEffect(() => {
         if (!patientId) return;
@@ -24,7 +30,7 @@ export const useRealtimeVitals = (
                 },
                 (payload) => {
                     console.log('Real-time vital insert received!', payload);
-                    onVitalUpdate(payload.new);
+                    onVitalUpdateRef.current?.(payload.new);
                 }
             )
             .on(
@@ -37,7 +43,7 @@ export const useRealtimeVitals = (
                 },
                 (payload) => {
                     console.log('Real-time vital update received!', payload);
-                    onVitalUpdate(payload.new);
+                    onVitalUpdateRef.current?.(payload.new);
                 }
             )
             .on('system', { event: '*' }, (payload) => {
@@ -48,14 +54,16 @@ export const useRealtimeVitals = (
                     console.log('Successfully connected to vitals channel');
                     setIsConnected(true);
                     
-                    // If we previously dropped and are now reconnecting, trigger a background fetch
                     if (err) {
-                        onReconnect?.();
+                        onReconnectRef.current?.();
                     }
                 }
                 
-                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                    console.error('Lost connection to vitals channel:', status);
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('Realtime vitals channel error:', err || status);
+                    setIsConnected(false);
+                } else if (status === 'CLOSED') {
+                    console.log('Vitals channel closed');
                     setIsConnected(false);
                 }
             });
@@ -65,7 +73,7 @@ export const useRealtimeVitals = (
             console.log(`Unsubscribing from vitals channel for patient ${patientId}`);
             supabase.removeChannel(channel);
         };
-    }, [patientId, onVitalUpdate, onReconnect]);
+    }, [patientId]);
 
     return { isConnected };
 };

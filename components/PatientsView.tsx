@@ -9,7 +9,9 @@ import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { api } from '../services/api';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';import toast from 'react-hot-toast';
+import { Input } from './ui/Input';
+import toast from 'react-hot-toast';
+import { Pagination } from './Pagination';
 
 
 interface PatientsViewProps {
@@ -18,17 +20,45 @@ interface PatientsViewProps {
 }
 
 export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, userRole }) => {
+    const location = useLocation();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All Patients');
     const [filterGender, setFilterGender] = useState('All Genders');
     const [filterMonth, setFilterMonth] = useState('');
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [isNewPatientMode, setIsNewPatientMode] = useState(false);
+    const [leadForConversion, setLeadForConversion] = useState<any>(null);
     const [patients, setPatients] = useState<Patient[]>([]);
+    
+    // Check if redirected from Leads with leadToConvert data
+    useEffect(() => {
+        if (location.state && location.state.leadToConvert) {
+            setLeadForConversion(location.state.leadToConvert);
+            setIsNewPatientMode(true);
+            // Clear history state so refresh doesn't reopen modal
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const itemsPerPage = 20;
 
     const fetchPatients = async () => {
         try {
-            const response = await api.getPatients();
+            const response = await api.getPatients({ 
+                page: currentPage, 
+                limit: itemsPerPage, 
+                q: searchTerm 
+            });
+
+            // Handle pagination metadata
+            if (response?.pagination) {
+                setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+                setTotalItems(response.pagination.total);
+            }
 
             // Robust data extraction to handle varied API shapes
             let items: any[] = [];
@@ -70,8 +100,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     };
 
     useEffect(() => {
-        fetchPatients();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            fetchPatients();
+        }, 300); // Debounce search
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, searchTerm, filterStatus, filterGender, filterMonth]);
 
     // --- Export Patients to CSV ---
     const handleExportCSV = () => {
@@ -207,17 +240,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
     const [patientForBooking, setPatientForBooking] = useState<Patient | null>(null);
 
     const filteredPatients = patients.filter(patient => {
-        const matchesSearch = (
-            (patient.name && String(patient.name).toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (patient.id && String(patient.id).toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (patient.mobile && String(patient.mobile).includes(searchTerm)) ||
-            (patient.uhid && String(patient.uhid).toLowerCase().includes(searchTerm.toLowerCase()))
-        );
         const matchesStatus = filterStatus === 'All Patients' || (patient.status && String(patient.status).toLowerCase() === filterStatus.toLowerCase());
         const matchesGender = filterGender === 'All Genders' || (patient.gender && String(patient.gender).toLowerCase() === filterGender.toLowerCase());
         const matchesMonth = !filterMonth || (patient.registrationDate && String(patient.registrationDate).startsWith(filterMonth));
 
-        return matchesSearch && matchesStatus && matchesGender && matchesMonth;
+        return matchesStatus && matchesGender && matchesMonth;
     });
 
     const handleBookingConfirm = (details: unknown) => {
@@ -236,70 +263,90 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
         <div className="flex flex-col h-full gap-4 lg:gap-6 relative">
             
             {/* Summary Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="p-4 flex items-center justify-between">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Card className="p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
                     <div>
-                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Total Patients</p>
-                        <h3 className="text-2xl font-bold text-brand-textPrimary">{totalPatients}</h3>
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight mb-0.5">Total Patients</p>
+                        <h3 className="text-xl font-black text-slate-900">{totalPatients}</h3>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                        <Users size={20} />
+                    <div className="w-8 h-8 rounded-md bg-sky-50 flex items-center justify-center text-brand-primary border border-sky-100">
+                        <Users size={16} />
                     </div>
                 </Card>
-                <Card className="p-4 flex items-center justify-between">
+                <Card className="p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
                     <div>
-                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">Active Cases</p>
-                        <h3 className="text-2xl font-bold text-brand-textPrimary">{activePatients}</h3>
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight mb-0.5">Active Cases</p>
+                        <h3 className="text-xl font-black text-slate-900">{activePatients}</h3>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-600">
-                        <Activity size={20} />
+                    <div className="w-8 h-8 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
+                        <Activity size={16} />
                     </div>
                 </Card>
-                <Card className="p-4 flex items-center justify-between">
+                <Card className="p-3 sm:p-3.5 flex items-center justify-between shadow-2xs">
                     <div>
-                        <p className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-1">New This Month</p>
-                        <h3 className="text-2xl font-bold text-brand-textPrimary">+{newThisMonth}</h3>
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-tight mb-0.5">New This Month</p>
+                        <h3 className="text-xl font-black text-slate-900">+{newThisMonth}</h3>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
-                        <Calendar size={20} />
+                    <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                        <Calendar size={16} />
                     </div>
                 </Card>
             </div>
 
             {/* Content Area - Main List */}
-            <div className="flex-1 flex flex-col bg-brand-surface rounded-xl shadow-sm border border-brand-border overflow-hidden min-w-0">
-                {/* Top Action Bar (Merged Filters and Actions) */}
-                <div className="p-4 border-b border-brand-border bg-brand-bg/30 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex-1 flex flex-col bg-white rounded-lg shadow-2xs border border-brand-border overflow-hidden min-w-0">
+                {/* Top Action Bar */}
+                <div className="p-3 border-b border-brand-border bg-slate-50/60 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
                     
                     {/* Horizontal Filters */}
-                    <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                        <div className="flex items-center w-full sm:w-auto sm:min-w-[200px]">
+                    <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                        <div className="flex items-center w-full sm:w-auto sm:min-w-[220px]">
                             <Input
-                                placeholder="Search by name, ID..."
+                                placeholder="Search by name, UHID, mobile..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full h-9 text-sm"
+                                className="w-full text-xs"
                             />
                         </div>
 
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9">
-                            <option>All Patients</option>
-                            <option>Active</option>
-                            <option>Discharged</option>
-                            <option>Archived</option>
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5">
+                            <option value="All Patients">All Patients</option>
+                            <option value="Active">Active</option>
+                            <option value="Discharged">Discharged</option>
+                            <option value="Archived">Archived</option>
                         </select>
 
-                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9">
-                            <option>All Genders</option>
-                            <option>Female</option>
-                            <option>Male</option>
+                        <select value={filterGender} onChange={(e) => setFilterGender(e.target.value)} className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5">
+                            <option value="All Genders">All Genders</option>
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
                         </select>
 
-                        <input type="month" value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-sm font-medium text-brand-textPrimary outline-none focus:border-brand-primary transition-colors shadow-sm cursor-pointer h-9" />
+                        <input 
+                            type="month" 
+                            value={filterMonth} 
+                            onChange={(e) => setFilterMonth(e.target.value)} 
+                            className="bg-white border border-brand-border rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary transition-colors shadow-2xs cursor-pointer h-8.5"
+                            title="Filter by Registration Month"
+                        />
+
+                        {(searchTerm || filterStatus !== 'All Patients' || filterGender !== 'All Genders' || filterMonth) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterStatus('All Patients');
+                                    setFilterGender('All Genders');
+                                    setFilterMonth('');
+                                }}
+                                className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition-colors px-2 py-1"
+                            >
+                                Reset Filters
+                            </button>
+                        )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center gap-3">
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end xl:self-auto">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -313,7 +360,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                             onClick={handleExportCSV}
                             title="Export to CSV"
                         >
-                            <Download size={14} className="mr-2" /> Export
+                            <Download size={13} className="mr-1.5" /> Export
                         </Button>
                         <Button
                             variant="outline"
@@ -321,99 +368,114 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                             onClick={handleImportClick}
                             title="Import from CSV"
                         >
-                            <Upload size={14} className="mr-2" /> Import
+                            <Upload size={13} className="mr-1.5" /> Import
                         </Button>
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => setIsNewPatientMode(true)}
+                            onClick={() => {
+                                setLeadForConversion(null);
+                                setIsNewPatientMode(true);
+                            }}
                         >
-                            <UserPlus size={14} className="mr-2" /> New Patient
+                            <UserPlus size={13} className="mr-1.5" /> New Patient
                         </Button>
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="flex-1 overflow-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm border-b border-brand-border">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50 sticky top-0 z-10 border-b border-brand-border">
                             <tr>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Patient Name / ID</th>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Contact</th>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Gender</th>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Reg. Date</th>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider text-right">Actions</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Patient Name / UHID</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Contact</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Gender</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Reg. Date</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Status</th>
+                                <th className="px-3.5 py-2.5 text-[11px] font-semibold text-slate-500 uppercase tracking-tight text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-brand-border bg-brand-surface">
+                        <tbody className="divide-y divide-slate-100 bg-white">
                             {filteredPatients.map((patient, idx) => (
                                 <tr
                                     key={patient.id}
-                                    className={`hover:bg-brand-hover transition-colors group ${idx % 2 === 0 ? 'bg-transparent' : 'bg-brand-bg/30'}`}
+                                    className={`hover:bg-slate-50/80 transition-colors group cursor-pointer ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}
+                                    onClick={() => setSelectedPatient(patient)}
                                 >
-                                    <td className="px-6 py-4 cursor-pointer" onClick={() => setSelectedPatient(patient)}>
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-sm border border-brand-primary/20 shadow-sm">
+                                    <td className="px-3.5 py-2.5">
+                                        <div className="flex items-center space-x-2.5">
+                                            <div className="w-7 h-7 rounded-md bg-sky-50 text-brand-primary flex items-center justify-center font-bold text-xs border border-sky-200">
                                                 {String(patient.name).charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="font-bold text-brand-textPrimary text-sm group-hover:text-brand-primary transition-colors">{patient.name}</p>
-                                                <p className="text-xs text-brand-textSecondary font-mono mt-0.5">{patient.uhid}</p>
+                                                <p className="font-bold text-slate-900 text-xs group-hover:text-brand-primary transition-colors">{patient.name}</p>
+                                                <p className="text-[11px] text-slate-400 font-mono">{patient.uhid}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-brand-textSecondary">{patient.mobile}</td>
-                                    <td className="px-6 py-4 text-sm text-brand-textPrimary font-medium">{patient.gender}</td>
-                                    <td className="px-6 py-4 text-sm text-brand-textSecondary font-medium">{patient.registrationDate}</td>
-                                    <td className="px-6 py-4">
-                                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider border ${
-                                             patient.status === 'Active' ? 'bg-green-100 text-green-700 border-green-200' :
-                                             patient.status === 'Discharged' ? 'bg-blue-100 text-brand-primary border-blue-200' :
-                                             'bg-brand-hover text-brand-textSecondary border-brand-border'
+                                    <td className="px-3.5 py-2.5 text-xs text-slate-600 font-medium">{patient.mobile}</td>
+                                    <td className="px-3.5 py-2.5 text-xs text-slate-800 font-medium">{patient.gender}</td>
+                                    <td className="px-3.5 py-2.5 text-xs text-slate-500">{patient.registrationDate}</td>
+                                    <td className="px-3.5 py-2.5">
+                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                             patient.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                             patient.status === 'Discharged' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                                             'bg-slate-100 text-slate-600 border-slate-200'
                                          }`}>
                                              {patient.status}
                                          </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end space-x-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={(e) => { e.stopPropagation(); setSelectedPatient(patient); }}
+                                    <td className="px-3.5 py-2.5 text-right">
+                                        <div className="flex items-center justify-end space-x-1.5" onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-brand-primary bg-white hover:bg-slate-50 border border-slate-200 rounded-md shadow-2xs transition-colors flex items-center gap-1"
+                                                onClick={() => setSelectedPatient(patient)}
                                             >
-                                                <FileText size={14} className="mr-1.5" />
-                                                <span>File</span>
-                                            </Button>
+                                                <FileText size={12} />
+                                                <span>Profile</span>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
                             ))}
                             {filteredPatients.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-brand-textSecondary">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center">
-                                            <Filter size={32} className="opacity-20 mb-3" />
-                                            <p className="font-medium text-sm">No patients found matching the current filters.</p>
-                                            <p className="text-xs mt-1 opacity-70">Try adjusting your search or clearing the filters.</p>
+                                            <Filter size={24} className="opacity-30 mb-2" />
+                                            <p className="font-semibold text-xs text-slate-600">No patients found matching current filters.</p>
+                                            <p className="text-[11px] text-slate-400 mt-0.5">Try searching with a different name or clear filters.</p>
                                         </div>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                    
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        totalItems={totalItems}
+                        itemsPerPage={itemsPerPage}
+                    />
                 </div>
             </div>
 
             {isNewPatientMode && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 md:p-10 py-10">
                     <ClinicRegistrationForm
-                        initialData={{}} // Empty for new patient
+                        initialData={leadForConversion || {}}
                         onSuccess={() => {
                             setIsNewPatientMode(false);
+                            setLeadForConversion(null);
                             fetchPatients();
                         }}
-                        onCancel={() => setIsNewPatientMode(false)}
+                        onCancel={() => {
+                            setIsNewPatientMode(false);
+                            setLeadForConversion(null);
+                        }}
                     />
                 </div>,
                 document.body

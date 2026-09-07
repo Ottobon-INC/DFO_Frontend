@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon, Upload, Download } from 'lucide-react';
 import { Doctor, Appointment, Patient, UserRole } from '../types';
+import { getRoleTier } from '../constants/roles.constants';
 import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
 import { RescheduleModal } from './Modals';
 import { PatientProfile } from './PatientProfile';
+import { Pagination } from './Pagination';
 import { api } from '../services/api';
 
 const DEFAULT_PATIENT_PROFILE: Patient = {
@@ -44,6 +46,8 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const [miniCalendarDate, setMiniCalendarDate] = useState(new Date()); // Independent state for mini calendar browsing
     const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [appointmentsCurrentPage, setAppointmentsCurrentPage] = useState(1);
+    const [appointmentsTotalPages, setAppointmentsTotalPages] = useState(1);
     const [patients, setPatients] = useState<any[]>([]);
     const [doctors, setDoctors] = useState<Doctor[]>([]);
 
@@ -54,13 +58,20 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     api.getAppointments(),
                     api.getPatients(),
                     api.getLeads(),
-                    api.getDoctors()
+                    api.getDoctors(),
+                    api.getDoctorQueue().catch(() => ({ data: [] }))
                 ]);
 
                 const apptsResult = results[0];
                 const patientsResult = results[1];
                 const leadsResult = results[2];
                 const doctorsResult = results[3];
+                const queueResult = results[4];
+                
+                let queueData: any[] = [];
+                if (queueResult && queueResult.status === 'fulfilled') {
+                    queueData = queueResult.value?.data || queueResult.value || [];
+                }
 
                 let dbDoctors: Doctor[] = [];
                 if (doctorsResult.status === 'fulfilled' && doctorsResult.value?.data) {
@@ -128,6 +139,13 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
                         const matchedDoctor = dbDoctors.find(d => d.id === docId);
 
+                        // Find matching queue thread for Handoff / Reason
+                        const matchedQueue = queueData.find(q => 
+                            (q.patient_name && resolvedName && q.patient_name.toLowerCase() === resolvedName.toLowerCase()) || 
+                            (q.patient_id && item.patient_id && q.patient_id === item.patient_id)
+                        );
+                        const visit_reason = matchedQueue ? (matchedQueue.summary || matchedQueue.last_message) : (item.visit_reason || item.notes || '');
+
                         if (!resolvedDocName || resolvedDocName === 'Unknown') {
                             resolvedDocName = matchedDoctor?.name || 'Unknown';
                         }
@@ -146,15 +164,18 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         }
 
                         return {
-                            id: item.id,
+                            id: item.id || item.appointmentId,
                             patientName: resolvedName || 'Unknown',
+                            patientId: item.patient_id || item.patientId || null,
                             doctorName: resolvedDocName || 'Unknown',
                             doctorId: docId,
-                            time: item.start_time || item.time,
-                            date: item.appointment_date || item.date,
+                            time: item.start_time || item.slotTime || item.time,
+                            date: item.appointment_date ? item.appointment_date.split('T')[0] : (item.date ? item.date.split('T')[0] : 'N/A'),
                             type: resolvedType || 'Consultation',
                             status: item.status,
-                            resourceId: item.resource_id
+                            visit_reason: visit_reason,
+                            queueStatus: item.queue_status || item.queueStatus,
+                            resourceId: item.resource_id || item.resourceId
                         };
                     }) : [];
                 } else {
@@ -195,6 +216,38 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     }>({ date: new Date(), time: 9 });
 
     const location = useLocation();
+
+    const filteredAppointmentsList = appointments.filter(apt => {
+        if (!apt.date) return false;
+        
+        // Ensure aptDate is parsed consistently. 
+        // If date is "2026-08-17", new Date("2026-08-17") creates UTC midnight, which might shift to 08-16 local time.
+        // We'll extract YYYY-MM-DD directly and compare.
+        const dStr = apt.date.split('T')[0];
+        const [y, m, d] = dStr.split('-').map(Number);
+        
+        if (viewMode === 'day') {
+            return y === viewDate.getFullYear() && 
+                   m === viewDate.getMonth() + 1 && 
+                   d === viewDate.getDate();
+        } else if (viewMode === 'week') {
+            const start = new Date(viewDate);
+            start.setDate(viewDate.getDate() - viewDate.getDay());
+            start.setHours(0,0,0,0);
+            
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            end.setHours(23,59,59,999);
+            
+            // Create a local date object from the parsed string for accurate comparison
+            const aptLocal = new Date(y, m - 1, d);
+            return aptLocal >= start && aptLocal <= end;
+        } else if (viewMode === 'month') {
+            return m === viewDate.getMonth() + 1 && 
+                   y === viewDate.getFullYear();
+        }
+        return true;
+    });
 
     useEffect(() => {
         if (location.state && (location.state as any).leadToAppointment) {
@@ -425,7 +478,8 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 doctor_name_snapshot: doctorName, // Explicitly send name for storage
                 type: safeType,
                 status: 'Scheduled',
-                visit_reason: formData.speciality || 'Consultation', // Keep original detail here
+                visit_reason: (formData as any).visitReason || formData.speciality || 'Consultation',
+                notes: (formData as any).visitReason || '',
 
                 // Referral Details
                 referral_doctor: formData.referralDoctor,
@@ -519,23 +573,32 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
     const handleCheckIn = async () => {
         if (selectedAppointment) {
             try {
-                // Determine target status. Using 'Checked-In' to match the button text more closely, but backend might expect 'Arrived'.
-                // Using 'Checked-In' for clarity if backend supports it, otherwise fallback to 'Arrived'.
+                let pinMsg = "";
+                // If the appointment doesn't have a linked patient profile yet (e.g. from WhatsApp lead)
+                if (!selectedAppointment.patientId) {
+                    const result = await api.checkinAndConvert(selectedAppointment.id);
+                    const pin = result.data?.pin || result.pin || 'Unknown';
+                    pinMsg = `\n\nPatient Profile Created!\nPlease provide this Registration PIN to the patient:\n\nPIN: ${pin}`;
+                } else {
+                    const status = 'Checked-In';
+                    await api.updateAppointmentStatus(selectedAppointment.id, { status });
+                }
+
                 const status = 'Checked-In';
-                await api.updateAppointmentStatus(selectedAppointment.id, { status });
-
                 // Update Local State List
-                setAppointments(prev => prev.map(a => a.id === selectedAppointment.id ? { ...a, status } : a));
+                setAppointments(prev => prev.map(a => a.id === selectedAppointment.id ? { ...a, status, patientId: a.patientId || 'new-patient' } : a));
 
-                // Update Selected Appointment State (Crucial for Modal UI Update)
-                setSelectedAppointment(prev => prev ? ({ ...prev, status }) : null);
+                // Update Selected Appointment State
+                setSelectedAppointment(prev => prev ? ({ ...prev, status, patientId: prev.patientId || 'new-patient' }) : null);
 
-                // Close modal after brief delay or immediately? User said "buttons not working", so likely they want visual feedback.
-                // Let's close it to show the change on the board.
                 setIsActionCardOpen(false);
-            } catch (error) {
+                
+                if (pinMsg) {
+                    alert(`Check-in complete.${pinMsg}\n\nPlease proceed to update the rest of their information in their profile.`);
+                }
+            } catch (error: any) {
                 console.error("Check-in failed", error);
-                alert("Failed to check in. Please try again.");
+                alert(error?.message || error?.error || "Failed to check in. Please try again.");
             }
         }
     };
@@ -600,7 +663,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
         <div className="flex flex-col lg:flex-row h-[calc(100vh-90px)] gap-3 md:gap-4 relative w-full overflow-hidden">
             {/* Sidebar Filters - Hidden on mobile, narrower on tablet */}
             <div className="hidden md:flex w-48 lg:w-56 xl:w-64 flex-shrink-0 flex-col gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
-                {userRole !== UserRole.DOCTOR && (
+                {getRoleTier(userRole) >= 2 && ( // Hide filters sidebar for Doctors (Tier 1)
                     <div className="bg-brand-surface p-3 lg:p-4 xl:p-6 rounded-xl lg:rounded-2xl shadow-sm border border-brand-border">
                         <div className="flex items-center space-x-2 mb-3 lg:mb-4 xl:mb-6 text-brand-textPrimary">
                             <Filter size={16} className="text-brand-primary" />
@@ -694,8 +757,10 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 </div>
             </div>
 
-            {/* Main Calendar Area */}
-            <div className="flex-1 flex flex-col bg-brand-surface rounded-xl sm:rounded-2xl shadow-sm border border-brand-border min-w-0 overflow-hidden">
+            {/* Right Side Content Container (Scrollable vertically) */}
+            <div className="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1 pb-4">
+                {/* Main Calendar Area */}
+                <div className="flex flex-col bg-brand-surface rounded-xl sm:rounded-2xl shadow-sm border border-brand-border min-h-[600px] flex-shrink-0">
                 {/* Header */}
                 <div className="p-2 sm:p-3 lg:p-4 border-b border-brand-border bg-brand-bg/50">
                     {/* Navigation & Controls - Single Row */}
@@ -982,6 +1047,65 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 </div>
             </div>
 
+            {/* List View Below Calendar */}
+            <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden flex-shrink-0">
+                <div className="p-4 border-b border-brand-border bg-brand-bg/50 flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-brand-textPrimary">Consultations & Appointments</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-brand-surface border-b border-brand-border">
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Time</th>
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Patient</th>
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Date</th>
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Consultation Type</th>
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Handoff / Reason</th>
+                                <th className="p-3 text-xs font-bold text-brand-textSecondary uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredAppointmentsList.length > 0 ? filteredAppointmentsList.slice((appointmentsCurrentPage - 1) * 10, appointmentsCurrentPage * 10).map((apt) => (
+                                <tr key={apt.id} className="border-b border-brand-border hover:bg-brand-bg/50 transition-colors">
+                                    <td className="p-3 text-sm font-medium text-brand-textPrimary">{apt.time}</td>
+                                    <td className="p-3">
+                                        <div className="text-sm font-bold text-brand-textPrimary">{apt.patientName}</div>
+                                        <div className="text-xs text-brand-textSecondary">{apt.doctorName}</div>
+                                    </td>
+                                    <td className="p-3 text-sm text-brand-textSecondary">
+                                        {apt.date}
+                                    </td>
+                                    <td className="p-3 text-sm text-brand-textSecondary">{apt.type}</td>
+                                    <td className="p-3 text-sm text-brand-textSecondary italic line-clamp-2" title={(apt as any).visit_reason || (apt as any).notes || 'N/A'}>
+                                        {(apt as any).visit_reason || (apt as any).notes || 'N/A'}
+                                    </td>
+                                    <td className="p-3">
+                                        <span className={"px-2 py-1 rounded text-xs font-bold " + (apt.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' : apt.status === 'Checked-In' ? 'bg-green-100 text-green-700' : apt.status === 'In-Consultation' ? 'bg-purple-100 text-purple-700' : apt.status === 'Completed' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700')}>
+                                            {apt.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={6} className="p-6 text-center text-brand-textSecondary text-sm">
+                                        No appointments found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                    
+                    <Pagination 
+                        currentPage={appointmentsCurrentPage}
+                        totalPages={Math.ceil(filteredAppointmentsList.length / 10) || 1}
+                        onPageChange={setAppointmentsCurrentPage}
+                        className="p-4 border-t border-brand-border"
+                    />
+                </div>
+            </div>
+
+            </div>
+
             {/* Modals */}
             <BookAppointmentModal
                 isOpen={isBookModalOpen}
@@ -1001,6 +1125,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     appointment={selectedAppointment}
                     onReschedule={handleRescheduleInit}
                     onCancel={handleCancel}
+                    onCheckIn={handleCheckIn}
                     doctors={doctors}
                 />
             )}

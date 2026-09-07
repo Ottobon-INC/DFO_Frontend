@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -10,7 +10,7 @@ import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
-import { RescheduleModal, Toast, CheckInModal, AddLeadModal } from './Modals';
+import { RescheduleModal, Toast, AddLeadModal } from './Modals';
 import { BookAppointmentModal } from './AppointmentModals';
 import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 
@@ -19,17 +19,21 @@ import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './doctor/DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
+import { TriageConsole } from './nurse/TriageConsole';
+import { LobbyRoster } from './nurse/LobbyRoster';
 import { ControlTowerConsole } from './cro/ControlTowerConsole';
 import { CroInbox } from './cro/CroInbox';
 import { CroAnalytics } from './cro/CroAnalytics';
 import { AuditLogsView } from './cro/AuditLogsView';
-import { InternalAssistant } from './internal-assistant/InternalAssistant';
+
 import { DailyRegisterTable } from './PatientRegistration';
 import { TeamManagementView } from './TeamManagementView';
 import { DoctorSchedulesView } from './settings/DoctorSchedulesView';
 import { UserProfileModal, ChangePasswordModal } from './ProfileModals';
 import DoctorScheduleSettings from './settings/DoctorScheduleSettings';
 import { ProfileSettingsModal } from './settings/ProfileSettingsModal';
+import { RequireTier } from './common/RequireTier';
+import { getRoleTier } from '../constants/roles.constants';
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,6 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
 
@@ -55,8 +60,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [apptsData, leadsData, patientsData, doctorsData] = await Promise.all([
-          api.getAppointments({ date: new Date().toISOString().split('T')[0] }), // Fetch all appointments today
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date(today);
+        dayAfter.setDate(dayAfter.getDate() + 2);
+
+        const [apptsData, upcomingApptsData, leadsData, patientsData, doctorsData] = await Promise.all([
+          api.getAppointments({ date: today.toISOString().split('T')[0] }), // Fetch all appointments today
+          api.getAppointments({ 
+            start_date: tomorrow.toISOString().split('T')[0],
+            end_date: dayAfter.toISOString().split('T')[0]
+          }), // Fetch next 48 hours
           api.getLeads(),
           api.getPatients(),
           api.getDoctors()
@@ -81,10 +96,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         }
 
         // Normalize Appointments
-        const apptItems = Array.isArray(apptsData?.data) ? apptsData.data : (apptsData?.data?.items ?? []);
-        const mappedAppts: Appointment[] = Array.isArray(apptItems) ? apptItems.map((item: any) => {
+        const mapAppointments = (data: any) => {
+          const items = Array.isArray(data?.data) ? data.data : (data?.data?.items ?? []);
+          return Array.isArray(items) ? items.map((item: any) => {
           // patient_name might be missing or 'Unknown', so handle explicitly
-          let resolvedName = item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
+          let resolvedName = item.patient?.name || item.patient?.full_name || item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
 
           if (!resolvedName || resolvedName === 'Unknown') {
             if (item.patient_id || item.patientId) {
@@ -125,8 +141,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             resourceId: item.resource_id
           };
         }) : [];
+        };
 
-        setAppointments(mappedAppts);
+        setAppointments(mapAppointments(apptsData));
+        
+        let upcoming = mapAppointments(upcomingApptsData);
+        if (userRole === 'Doctor') {
+            // Wait, we need the logged in user's ID
+            const userStr = localStorage.getItem('user');
+            const loggedInUser = userStr ? JSON.parse(userStr) : null;
+            const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'dr_sireesha'; // default fallback
+            upcoming = upcoming.filter((a: any) => a.doctorId === loggedInDoctorId);
+        }
+        setUpcomingAppointments(upcoming);
 
         // Normalize Leads
         const leadItems = leadsData?.data?.items ?? [];
@@ -200,14 +227,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         setCurrentUser(JSON.parse(userStr));
       }
     } catch (e) { }
+
+    const syncFreshProfile = async () => {
+      try {
+        const res = await api.verifySession();
+        if (res?.success && res?.user) {
+          setCurrentUser(res.user);
+          localStorage.setItem('user', JSON.stringify(res.user));
+        }
+      } catch (err) { }
+    };
+    syncFreshProfile();
   }, []);
+
+  const parseSearchQuery = (query: string) => {
+    const trimmed = (query || '').trim();
+    if (!trimmed) return {};
+
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    const isPhoneLike = digitsOnly.length >= 3 && (digitsOnly.length / trimmed.length >= 0.5);
+
+    if (isPhoneLike) {
+      let cleanPhone = digitsOnly;
+      if (cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.slice(2);
+      } else if (cleanPhone.startsWith('0') && cleanPhone.length > 10) {
+        cleanPhone = cleanPhone.slice(1);
+      }
+      return { phone: cleanPhone, mobile: cleanPhone };
+    }
+
+    if (trimmed.includes('@')) {
+      return { email: trimmed };
+    }
+
+    return { name: trimmed, fullname: trimmed };
+  };
 
   const handleGlobalSearch = async () => {
     if (!globalSearch.trim()) {
@@ -238,22 +300,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const leadsInCROQueue = leads.filter(l => l.status === 'Stalling - Sent to CRO').length;
   const leadsConvertedToday = leads.filter(l => l.status === 'Converted - Active Patient').length;
 
-  // --- Handlers ---
-  const handleCheckIn = (id: string) => {
-    setCheckInId(id);
-  };
-
-  const handleCheckInConfirm = async (data: { visitType: string; remarks: string }) => {
-    if (checkInId) {
-      try {
-        await api.updateAppointmentStatus(checkInId, { status: 'Checked-In' });
-        setAppointments(prev => prev.map(a => a.id === checkInId ? { ...a, status: 'Checked-In' } : a));
-        showToast(`Checked in ${appointments.find(a => a.id === checkInId)?.patientName}`);
-        setCheckInId(null);
-      } catch (e) {
-        console.error(e);
-        showToast('Failed to check in');
+    // --- Handlers ---
+  const handleCheckIn = async (id: string) => {
+    const targetApt = appointments.find(a => a.id === id);
+    try {
+      await api.updateAppointmentStatus(id, { status: 'Checked-In' });
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'Checked-In' } : a));
+      
+      // Auto-enqueue to walk-in queue / waiting room if patientId and doctorId exist
+      if (targetApt?.patientId && targetApt?.doctorId) {
+        try {
+          await api.createWalkInQueue({
+            patient_id: targetApt.patientId,
+            doctor_id: targetApt.doctorId,
+            chief_complaint: targetApt.notes || targetApt.type || 'Scheduled Appointment',
+            priority: 'standard'
+          });
+        } catch (qmsErr) {
+          // Handled or already enqueued
+        }
       }
+      
+      const docInfo = targetApt?.doctorName ? ` for ${targetApt.doctorName}` : '';
+      showToast(`✓ ${targetApt?.patientName || 'Patient'} checked in${docInfo}! Added to waiting queue.`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (e: any) {
+      console.error('Check in failed:', e);
+      showToast(e?.message || 'Failed to check in');
     }
   };
 
@@ -452,26 +525,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 opacity-80">Operations</div>
             <NavItem
               icon={<LayoutDashboard size={20} />}
-              label="Dashboard"
-              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/'}
-              onClick={() => navigate('/dashboard')}
+              label={userRole === UserRole.NURSE ? "Vitals Intake" : "Dashboard"}
+              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/' || (userRole === UserRole.NURSE && location.pathname === '/dashboard/nurse')}
+              onClick={() => navigate(userRole === UserRole.NURSE ? '/dashboard/nurse' : '/dashboard')}
             />
-            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+              {userRole === UserRole.NURSE && (
+                <>
+                  <NavItem
+                    icon={<MessageSquare size={20} />}
+                    label="Triage Console"
+                    active={location.pathname === '/dashboard/nurse/triage'}
+                    onClick={() => navigate('/dashboard/nurse/triage')}
+                  />
+                  <NavItem
+                    icon={<Users size={20} />}
+                    label="Lobby Roster"
+                    active={location.pathname === '/dashboard/nurse/lobby'}
+                    onClick={() => navigate('/dashboard/nurse/lobby')}
+                  />
+                </>
+              )}
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<Users size={20} />}
                 label="Leads Pipeline"
                 active={location.pathname === '/dashboard/leads'}
                 onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
               />
-            )}
-            {(userRole === UserRole.ADMIN || userRole === UserRole.FRONT_DESK || userRole === UserRole.CRO) && (
+            </RequireTier>
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<FileText size={20} />}
                 label="Daily Register"
                 active={location.pathname === '/dashboard/daily-register'}
                 onClick={() => navigate('/dashboard/daily-register')}
               />
-            )}
+            </RequireTier>
             <NavItem
               icon={<Users size={20} />}
               label="Waiting Room"
@@ -516,7 +605,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse shadow-sm"></span>
               Operations Dashboards
             </div>
-            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
+            <RequireTier minTier={3} userRole={userRole}>
               <>
                 <NavItem
                   icon={<Activity size={20} />}
@@ -537,31 +626,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                   onClick={() => navigate('/dashboard/cro-analytics')}
                 />
               </>
-            )}
-            {userRole === UserRole.DOCTOR && (
+            </RequireTier>
+            <RequireTier minTier={1} userRole={userRole}>
               <NavItem
                 icon={<Stethoscope size={20} />}
-                label="Doctor Dashboard"
+                label="Clinical Escalations"
                 active={location.pathname === '/dashboard/doctor'}
                 onClick={() => navigate('/dashboard/doctor')}
               />
-            )}
-            {userRole === UserRole.NURSE && (
-              <NavItem
-                icon={<Stethoscope size={20} />}
-                label="Nurse Dashboard"
-                active={location.pathname === '/dashboard/nurse'}
-                onClick={() => navigate('/dashboard/nurse')}
-              />
-            )}
-            {(userRole === UserRole.ADMIN || userRole === UserRole.CRO) && (
+            </RequireTier>
+            
+            <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<Clock size={20} />}
                 label="Audit Logs"
                 active={location.pathname === '/dashboard/audit-logs'}
                 onClick={() => navigate('/dashboard/audit-logs')}
               />
-            )}
+            </RequireTier>
           </div>
 
           {/* Team Management - Only for Clinic Admins */}
@@ -658,10 +740,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                     ))}
                   </div>
                 ) : (
-                   <div className="p-6 text-center">
-                     <p className="text-sm text-brand-textSecondary mb-3">No existing patient found.</p>
-                     <button onClick={() => { setShowSearchResults(false); setIsWalkInExpressOpen(true); setGlobalSearch(''); }} className="bg-brand-primary text-white text-xs font-bold px-4 py-2 rounded-xl">
-                       Register New Walk-In
+<div className="p-6 text-center">
+                     <p className="text-sm font-bold text-brand-textPrimary mb-1">No existing patient found</p>
+                     <p className="text-xs text-brand-textSecondary mb-3">
+                       {globalSearch.trim().replace(/\D/g, '').length >= 3 
+                         ? `Mobile number "${globalSearch.trim()}" will be auto-filled in the registration form.`
+                         : `Patient name "${globalSearch.trim()}" will be auto-filled in the registration form.`}
+                     </p>
+                     <button 
+                       onClick={() => { 
+                         const initial = parseSearchQuery(globalSearch);
+                         setWalkInInitialData(initial);
+                         setShowSearchResults(false); 
+                         setIsWalkInExpressOpen(true); 
+                         setGlobalSearch(''); 
+                       }} 
+                       className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 mx-auto"
+                     >
+                       <UserPlus size={14} /> Register New Walk-In
                      </button>
                    </div>
                 )}
@@ -670,35 +766,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           </div>
 
           {/* Right Status / Toggles */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             
-            {/* Walk-in Express and Queue Pill */}
-            <div className="flex items-center gap-2">
+            {/* Walk-In and Queue Action Buttons */}
+            <div className="flex items-center gap-1.5">
                <button 
                 onClick={() => setIsWalkInExpressOpen(true)}
-                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-brand-primary to-brand-accent text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all"
+                className="hidden md:flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-xs active:scale-95 transition-all"
                >
-                 <Activity size={14} /> Walk-in Express
+                 <Activity size={14} /> Walk-In
                </button>
                <button
                 onClick={() => navigate('/dashboard/waiting-room')}
-                className="hidden lg:flex items-center gap-1.5 bg-brand-hover border border-brand-border text-brand-textPrimary px-3 py-1.5 rounded-full text-xs font-bold hover:bg-brand-surface transition-colors"
+                className="hidden lg:flex items-center gap-1.5 bg-brand-surface border border-brand-border text-brand-textPrimary hover:border-brand-primary px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-2xs"
                >
                  <Users size={14} className="text-brand-primary" /> Queue
                </button>
             </div>
 
-            {/* Language Toggles */}
-            <div className="hidden sm:flex items-center bg-brand-hover rounded-full p-1 border border-brand-border">
-              <span className="bg-brand-primary text-white text-[10px] font-bold px-3 py-1 rounded-full cursor-pointer">EN</span>
-              <span className="text-brand-textSecondary text-[10px] font-bold px-3 py-1 cursor-pointer">HI</span>
-            </div>
-
             {/* Time / Date */}
-            <div className="hidden md:flex items-center gap-1.5 bg-brand-hover border border-brand-border rounded-full px-3 py-1.5">
+            <div className="hidden md:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
-              <span className="text-[11px] font-medium text-brand-textSecondary">IST</span>
-              <span className="text-[11px] font-medium text-brand-textPrimary ml-1">
+              <span className="text-[11px] font-semibold text-brand-textSecondary">IST</span>
+              <span className="text-[11px] font-bold text-brand-textPrimary ml-0.5">
                 {currentTime.toLocaleString('en-GB', {
                   timeZone: 'Asia/Kolkata',
                   day: '2-digit',
@@ -713,15 +803,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </div>
 
             {/* User Profile */}
-            <div className="flex items-center space-x-3 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
-              <div className="text-right hidden sm:block mr-2">
-                <p className="text-sm font-semibold text-brand-textPrimary leading-tight">
-                  {currentUser?.name || 'Suresh (Admin)'}
+            <div className="flex items-center space-x-2.5 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+              <div className="text-right hidden sm:block mr-1">
+                <p className="text-xs font-bold text-brand-textPrimary leading-tight">
+                  {currentUser?.name || 'Dr. Rajia'}
                 </p>
-                <p className="text-xs text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : 'Main Terminal'}</p>
+                <p className="text-[11px] text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
               </div>
-              <div className="w-9 h-9 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary font-bold text-sm">
-                S(
+              <div className="w-8 h-8 rounded-md overflow-hidden bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-xs shadow-2xs">
+                {currentUser?.profile_image_url ? (
+                  <img src={currentUser.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (currentUser?.name || 'D').charAt(0).toUpperCase()
+                )}
               </div>
 
               {isProfileDropdownOpen && (
@@ -735,13 +829,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </header>
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-6 lg:p-8'}`}>
+        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-4 lg:p-5'}`}>
           <Routes>
             <Route index element={
+              userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
               <DashboardHome
                 userRole={userRole}
                 leads={leads}
                 appointments={appointments}
+                upcomingAppointments={upcomingAppointments}
                 leadsInCROQueue={leadsInCROQueue}
                 leadsConvertedToday={leadsConvertedToday}
                 onCheckIn={handleCheckIn}
@@ -786,8 +882,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <PatientsView userRole={userRole} onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
-            <Route path="doctor" element={<DoctorDashboard />} />
+            <Route path="doctor" element={<DoctorDashboard upcomingAppointments={upcomingAppointments} />} />
             <Route path="nurse" element={<NurseDashboard />} />
+            <Route path="nurse/triage" element={<TriageConsole />} />
+            <Route path="nurse/lobby" element={<LobbyRoster />} />
             <Route path="control-tower" element={<ControlTowerConsole />} />
             <Route path="cro-inbox" element={<CroInbox />} />
             <Route path="cro-analytics" element={<CroAnalytics />} />
@@ -822,13 +920,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         onClose={() => setRescheduleId(null)}
         onConfirm={handleRescheduleConfirm}
         patientName={appointments.find(a => a.id === rescheduleId)?.patientName || ''}
-      />
-
-      <CheckInModal
-        isOpen={!!checkInId}
-        onClose={() => setCheckInId(null)}
-        onConfirm={handleCheckInConfirm}
-        patientName={appointments.find(a => a.id === checkInId)?.patientName || ''}
       />
 
       <AddLeadModal
@@ -914,8 +1005,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         />
       )}
 
-      {/* Internal Assistant Chatbot */}
-      <InternalAssistant />
     </div>
   );
 };
@@ -933,20 +1022,24 @@ const NavItem: React.FC<{
   <div
     onClick={onClick}
     className={`
-      flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group mb-1
-      ${isSubItem ? 'pl-8' : ''}
+      flex items-center justify-between px-2.5 py-1.5 rounded-md cursor-pointer transition-all duration-150 group mb-0.5 select-none
+      ${isSubItem ? 'pl-7' : ''}
       ${customClass ? customClass : active
-        ? 'bg-brand-primary text-white shadow-md'
-        : 'text-brand-textSecondary hover:bg-brand-hover'}
+        ? 'bg-brand-primary text-white shadow-xs font-semibold'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'}
     `}
   >
-    <div className="flex items-center space-x-3">
-      <div className={`transition-transform duration-200 flex-shrink-0 ${active || customClass ? '' : 'text-brand-textSecondary group-hover:text-brand-textSecondary'}`}>
-        {icon}
+    <div className="flex items-center space-x-2.5">
+      <div className={`transition-transform duration-150 flex-shrink-0 ${active || customClass ? '' : 'text-slate-500 group-hover:text-slate-700'}`}>
+        {React.cloneElement(icon as React.ReactElement, { size: 16 })}
       </div>
-      <span className={`text-[13px] tracking-wide ${active || (customClass && customClass.includes('font-medium')) ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+      <span className={`text-xs tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
     </div>
-    {rightIcon && <div className="text-brand-textSecondary">{rightIcon}</div>}
+    {rightIcon && <div className="text-slate-400">{rightIcon}</div>}
   </div>
 );
+
+
+
+
 

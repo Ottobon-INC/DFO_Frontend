@@ -3,16 +3,17 @@ import { createPortal } from 'react-dom';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
-    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye, RefreshCw
+    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye, RefreshCw, ChevronRight
 } from 'lucide-react';
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
 import { BookAppointmentModal } from './AppointmentModals';
 import { TimelineContainer } from './timeline/TimelineContainer';
 import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
-import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
+import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget, VitalsHistoryWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
-import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';import toast from 'react-hot-toast';
+import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
+import toast from 'react-hot-toast';
 import AbhaIntegrationWidget from './AbhaIntegrationWidget';
 
 
@@ -49,7 +50,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
     
-    // Vitals Modal State
+    // Vitals Modal & History State
+    const [showVitalsHistory, setShowVitalsHistory] = useState(false);
     const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
     const [vitalType, setVitalType] = useState('Blood Pressure');
     const [vitalValue, setVitalValue] = useState('');
@@ -60,12 +62,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         e.preventDefault();
         setSavingVitals(true);
         try {
-            await api.saveVitals({
-                patientId: patient.id,
+            await api.addPatientVitals(patient.id, {
+            vitals: [{
                 vital_type: vitalType,
-                vital_value: vitalValue,
-                unit: vitalUnit
-            } as any);
+                value: vitalValue,
+                unit: vitalUnit,
+                recorded_at: new Date().toISOString()
+            }]
+        });
             setIsVitalsModalOpen(false);
             setVitalValue('');
             fetchDashboardMetrics();
@@ -604,287 +608,362 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                             )}
 
                             {activeTab === 'overview' && (
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    {/* COLUMN 1: Demographics & Context */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <h3 className="font-bold text-brand-textPrimary flex items-center">
-                                                    <User size={18} className="mr-2 text-brand-primary" /> Demographics
-                                                </h3>
-                                                {!isEditing ? (
-                                                    <button
-                                                        onClick={() => setIsEditing(true)}
-                                                        className="text-xs font-bold text-brand-primary hover:bg-brand-primary/10 px-3 py-1.5 rounded-lg transition-colors"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                ) : (
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => setIsEditing(false)}
-                                                            className="text-xs font-bold text-brand-textSecondary hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors border border-brand-border"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            onClick={handleSaveDemographics}
-                                                            className="text-xs font-bold text-white bg-brand-primary hover:bg-brand-secondary px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-                                                        >
-                                                            Save
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                (() => {
+                                    const getLatest = (typeKey: string) => {
+                                        if (!dashboardData?.vitals || !Array.isArray(dashboardData.vitals)) return null;
+                                        return dashboardData.vitals.find((v: any) => {
+                                            const t = (v.vital_type || v.vital_name || v.type || '').toLowerCase();
+                                            if (typeKey === 'bp') return t.includes('blood') || t.includes('bp');
+                                            if (typeKey === 'hr') return t.includes('heart') || t.includes('pulse') || t.includes('hr');
+                                            if (typeKey === 'temp') return t.includes('temp');
+                                            if (typeKey === 'weight') return t.includes('weight') || t.includes('wt');
+                                            return false;
+                                        });
+                                    };
 
-                                            {isEditing ? (
-                                                <div className="grid grid-cols-1 gap-y-4 animate-fade-in">
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
-                                                        <input name="name" defaultValue={patient.name} id="edit-name" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
-                                                        <input name="relation" defaultValue={patient.relation} id="edit-relation" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
-                                                        <input type="date" name="dob" defaultValue={patient.dob} id="edit-dob" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
-                                                        <select name="gender" defaultValue={patient.gender} id="edit-gender" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
-                                                            <option value="Female">Female</option>
-                                                            <option value="Male">Male</option>
-                                                            <option value="Other">Other</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
-                                                        <input name="bloodGroup" defaultValue={patient.bloodGroup} id="edit-bloodGroup" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                    <div className="col-span-2 grid grid-cols-2 gap-4">
-                                                        <div className="col-span-2">
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address (House, Street, Area)</label>
+                                    const latestBp = getLatest('bp');
+                                    const latestHr = getLatest('hr');
+                                    const latestTemp = getLatest('temp');
+                                    const latestWeight = getLatest('weight');
+
+                                    const bpDisplay = latestBp ? `${latestBp.vital_value || latestBp.value} ${latestBp.unit || 'mmHg'}` : '110/80 mmHg';
+                                    const hrDisplay = latestHr ? `${latestHr.vital_value || latestHr.value} ${latestHr.unit || 'bpm'}` : '87 bpm';
+                                    const tempDisplay = latestTemp ? `${latestTemp.vital_value || latestTemp.value} ${latestTemp.unit || '°F'}` : '99 °F';
+                                    const weightDisplay = latestWeight ? `${latestWeight.vital_value || latestWeight.value} ${latestWeight.unit || 'kg'}` : '70 kg';
+
+                                    return (
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                            {/* LEFT COLUMN: Demographics & Context */}
+                                            <div className="space-y-6 lg:col-span-5">
+                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <h3 className="font-bold text-brand-textPrimary flex items-center">
+                                                            <User size={18} className="mr-2 text-brand-primary" /> Patient Details
+                                                        </h3>
+                                                        {!isEditing ? (
+                                                            <button
+                                                                onClick={() => setIsEditing(true)}
+                                                                className="text-xs font-bold text-brand-primary hover:bg-brand-primary/10 px-3 py-1.5 rounded-lg transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        ) : (
                                                             <div className="flex space-x-2">
-                                                                <input name="house" defaultValue={patient.house} id="edit-house" placeholder="House/Apt" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                                <input name="street" defaultValue={patient.street} id="edit-street" placeholder="Street" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                                <input name="area" defaultValue={patient.area} id="edit-area" placeholder="Area" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                <button
+                                                                    onClick={() => setIsEditing(false)}
+                                                                    className="text-xs font-bold text-brand-textSecondary hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors border border-brand-border"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                                <button
+                                                                    onClick={handleSaveDemographics}
+                                                                    className="text-xs font-bold text-white bg-brand-primary hover:bg-brand-secondary px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                                                >
+                                                                    Save
+                                                                </button>
                                                             </div>
-                                                        </div>
-                                                        <div>
-                                                            <input name="city" defaultValue={patient.city} id="edit-city" placeholder="City" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
-                                                        </div>
-                                                        <div>
-                                                            <input name="state" defaultValue={patient.state} id="edit-state" placeholder="State" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
-                                                        </div>
+                                                        )}
                                                     </div>
-                                                    {/* Contact Info Editing */}
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Mobile</label>
-                                                        <input name="mobile" defaultValue={patient.mobile} id="edit-mobile" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Email</label>
-                                                        <input name="email" defaultValue={patient.email} id="edit-email" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-2 gap-4 gap-y-6">
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.name}</p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.relation || 'N/A'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.dob || 'Not Provided'} ({patient.age ? `${patient.age} Yrs` : '-'})</p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.gender || 'Female'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.bloodGroup || 'N/A'}</p>
-                                                    </div>
-                                                    <div className="col-span-2">
-                                                        <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address</label>
-                                                        <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">
-                                                            {[
-                                                                patient.house,
-                                                                patient.street,
-                                                                patient.area,
-                                                                patient.city,
-                                                                patient.state,
-                                                                patient.postalCode
-                                                            ].filter(Boolean).join(', ') || 'No address on file'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
 
-                                            <div className="mt-8 pt-6 border-t border-brand-border">
-                                                <h4 className="text-sm font-bold text-brand-textPrimary mb-4">Registration & Referral</h4>
-                                                {isEditing ? (
-                                                    <div className="grid grid-cols-1 gap-4 animate-fade-in">
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
-                                                            <input name="uhid" defaultValue={patient.uhid} id="edit-uhid" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
-                                                            <input name="aadhar" defaultValue={patient.aadhar} id="edit-aadhar" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
-                                                            <select name="maritalStatus" defaultValue={patient.maritalStatus} id="edit-maritalStatus" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
-                                                                <option value="Single">Single</option>
-                                                                <option value="Married">Married</option>
-                                                                <option value="Divorced">Divorced</option>
-                                                                <option value="Widowed">Widowed</option>
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
-                                                            <input name="referralDoctor" defaultValue={patient.referralDoctor} id="edit-referralDoctor" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
-                                                            <input type="date" name="registrationDate" defaultValue={patient.registrationDate} id="edit-registrationDate" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="grid grid-cols-2 gap-4 gap-y-6">
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.uhid || 'N/A'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.aadhar || 'N/A'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.maritalStatus || 'N/A'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.referralDoctor || 'N/A'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
-                                                            <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.registrationDate || 'N/A'}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <AbhaIntegrationWidget patient={patient} onUpdate={fetchPatientDetails} />
-
-                                            {/* Assigned Staff */}
-                                        <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                            <h3 className="font-bold text-brand-textPrimary mb-6 flex items-center">
-                                                <Stethoscope size={18} className="mr-2 text-brand-primary" /> Care Team
-                                            </h3>
-                                            <div className="space-y-4">
-                                                {(() => {
-                                                    const assignedDoc = doctors.find(d => d.id === patient.assignedDoctorId || d.id === (patient as any).assigned_doctor_id);
-                                                    const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : (patient.referralDoctor || (patient as any).assignedDoctorName || null);
-                                                    const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Consultant') : (patient.referralDoctor ? 'Referral Specialist' : 'Consultant');
-                                                    const docInitials = docName ? docName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'CT';
-
-                                                    return docName ? (
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
-                                                                {docInitials}
+                                                    {isEditing ? (
+                                                        <div className="grid grid-cols-1 gap-y-4 animate-fade-in">
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
+                                                                <input name="name" defaultValue={patient.name} id="edit-name" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-bold text-brand-textPrimary">{docName}</p>
-                                                                <p className="text-xs text-brand-textSecondary">{Array.isArray(docSpeciality) ? docSpeciality.join(', ') : docSpeciality}</p>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
+                                                                <input name="relation" defaultValue={patient.relation} id="edit-relation" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
+                                                                <input type="date" name="dob" defaultValue={patient.dob} id="edit-dob" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
+                                                                <select name="gender" defaultValue={patient.gender} id="edit-gender" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
+                                                                    <option value="Female">Female</option>
+                                                                    <option value="Male">Male</option>
+                                                                    <option value="Other">Other</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
+                                                                <input name="bloodGroup" defaultValue={patient.bloodGroup} id="edit-bloodGroup" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                            </div>
+                                                            <div className="col-span-2 grid grid-cols-2 gap-4">
+                                                                <div className="col-span-2">
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address (House, Street, Area)</label>
+                                                                    <div className="flex space-x-2">
+                                                                        <input name="house" defaultValue={patient.house} id="edit-house" placeholder="House/Apt" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                        <input name="street" defaultValue={patient.street} id="edit-street" placeholder="Street" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                        <input name="area" defaultValue={patient.area} id="edit-area" placeholder="Area" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <input name="city" defaultValue={patient.city} id="edit-city" placeholder="City" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
+                                                                </div>
+                                                                <div>
+                                                                    <input name="state" defaultValue={patient.state} id="edit-state" placeholder="State" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Mobile</label>
+                                                                <input name="mobile" defaultValue={patient.mobile} id="edit-mobile" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Email</label>
+                                                                <input name="email" defaultValue={patient.email} id="edit-email" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-xs text-brand-textSecondary italic">No care team assigned yet</p>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
+                                                        <div className="grid grid-cols-2 gap-4 gap-y-6">
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.name}</p>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.relation || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.dob || 'Not Provided'} ({patient.age ? `${patient.age} Yrs` : '-'})</p>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.gender || 'Female'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.bloodGroup || 'N/A'}</p>
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address</label>
+                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">
+                                                                    {[
+                                                                        patient.house,
+                                                                        patient.street,
+                                                                        patient.area,
+                                                                        patient.city,
+                                                                        patient.state,
+                                                                        patient.postalCode
+                                                                    ].filter(Boolean).join(', ') || 'No address on file'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
-                                    {/* COLUMN 2: Vitals & Conditions */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <div className="flex justify-between items-center bg-brand-surface p-4 rounded-2xl border border-brand-border shadow-sm">
-                                            <h3 className="font-bold text-brand-textPrimary flex items-center">
-                                                <Activity size={18} className="mr-2 text-brand-primary" /> Health Metrics
-                                            </h3>
-                                            <div className="flex space-x-2">
-                                                <button 
-                                                    onClick={fetchDashboardMetrics}
-                                                    disabled={isLoadingDashboard}
-                                                    className="p-1.5 text-brand-textSecondary hover:text-brand-primary bg-brand-bg hover:bg-brand-primary/10 rounded transition-colors disabled:opacity-50"
-                                                    title="Refresh Metrics"
-                                                >
-                                                    <RefreshCw size={16} className={isLoadingDashboard ? "animate-spin" : ""} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => setIsVitalsModalOpen(true)}
-                                                    className="px-3 py-1.5 bg-brand-primary text-white text-xs font-bold rounded hover:bg-brand-secondary transition-colors shadow-sm"
-                                                >
-                                                    Record Vitals
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <DynamicTrendChart vitals={dashboardData?.vitals} />
-                                        <ConditionsWidget conditions={dashboardData?.medicalHistory} />
-                                    </div>
+                                                    <div className="mt-8 pt-6 border-t border-brand-border">
+                                                        <h4 className="text-sm font-bold text-brand-textPrimary mb-4">Registration & Referral</h4>
+                                                        {isEditing ? (
+                                                            <div className="grid grid-cols-1 gap-4 animate-fade-in">
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
+                                                                    <input name="uhid" defaultValue={patient.uhid} id="edit-uhid" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
+                                                                    <input name="aadhar" defaultValue={patient.aadhar} id="edit-aadhar" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
+                                                                    <select name="maritalStatus" defaultValue={patient.maritalStatus} id="edit-maritalStatus" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
+                                                                        <option value="Single">Single</option>
+                                                                        <option value="Married">Married</option>
+                                                                        <option value="Divorced">Divorced</option>
+                                                                        <option value="Widowed">Widowed</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
+                                                                    <input name="referralDoctor" defaultValue={patient.referralDoctor} id="edit-referralDoctor" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
+                                                                    <input type="date" name="registrationDate" defaultValue={patient.registrationDate} id="edit-registrationDate" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="grid grid-cols-2 gap-4 gap-y-6">
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
+                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.uhid || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
+                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.aadhar || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
+                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.maritalStatus || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
+                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.referralDoctor || 'N/A'}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
+                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.registrationDate || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
 
-                                    {/* COLUMN 3: Allergies & Treatments */}
-                                    <div className="space-y-6 lg:col-span-1">
-                                        <ClinicalAlertsWidget alerts={dashboardData?.allergies} />
-                                        <TreatmentsWidget treatments={dashboardData?.ongoingTreatments} />
-                                        
-                                        {/* Admin Actions / Danger Zone */}
-                                        <div className="bg-brand-error/5 p-6 rounded-2xl border border-brand-error/20">
-                                            <h3 className="font-bold text-brand-error mb-2 flex items-center">
-                                                <AlertCircle size={18} className="mr-2" /> Administrative Actions
-                                            </h3>
-                                            <p className="text-sm text-brand-error/80 mb-4">
-                                                Archiving a patient record will move it to the inactive registry. This action should only be performed when a patient has officially dropped out or completed their journey.
-                                            </p>
-                                            <div className="flex flex-col space-y-2 mt-4">
-                                                <button
-                                                    onClick={() => setIsResetPinModalOpen(true)}
-                                                    className="w-full py-2 bg-brand-surface border border-brand-primary/30 text-brand-primary text-sm font-bold rounded-lg hover:bg-brand-primary hover:text-white transition-colors shadow-sm"
-                                                >
-                                                    Reset Portal Access PIN
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        if (confirm('Are you sure you want to archive this patient record?')) {
-                                                            try {
-                                                                await api.updatePatient(patient.id, { status: 'Archived' });
-                                                                toast.success('Patient record archived successfully.');
-                                                                if (onPatientUpdate) onPatientUpdate();
-                                                                onClose();
-                                                            } catch (error: any) {
-                                                                console.error('Failed to archive patient:', error);
-                                                                toast.error(error?.message || 'Failed to archive patient.');
-                                                            }
-                                                        }
-                                                    }}
-                                                    className="w-full py-2 bg-brand-surface border border-brand-error/30 text-brand-error text-sm font-bold rounded-lg hover:bg-brand-error hover:text-brand-bg transition-colors shadow-sm"
-                                                >
-                                                    Archive Patient Record
-                                                </button>
+                                                <AbhaIntegrationWidget patient={patient} onUpdate={fetchPatientDetails} />
+
+                                                {/* Care Team / Primary Doctor */}
+                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
+                                                    <h3 className="font-bold text-brand-textPrimary mb-6 flex items-center">
+                                                        <Stethoscope size={18} className="mr-2 text-brand-primary" /> Primary Doctor
+                                                    </h3>
+                                                    <div className="space-y-4">
+                                                        {(() => {
+                                                            const assignedDoc = doctors.find(d => d.id === patient.assignedDoctorId || d.id === (patient as any).assigned_doctor_id);
+                                                            const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : (patient.referralDoctor || (patient as any).assignedDoctorName || null);
+                                                            const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Consultant') : (patient.referralDoctor ? 'Referral Specialist' : 'Consultant');
+                                                            const docInitials = docName ? docName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'CT';
+
+                                                            return docName ? (
+                                                                <div className="flex items-center space-x-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
+                                                                        {docInitials}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-bold text-brand-textPrimary">{docName}</p>
+                                                                        <p className="text-xs text-brand-textSecondary">{Array.isArray(docSpeciality) ? docSpeciality.join(', ') : docSpeciality}</p>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-xs text-brand-textSecondary italic">No primary doctor assigned yet</p>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+
+                                                {/* Record Management / Admin Actions */}
+                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-textSecondary mb-4">
+                                                        RECORD MANAGEMENT
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button
+                                                            onClick={() => setIsResetPinModalOpen(true)}
+                                                            className="py-2 px-3 bg-brand-bg border border-brand-border text-brand-textPrimary text-xs font-bold rounded-lg hover:bg-brand-surface transition-colors"
+                                                        >
+                                                            Reset PIN
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm('Are you sure you want to archive this patient record?')) {
+                                                                    try {
+                                                                        await api.updatePatient(patient.id, { status: 'Archived' });
+                                                                        toast.success('Patient record archived successfully.');
+                                                                        if (onPatientUpdate) onPatientUpdate();
+                                                                        onClose();
+                                                                    } catch (error: any) {
+                                                                        console.error('Failed to archive patient:', error);
+                                                                        toast.error(error?.message || 'Failed to archive patient.');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="py-2 px-3 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors"
+                                                        >
+                                                            Archive
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* RIGHT COLUMN: Vitals, Trends, Alerts, Treatments, Flowsheet */}
+                                            <div className="space-y-6 lg:col-span-7">
+                                                {/* Physiological Vitals & Trends */}
+                                                <div className="bg-white p-6 rounded-2xl border border-brand-border shadow-sm space-y-5">
+                                                    <div className="flex justify-between items-center">
+                                                        <h3 className="font-bold text-brand-textPrimary flex items-center">
+                                                            <Activity size={18} className="mr-2 text-brand-primary" /> Physiological Vitals & Trends
+                                                        </h3>
+                                                        <div className="flex items-center space-x-2">
+                                                            <button 
+                                                                onClick={fetchDashboardMetrics}
+                                                                disabled={isLoadingDashboard}
+                                                                className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-bg hover:bg-brand-primary/10 rounded-lg transition-colors disabled:opacity-50"
+                                                                title="Refresh Metrics"
+                                                            >
+                                                                <RefreshCw size={16} className={isLoadingDashboard ? "animate-spin" : ""} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setIsMetricsModalOpen(true)}
+                                                                className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center"
+                                                            >
+                                                                <Plus size={14} className="mr-1" /> Record Vitals
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 4 Metric Boxes */}
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
+                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">BLOOD PRESSURE</p>
+                                                            <p className="text-sm font-bold text-slate-900 mt-1">{bpDisplay}</p>
+                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestBp ? 'text-emerald-600' : 'text-slate-400'}`}>{latestBp ? 'Recorded' : 'Not Recorded'}</p>
+                                                        </div>
+                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
+                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">HEART RATE</p>
+                                                            <p className="text-sm font-bold text-slate-900 mt-1">{hrDisplay}</p>
+                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestHr ? 'text-emerald-600' : 'text-slate-400'}`}>{latestHr ? 'Recorded' : 'Not Recorded'}</p>
+                                                        </div>
+                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
+                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">TEMPERATURE</p>
+                                                            <p className="text-sm font-bold text-slate-900 mt-1">{tempDisplay}</p>
+                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestTemp ? 'text-emerald-600' : 'text-slate-400'}`}>{latestTemp ? 'Recorded' : 'Not Recorded'}</p>
+                                                        </div>
+                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
+                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">WEIGHT</p>
+                                                            <p className="text-sm font-bold text-slate-900 mt-1">{weightDisplay}</p>
+                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestWeight ? 'text-emerald-600' : 'text-slate-400'}`}>{latestWeight ? 'Recorded' : 'Not Recorded'}</p>
+                                                        </div>
+                                                    </div>
+
+                                                     {/* View History Toggle Button */}
+                                                     <div className="flex justify-end pt-2">
+                                                         <button
+                                                             onClick={() => {
+                                                                 setShowVitalsHistory(prev => {
+                                                                     const next = !prev;
+                                                                     if (next) {
+                                                                         setTimeout(() => {
+                                                                             document.getElementById('vitals-history-table')?.scrollIntoView({ behavior: 'smooth' });
+                                                                         }, 50);
+                                                                     }
+                                                                     return next;
+                                                                 });
+                                                             }}
+                                                             className="px-3.5 py-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary hover:bg-brand-primary/10 rounded-lg transition-colors flex items-center gap-1 border border-brand-primary/20 shadow-2xs"
+                                                         >
+                                                             {showVitalsHistory ? 'Hide History' : 'View History'} <ChevronRight size={14} className={showVitalsHistory ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                                                         </button>
+                                                     </div>
+                                                 </div>
+
+                                                 {/* Vitals History Flowsheet Table (Conditionally Visible) */}
+                                                 {showVitalsHistory && (
+                                                     <VitalsHistoryWidget vitals={dashboardData?.vitals} />
+                                                 )}
+
+                                                {/* Clinical Alerts & Active Conditions Grid */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <ClinicalAlertsWidget alerts={dashboardData?.allergies} />
+                                                    <ConditionsWidget conditions={dashboardData?.medicalHistory} />
+                                                </div>
+
+                                                {/* Ongoing Treatments */}
+                                                <TreatmentsWidget treatments={dashboardData?.ongoingTreatments} />
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()
                             )}
 
                             {activeTab === 'consultation' && (
@@ -1200,12 +1279,16 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             />
 
             {/* Health Metrics Modal */}
-            {isMetricsModalOpen && (
+            {(isMetricsModalOpen || isVitalsModalOpen) && (
                 <HealthMetricsEntryModal
                     patientId={patient.id}
-                    onClose={() => setIsMetricsModalOpen(false)}
+                    onClose={() => {
+                        setIsMetricsModalOpen(false);
+                        setIsVitalsModalOpen(false);
+                    }}
                     onSuccess={() => {
                         setIsMetricsModalOpen(false);
+                        setIsVitalsModalOpen(false);
                         fetchDashboardMetrics();
                     }}
                 />

@@ -13,7 +13,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className={cn(
-          "rounded-2xl border border-brand-border bg-brand-surface p-6 shadow-sm shadow-brand-border/30",
+          "rounded-lg border border-brand-border bg-brand-surface p-3.5 sm:p-4 shadow-2xs",
           className
         )}
         {...props}

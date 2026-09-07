@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FileText, UserPlus, X } from 'lucide-react';
+import { FileText, UserPlus, X, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { useDoctors } from '../hooks/useDoctors';
-import { ClinicRegistrationForm } from './ClinicRegistrationForm';
+import toast from 'react-hot-toast';
 
 // --- Daily Register Table ---
 export const DailyRegisterTable: React.FC = () => {
@@ -21,6 +21,7 @@ export const DailyRegisterTable: React.FC = () => {
     const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
     const [selectedWalkIn, setSelectedWalkIn] = useState<any>(null);
 
+    // Filters
     const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'custom'>('today');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
@@ -73,23 +74,35 @@ export const DailyRegisterTable: React.FC = () => {
                 patientItems.forEach((p: any) => patientMap.set(p.id, p));
             }
 
-            const mapped = apptItems.map((item: any) => {
-                const patientObj = patientMap.get(item.patient_id);
-                const docId = item.doctor_id || item.doctorId;
-                const docName = item.doctor_name_snapshot || item.doctor_name || doctorsList.find((d: any) => d.id === docId)?.name || 'Unassigned';
+            const mapped = apptItems
+                // Filter out canceled appointments so canceled bookings do not create duplicates in the daily register
+                .filter((item: any) => {
+                    const status = (item.status || '').toLowerCase();
+                    return status !== 'canceled' && status !== 'cancelled';
+                })
+                .map((item: any) => {
+                    const patientObj = patientMap.get(item.patient_id);
+                    const docId = item.doctor_id || item.doctorId;
+                    const docName = item.doctor_name_snapshot || item.doctor_name || doctorsList.find((d: any) => d.id === docId)?.name || 'Unassigned';
 
-                return {
-                    id: item.id,
-                    patientId: item.patient_id,
-                    date: item.appointment_date || item.date || new Date().toISOString().split('T')[0],
-                    name: item.patient_name_snapshot || item.patient_name || patientObj?.name || 'Unknown Patient',
-                    age: item.patient_age_snapshot || patientObj?.age || '-',
-                    phone: item.phone_snapshot || item.patient_phone_snapshot || patientObj?.mobile || item.phone || '-',
-                    visit: item.type || 'Consultation',
-                    consultant: docName,
-                    notes: item.visit_reason || item.notes || '-'
-                };
-            });
+                    return {
+                        id: item.id,
+                        patientId: item.patient_id,
+                        date: item.appointment_date || item.date || new Date().toISOString().split('T')[0],
+                        name: item.patient_name_snapshot || item.patient_name || patientObj?.name || 'Unknown Patient',
+                        age: item.patient_age_snapshot || patientObj?.age || '-',
+                        phone: item.phone_snapshot || item.patient_phone_snapshot || patientObj?.mobile || item.phone || '-',
+                        visit: item.type || 'Consultation',
+                        consultant: docName,
+                        notes: (() => {
+                        const raw = item.notes || item.visit_reason || '';
+                        if (!raw || raw.toLowerCase() === 'consultant' || raw.toLowerCase() === 'consultation') {
+                            return '-';
+                        }
+                        return raw;
+                    })()
+                    };
+                });
 
             // Sort by date descending
             mapped.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -102,7 +115,7 @@ export const DailyRegisterTable: React.FC = () => {
         }
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         fetchRegisterData();
     }, [dateFilter, customStartDate, customEndDate]);
 
@@ -114,8 +127,6 @@ export const DailyRegisterTable: React.FC = () => {
         setModalError(null);
         setIsWalkInModalOpen(true);
     };
-
-
 
     const handleModalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -133,7 +144,6 @@ export const DailyRegisterTable: React.FC = () => {
         setIsSubmitting(true);
         setModalError(null);
         try {
-            // Get current time in HH:MM format for the walk-in
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, '0') + ':' +
                 now.getMinutes().toString().padStart(2, '0');
@@ -146,11 +156,13 @@ export const DailyRegisterTable: React.FC = () => {
                 age: walkInAge ? parseInt(walkInAge) : null,
                 appointment_date: new Date().toISOString().split('T')[0],
                 start_time: currentTime,
+                doctor_id: walkInConsultant || undefined,
                 type: 'Consultation',
-                status: 'Checked-In', // Walk-ins are physically present
+                status: 'Checked-In',
                 visit_reason: 'Walk-In'
             };
             await api.createAppointment(payload);
+            toast.success('Walk-in patient registered!');
             setIsWalkInModalOpen(false);
             fetchRegisterData();
         } catch (err: any) {
@@ -159,6 +171,10 @@ export const DailyRegisterTable: React.FC = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
@@ -199,7 +215,7 @@ export const DailyRegisterTable: React.FC = () => {
                     <button onClick={handleAddWalkIn} className="px-4 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-bold text-brand-textSecondary hover:text-brand-primary transition-colors">
                         Add Walk-In
                     </button>
-                    <button className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-secondary transition-colors">
+                    <button onClick={handlePrint} className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-secondary transition-colors">
                         Print Register
                     </button>
                 </div>
@@ -214,13 +230,13 @@ export const DailyRegisterTable: React.FC = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-brand-bg sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Date</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Patient Name</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Age</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Phone No</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Visit Type</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Consultant</th>
-                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">Notes</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">DATE</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">PATIENT NAME</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">AGE</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">PHONE NO</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">VISIT TYPE</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">CONSULTANT</th>
+                                <th className="p-4 text-xs font-bold text-brand-textSecondary uppercase tracking-wider border-b border-brand-border">NOTES</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-brand-border">
@@ -230,7 +246,7 @@ export const DailyRegisterTable: React.FC = () => {
                                 </tr>
                             ) : (
                                 registerData.map((row, index) => (
-                                    <tr key={index} className="hover:bg-brand-bg/50 transition-colors">
+                                    <tr key={row.id || index} className="hover:bg-brand-bg/50 transition-colors">
                                         <td className="p-4 text-sm text-brand-textPrimary font-medium">{row.date}</td>
                                         <td className="p-4 text-sm text-brand-textPrimary font-bold">{row.name}</td>
                                         <td className="p-4 text-sm text-brand-textSecondary">{row.age}</td>
@@ -248,7 +264,6 @@ export const DailyRegisterTable: React.FC = () => {
 
             {isWalkInModalOpen && createPortal(
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-scale-in">
-                    {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm transition-opacity"
                         onClick={() => {
@@ -256,7 +271,6 @@ export const DailyRegisterTable: React.FC = () => {
                         }}
                     />
 
-                    {/* Modal Content */}
                     <div className="relative bg-brand-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
                         <div className="bg-brand-bg p-5 flex justify-between items-center border-b border-brand-border flex-shrink-0">
                             <div className="flex items-center space-x-2">
@@ -278,34 +292,22 @@ export const DailyRegisterTable: React.FC = () => {
                             </button>
                         </div>
 
-                        <form onSubmit={handleModalSubmit} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
-                            {modalError && (
-                                <div className="p-3 bg-brand-error/10 border border-brand-error/20 text-brand-error rounded-xl text-xs font-semibold">
-                                    {modalError}
-                                </div>
-                            )}
+                        {modalError && (
+                            <div className="mx-5 mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                                <AlertCircle size={15} className="flex-shrink-0" />
+                                <span>{modalError}</span>
+                            </div>
+                        )}
 
+                        <form onSubmit={handleModalSubmit} className="p-5 space-y-4 overflow-y-auto">
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Patient Name *</label>
+                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Patient Full Name *</label>
                                 <input
                                     type="text"
                                     required
-                                    placeholder="Enter full name"
+                                    placeholder="e.g. Rahul Sharma"
                                     value={walkInName}
                                     onChange={(e) => setWalkInName(e.target.value)}
-                                    className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-wide">Age</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="120"
-                                    placeholder="Enter age"
-                                    value={walkInAge}
-                                    onChange={(e) => setWalkInAge(e.target.value)}
                                     className="w-full px-3 py-2 bg-brand-bg border border-brand-border rounded-lg text-sm font-medium text-brand-textPrimary focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 outline-none transition-all"
                                 />
                             </div>
@@ -351,28 +353,21 @@ export const DailyRegisterTable: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="pt-3 flex justify-end space-x-2 flex-shrink-0">
+                            <div className="pt-2 flex justify-end space-x-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsWalkInModalOpen(false)}
                                     disabled={isSubmitting}
-                                    className="px-4 py-2 text-xs font-bold text-brand-textSecondary hover:bg-brand-bg rounded-lg transition-colors border border-transparent hover:border-brand-border disabled:opacity-50"
+                                    className="px-4 py-2 border border-brand-border rounded-xl text-xs font-bold text-brand-textSecondary hover:bg-brand-bg transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-6 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                                    className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-xl text-xs font-bold transition-colors shadow-md disabled:opacity-50"
                                 >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>Registering...</span>
-                                        </>
-                                    ) : (
-                                        <span>Register Walk-In</span>
-                                    )}
+                                    {isSubmitting ? 'Registering...' : 'Register Walk-In'}
                                 </button>
                             </div>
                         </form>
@@ -380,45 +375,6 @@ export const DailyRegisterTable: React.FC = () => {
                 </div>,
                 document.body
             )}
-
-            {/* Render the Patient Conversion Form in a Modal if opened from here */}
-            {isConversionModalOpen && selectedWalkIn && createPortal(
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-scale-in">
-                    <div
-                        className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm transition-opacity"
-                        onClick={() => setIsConversionModalOpen(false)}
-                    />
-                    <div className="relative bg-brand-surface w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
-                        <div className="bg-brand-bg p-5 flex justify-between items-center border-b border-brand-border flex-shrink-0">
-                            <h3 className="text-brand-textPrimary text-base font-bold">Register Patient: {selectedWalkIn.name}</h3>
-                            <button
-                                type="button"
-                                onClick={() => setIsConversionModalOpen(false)}
-                                className="text-brand-textSecondary hover:text-brand-textPrimary transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex flex-col h-full overflow-hidden relative">
-                            <ClinicRegistrationForm
-                                initialData={{
-                                    name: selectedWalkIn.name,
-                                    phone: selectedWalkIn.phone,
-                                    age: selectedWalkIn.age !== '-' ? selectedWalkIn.age : ''
-                                }}
-                                onSuccess={() => {
-                                    setIsConversionModalOpen(false);
-                                    fetchRegisterData();
-                                }}
-                                onCancel={() => setIsConversionModalOpen(false)}
-                            />
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
         </div>
     );
 };
-
-
