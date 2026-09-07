@@ -12,7 +12,7 @@ import { api } from '../services/api';
 import { BookAppointmentModal } from './AppointmentModals';
 import { TimelineContainer } from './timeline/TimelineContainer';
 import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
-import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
+import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget, VitalsHistoryWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
 
@@ -136,7 +136,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         }
     };
 
-    const fetchDashboardMetrics = async () => {
+    const fetchDashboardMetrics = React.useCallback(async () => {
         setIsLoadingDashboard(true);
         try {
             const res = await api.getPatientDashboardData(patient.id);
@@ -148,7 +148,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         } finally {
             setIsLoadingDashboard(false);
         }
-    };
+    }, [patient.id]);
 
     useEffect(() => {
         if (activeTab === 'overview') {
@@ -881,6 +881,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
                                             {/* Dynamic Trend Chart */}
                                             <DynamicTrendChart vitals={dashboardData?.vitals} />
+                                            <VitalsHistoryWidget vitals={dashboardData?.vitals} />
                                         </div>
 
                                         {/* 2-Column Clinical Grid: Alerts & Chronic History */}

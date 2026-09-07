@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, AlertTriangle, Pill, FileText, Info, HeartPulse, Thermometer, Weight, Stethoscope } from 'lucide-react';
+import { Activity, AlertTriangle, Pill, FileText, Info, HeartPulse, Thermometer, Weight, Stethoscope, Calendar, Droplet, Heart, ChevronRight } from 'lucide-react';
 
 export const DynamicTrendChart = ({ vitals }: { vitals: any[] }) => {
     if (!vitals || vitals.length === 0 || (vitals.length === 1 && vitals[0].vital_type === 'System')) {
@@ -193,3 +193,114 @@ export const TreatmentsWidget = ({ treatments }: { treatments: any[] }) => {
         </div>
     );
 };
+
+export const VitalsHistoryWidget = ({ vitals }: { vitals: any[] }) => {
+    if (!vitals || vitals.length === 0) {
+        return null;
+    }
+
+    // Group vitals by formatted date and time
+    const groupedVitals: Record<string, { dateObj: Date; dateStr: string; timeStr: string; values: Record<string, any> }> = {};
+    
+    vitals.forEach(v => {
+        const recordDate = v.created_at || v.createdAt || v.recorded_at || v.timestamp || v.date || new Date().toISOString();
+        const dateObj = new Date(recordDate);
+        const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const dateTimeKey = `${dateStr} ${timeStr}`;
+        
+        if (!groupedVitals[dateTimeKey]) {
+            groupedVitals[dateTimeKey] = { dateObj, dateStr, timeStr, values: {} };
+        }
+        
+        const typeLower = v.vital_type.toLowerCase();
+        let colKey = typeLower;
+        if (typeLower.includes('blood') || typeLower.includes('bp')) colKey = 'bp';
+        else if (typeLower.includes('heart') || typeLower.includes('pulse')) colKey = 'hr';
+        else if (typeLower.includes('temp')) colKey = 'temp';
+        else if (typeLower.includes('weight') || typeLower.includes('wt')) colKey = 'weight';
+        
+        groupedVitals[dateTimeKey].values[colKey] = v;
+    });
+
+    const rows = Object.values(groupedVitals).sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+
+    return (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col mt-4 mb-4">
+            {/* Header */}
+            <div className="p-4 flex justify-between items-center border-b border-slate-200">
+                <div className="flex items-start gap-3">
+                    <Activity className="text-brand-primary mt-0.5" size={24} strokeWidth={2.5} />
+                    <div>
+                        <h4 className="text-lg font-bold text-slate-900 leading-tight">Vitals History Flowsheet</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Comprehensive view of recorded vitals over time</p>
+                    </div>
+                </div>
+                <button className="px-3 py-1.5 bg-blue-50 text-brand-primary hover:bg-blue-100 transition-colors rounded-md text-xs font-bold flex items-center gap-1 border border-blue-100 shadow-2xs">
+                    View All <ChevronRight size={14} />
+                </button>
+            </div>
+
+            {/* Spreadsheet Table */}
+            <div className="overflow-x-auto p-4 pt-2">
+                <table className="w-full text-center text-sm border-collapse border border-slate-400 min-w-[600px]">
+                    <thead className="bg-[#e2eff9]">
+                        <tr className="text-slate-700 text-[11px] uppercase font-bold tracking-wider">
+                            <th className="p-2.5 border border-slate-400 w-28">DATE</th>
+                            <th className="p-2.5 border border-slate-400 w-24">TIME</th>
+                            <th className="p-2.5 border border-slate-400">BLOOD<br/>PRESSURE</th>
+                            <th className="p-2.5 border border-slate-400">HEART RATE<br/><span className="text-[9px] font-normal lowercase">/ min</span></th>
+                            <th className="p-2.5 border border-slate-400">TEMPERATURE</th>
+                            <th className="p-2.5 border border-slate-400">WEIGHT</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                        {rows.map((row, i) => (
+                            <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                <td className="p-2.5 border border-slate-400 font-medium text-slate-700 whitespace-nowrap text-xs">
+                                    {row.dateStr}
+                                </td>
+                                <td className="p-2.5 border border-slate-400 font-medium text-slate-700 whitespace-nowrap text-xs">
+                                    {row.timeStr}
+                                </td>
+                                <td className="p-2.5 border border-slate-400 text-slate-800 font-semibold text-[13px]">
+                                    {row.values['bp'] ? (
+                                        <span>{row.values['bp'].vital_value} <span className="text-[10px] text-slate-400 font-normal">{row.values['bp'].unit || ''}</span></span>
+                                    ) : '-'}
+                                </td>
+                                <td className="p-2.5 border border-slate-400 text-slate-800 font-semibold text-[13px]">
+                                    {row.values['hr'] ? (
+                                        <span>{row.values['hr'].vital_value}</span>
+                                    ) : '-'}
+                                </td>
+                                <td className="p-2.5 border border-slate-400 text-slate-800 font-semibold text-[13px]">
+                                    {row.values['temp'] ? (
+                                        <span>{row.values['temp'].vital_value} <span className="text-[10px] text-slate-400 font-normal">{row.values['temp'].unit || ''}</span></span>
+                                    ) : '-'}
+                                </td>
+                                <td className="p-2.5 border border-slate-400 text-slate-800 font-semibold text-[13px]">
+                                    {row.values['weight'] ? (
+                                        <span>{row.values['weight'].vital_value} <span className="text-[10px] text-slate-400 font-normal">{row.values['weight'].unit || ''}</span></span>
+                                    ) : '-'}
+                                </td>
+                            </tr>
+                        ))}
+                        
+                        {/* Empty padding rows to make it look like a full spreadsheet if few records exist */}
+                        {rows.length < 5 && Array.from({ length: 5 - rows.length }).map((_, idx) => (
+                            <tr key={`empty-${idx}`}>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                                <td className="p-2.5 border border-slate-400 h-10"></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+

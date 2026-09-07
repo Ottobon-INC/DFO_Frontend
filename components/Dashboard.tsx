@@ -50,6 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
 
@@ -59,8 +60,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [apptsData, leadsData, patientsData, doctorsData] = await Promise.all([
-          api.getAppointments({ date: new Date().toISOString().split('T')[0] }), // Fetch all appointments today
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date(today);
+        dayAfter.setDate(dayAfter.getDate() + 2);
+
+        const [apptsData, upcomingApptsData, leadsData, patientsData, doctorsData] = await Promise.all([
+          api.getAppointments({ date: today.toISOString().split('T')[0] }), // Fetch all appointments today
+          api.getAppointments({ 
+            start_date: tomorrow.toISOString().split('T')[0],
+            end_date: dayAfter.toISOString().split('T')[0]
+          }), // Fetch next 48 hours
           api.getLeads(),
           api.getPatients(),
           api.getDoctors()
@@ -85,8 +96,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         }
 
         // Normalize Appointments
-        const apptItems = Array.isArray(apptsData?.data) ? apptsData.data : (apptsData?.data?.items ?? []);
-        const mappedAppts: Appointment[] = Array.isArray(apptItems) ? apptItems.map((item: any) => {
+        const mapAppointments = (data: any) => {
+          const items = Array.isArray(data?.data) ? data.data : (data?.data?.items ?? []);
+          return Array.isArray(items) ? items.map((item: any) => {
           // patient_name might be missing or 'Unknown', so handle explicitly
           let resolvedName = item.patient?.name || item.patient?.full_name || item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
 
@@ -129,8 +141,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             resourceId: item.resource_id
           };
         }) : [];
+        };
 
-        setAppointments(mappedAppts);
+        setAppointments(mapAppointments(apptsData));
+        
+        let upcoming = mapAppointments(upcomingApptsData);
+        if (userRole === 'Doctor') {
+            // Wait, we need the logged in user's ID
+            const userStr = localStorage.getItem('user');
+            const loggedInUser = userStr ? JSON.parse(userStr) : null;
+            const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'dr_sireesha'; // default fallback
+            upcoming = upcoming.filter((a: any) => a.doctorId === loggedInDoctorId);
+        }
+        setUpcomingAppointments(upcoming);
 
         // Normalize Leads
         const leadItems = leadsData?.data?.items ?? [];
@@ -814,6 +837,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 userRole={userRole}
                 leads={leads}
                 appointments={appointments}
+                upcomingAppointments={upcomingAppointments}
                 leadsInCROQueue={leadsInCROQueue}
                 leadsConvertedToday={leadsConvertedToday}
                 onCheckIn={handleCheckIn}
@@ -858,7 +882,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <PatientsView userRole={userRole} onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
-            <Route path="doctor" element={<DoctorDashboard />} />
+            <Route path="doctor" element={<DoctorDashboard upcomingAppointments={upcomingAppointments} />} />
             <Route path="nurse" element={<NurseDashboard />} />
             <Route path="nurse/triage" element={<TriageConsole />} />
             <Route path="nurse/lobby" element={<LobbyRoster />} />

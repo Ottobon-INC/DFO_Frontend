@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Plus } from 'lucide-react';
 import { Appointment, Lead, UserRole, Patient } from '../types';
 import { getRoleTier } from '../constants/roles.constants';
-import { AppointmentWidget, QuickLeadWidget, LeadsWidget, CROStatusWidget, InterventionQueueWidget, FinancialSnapshotWidget, KPIWidget, ConversionFunnelWidget, KPIData, FunnelData } from './DashboardWidgets';
+import { UpcomingAppointmentsAlert, AppointmentWidget, QuickLeadWidget, LeadsWidget, CROStatusWidget, InterventionQueueWidget, FinancialSnapshotWidget, KPIWidget, ConversionFunnelWidget, KPIData, FunnelData } from './DashboardWidgets';
 import { DoctorDashboard } from './DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
 import { PremiumDashboard } from './PremiumDashboard';
@@ -13,6 +14,7 @@ interface DashboardHomeProps {
     userRole: UserRole;
     leads: Lead[];
     appointments: Appointment[];
+    upcomingAppointments?: Appointment[];
     leadsInCROQueue: number;
     leadsConvertedToday: number;
     onCheckIn: (id: string) => void;
@@ -28,6 +30,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     userRole,
     leads,
     appointments,
+    upcomingAppointments = [],
     leadsInCROQueue,
     leadsConvertedToday,
     onCheckIn,
@@ -114,7 +117,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     }, [userRole, leads, leadsInCROQueue, leadsConvertedToday]); // Refetch when data changes
 
     return (
-        <div className="flex flex-col gap-4 md:gap-5 lg:gap-6 animate-fade-in overflow-hidden w-full">
+        <div className="flex flex-col gap-8 md:gap-10 lg:gap-12 animate-fade-in overflow-hidden w-full p-4 lg:p-8">
+            <UpcomingAppointmentsAlert upcomingAppointments={upcomingAppointments} />
 
             {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? (
                 // --- Premium Admin / CRO Layout ---
@@ -122,6 +126,37 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             ) : (userRole === UserRole.DOCTOR) ? (
                 // --- Doctor Dashboard ---
                 <div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <div>
+                            <h2 className="text-4xl font-serif text-brand-textPrimary flex items-center tracking-tight">
+                                <LayoutDashboard className="mr-3 text-brand-primary" size={28} />
+                                Welcome back
+                            </h2>
+                            <p className="text-brand-textSecondary mt-2 text-lg font-light">Simplify appointments, streamline queues, and enjoy better control.</p>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={onOpenAddLeadModal}
+                                className="btn-primary rounded-full px-6 py-2.5 flex items-center shadow-md shadow-brand-primary/20 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                            >
+                                <Plus size={18} className="mr-2" />
+                                Add Lead
+                            </button>
+                            {getRoleTier(userRole) <= 2 && ( // Admin, Doctor, Front Desk
+                                <button
+                                    onClick={() => {
+                                        onNavigateToLeads('All');
+                                    }}
+                                    className="btn-secondary rounded-full px-6 py-2.5 bg-white/50 backdrop-blur border-stone-200"
+                                >
+                                    View All Leads
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <UpcomingAppointmentsAlert upcomingAppointments={upcomingAppointments} />
+                    
                     <DoctorDashboard
                         appointments={appointments}
                         onPatientSelect={onPatientSelect}
@@ -179,3 +214,6 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         </div>
     );
 };
+
+
+
