@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export const useRealtimeVitals = (
@@ -7,6 +7,14 @@ export const useRealtimeVitals = (
     onReconnect?: () => void
 ) => {
     const [isConnected, setIsConnected] = useState(false);
+
+    const onVitalUpdateRef = useRef(onVitalUpdate);
+    const onReconnectRef = useRef(onReconnect);
+
+    useEffect(() => {
+        onVitalUpdateRef.current = onVitalUpdate;
+        onReconnectRef.current = onReconnect;
+    }, [onVitalUpdate, onReconnect]);
 
     useEffect(() => {
         if (!patientId) return;
@@ -24,7 +32,7 @@ export const useRealtimeVitals = (
                 },
                 (payload) => {
                     console.log('Real-time vital insert received!', payload);
-                    onVitalUpdate(payload.new);
+                    if (onVitalUpdateRef.current) onVitalUpdateRef.current(payload.new);
                 }
             )
             .on(
@@ -37,7 +45,7 @@ export const useRealtimeVitals = (
                 },
                 (payload) => {
                     console.log('Real-time vital update received!', payload);
-                    onVitalUpdate(payload.new);
+                    if (onVitalUpdateRef.current) onVitalUpdateRef.current(payload.new);
                 }
             )
             .on('system', { event: '*' }, (payload) => {
@@ -50,7 +58,7 @@ export const useRealtimeVitals = (
                     
                     // If we previously dropped and are now reconnecting, trigger a background fetch
                     if (err) {
-                        onReconnect?.();
+                        if (onReconnectRef.current) onReconnectRef.current();
                     }
                 }
                 
@@ -65,7 +73,7 @@ export const useRealtimeVitals = (
             console.log(`Unsubscribing from vitals channel for patient ${patientId}`);
             supabase.removeChannel(channel);
         };
-    }, [patientId, onVitalUpdate, onReconnect]);
+    }, [patientId]);
 
     return { isConnected };
 };

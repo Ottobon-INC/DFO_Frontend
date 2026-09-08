@@ -223,12 +223,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
       // Also create QMS token if enabled
       let generatedToken: string | null = null;
       try {
-        const qmsRes = await api.createWalkInQueue({
-          patient_id: finalPatientId,
-          doctor_id: doctorId,
-          chief_complaint: visitReason,
-          priority: 'standard'
-        });
+        const qmsRes = await api.enqueuePatient(newAppointmentId);
         generatedToken = qmsRes?.data?.token_number || qmsRes?.token_number || null;
       } catch (qmsErr) {
         console.warn("QMS direct enqueue fallback (already enqueued by trigger):", qmsErr);

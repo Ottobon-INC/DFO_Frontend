@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus, Sparkles } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -641,6 +641,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             </RequireTier>
           </div>
+
+          {/* Specialty Desks */}
+          {currentUser?.clinic_specialty === 'IVF' && (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
+                <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse shadow-sm"></span>
+                Specialty Desks
+              </div>
+              <NavItem
+                icon={<Sparkles size={20} />}
+                label="IVF Desk"
+                active={false}
+                onClick={() => navigate('/dashboard/patients')}
+              />
+            </div>
+          )}
 
           {/* Team Management - Only for Clinic Admins */}
           {(() => {

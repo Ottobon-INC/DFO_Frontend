@@ -15,6 +15,7 @@ import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
 import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
+import { IvfCaseSheetSuite } from './specialties/ivf/IvfCaseSheetSuite';
 
 
 interface PatientProfileProps {
@@ -489,13 +490,16 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
     // Determine tabs based on role
     const isClinical = getRoleTier(userRole) <= 2; // Tier 1 (Doctor) and Tier 2 (Nurse) are clinical staff
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
-        { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
+        ...(currentUser?.clinic_specialty === 'IVF' ? [{ id: 'ivf_casesheet', label: 'IVF Case Sheet', shortLabel: 'IVF' }] : []),
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
+        { id: 'prescriptions', label: 'Prescriptions', shortLabel: 'Rx' },
         { id: 'documents', label: 'Documents', shortLabel: 'Docs' },
+        { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' }
     ];
 
     return createPortal(
@@ -1172,6 +1176,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             ));
                                         })()}
                                     </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'ivf_casesheet' && (
+                                <div className="h-[calc(100vh-220px)] rounded-lg border border-brand-border overflow-hidden">
+                                    <IvfCaseSheetSuite
+                                        patientId={patient?.id}
+                                        patientName={patient?.name}
+                                        patientAge={patient?.age ? String(patient.age) : ''}
+                                        patientGender={patient?.gender}
+                                    />
                                 </div>
                             )}
 

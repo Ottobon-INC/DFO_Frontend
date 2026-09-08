@@ -103,6 +103,17 @@ const getHeaders = () => {
             const user = JSON.parse(userStr);
             if (user && user.token) {
                 headers['Authorization'] = `Bearer ${user.token}`;
+            }
+            if (user && user.id) {
+                headers['x-user-id'] = user.id;
+            }
+            if (user && user.role) {
+                headers['x-user-role'] = user.role;
+            }
+            if (user && user.clinic_id) {
+                headers['x-clinic-id'] = user.clinic_id;
+            }
+            if (user && user.token) {
                 return headers;
             }
         }
@@ -320,6 +331,15 @@ export const api = {
             body: JSON.stringify(data)
         });
     },
+
+    enqueuePatient: async (appointment_id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/qms/queue/enqueue`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ appointment_id })
+        });
+    },
+
 
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {

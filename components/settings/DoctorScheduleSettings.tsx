@@ -39,6 +39,16 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
 
+  const handleGlobalDurationChange = (val: number) => {
+    setGlobalSlotDuration(val);
+    setSchedules((prev) =>
+      prev.map((s) => ({
+        ...s,
+        slot_duration_minutes: val,
+      }))
+    );
+  };
+
   useEffect(() => {
     if (userRole === 'Admin' || userRole === 'CRO' || userRole === 'Front Desk' || userRole === 'Super Admin') {
       fetchDoctors();
