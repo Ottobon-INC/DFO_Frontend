@@ -687,6 +687,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 active={false}
                 onClick={() => navigate('/dashboard/patients')}
               />
+              <NavItem
+                icon={<Shield size={20} />}
+                label="Sakhi Escalations"
+                active={location.pathname === '/dashboard/sakhi-escalations'}
+                onClick={() => navigate('/dashboard/sakhi-escalations')}
+              />
             </div>
           )}
 
