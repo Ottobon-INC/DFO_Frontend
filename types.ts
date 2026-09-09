@@ -226,3 +226,177 @@ export interface Clinic {
     created_at: string;
     users_count?: number;
 }
+
+// --- Gynecology Module Data Structures ---
+export interface ObstetricSummary {
+    gravida: number; // G
+    para: number;    // P
+    abortions: number; // A
+    living: number;  // L
+    ectopic?: number;
+}
+
+export interface PastPregnancy {
+    id: string;
+    pregnancyNumber: number;
+    year?: string;
+    gestationalAge?: string;
+    outcome?: 'Full Term' | 'Preterm' | 'Abortion' | 'Ectopic' | 'Stillbirth';
+    modeOfDelivery?: 'Normal Vaginal' | 'Instrumental' | 'C-Section' | 'N/A';
+    babySex?: 'Male' | 'Female' | 'Other' | 'N/A';
+    birthWeightKg?: string;
+    pregnancyComplications?: string;
+    maternalComplications?: string;
+    neonatalComplications?: string;
+}
+
+export interface MenstrualHistory {
+    ageAtMenarche?: number;
+    lmpDate?: string;
+    cycleRegularity?: 'Regular' | 'Irregular';
+    cycleLengthDays?: number;
+    bleedingDurationDays?: number;
+    flowIntensity?: 'Light' | 'Moderate' | 'Heavy';
+    padsPerDay?: number;
+    hasClots?: boolean;
+    menstrualPain?: boolean;
+    painSeverity?: 'Mild' | 'Moderate' | 'Severe';
+    intermenstrualBleeding?: boolean;
+    postCoitalBleeding?: boolean;
+    menopauseStatus?: 'Premenopausal' | 'Perimenopausal' | 'Postmenopausal';
+    ageAtMenopause?: number;
+}
+
+export interface CurrentPregnancyDetails {
+    pregnancyStatus: 'Not Pregnant' | 'Suspected' | 'Confirmed';
+    lmpDate?: string;
+    eddDate?: string;
+    gestationalAgeWeeks?: number;
+    gestationalAgeDays?: number;
+    currentSymptoms?: string[];
+    vaginalBleeding?: boolean;
+    abdominalPelvicPain?: boolean;
+    pregnancyComplications?: string;
+}
+
+export interface GynecologicalHistory {
+    conditions: {
+        pcos?: boolean;
+        fibroids?: boolean;
+        endometriosis?: boolean;
+        ovarianCyst?: boolean;
+        infertility?: boolean;
+        pid?: boolean;
+        stiHistory?: boolean;
+        cervicalConditions?: boolean;
+        previousAbnormalScreening?: boolean;
+        other?: string;
+    };
+    surgeries: {
+        cSection?: boolean;
+        dc?: boolean;
+        hysteroscopy?: boolean;
+        laparoscopy?: boolean;
+        myomectomy?: boolean;
+        hysterectomy?: boolean;
+        other?: string;
+    };
+}
+
+export interface SexualContraceptiveHistory {
+    sexuallyActive?: boolean;
+    painDuringIntercourse?: boolean;
+    stiHistory?: boolean;
+    otherSexualHealthConcerns?: string;
+    currentContraceptiveMethod?: string;
+    previousContraceptiveMethod?: string;
+    useDuration?: string;
+    reasonForDiscontinuation?: string;
+    counselingRequired?: boolean;
+    planningPregnancy?: boolean;
+}
+
+export interface PelvicExamination {
+    examinationPerformed: boolean;
+    consentObtained: boolean;
+    chaperonePresent: boolean;
+    chaperoneName?: string;
+    externalExamFindings?: string;
+    vaginalFindings?: string;
+    cervicalFindings?: string;
+    dischargeDetails?: string;
+    bleedingDetails?: string;
+    tendernessDetails?: string;
+    massDetails?: string;
+    otherFindings?: string;
+}
+
+export interface GynecCaseSheetData {
+    patientId: string;
+    clinicId?: string;
+    episodeId?: string;
+    chiefComplaint: {
+        mainComplaint: string;
+        duration?: string;
+        severity?: string;
+        additionalComplaints?: string[];
+        briefDescription?: string;
+    };
+    menstrualHistory: MenstrualHistory;
+    obstetricHistory: {
+        summary: ObstetricSummary;
+        pastPregnancies: PastPregnancy[];
+    };
+    currentPregnancy: CurrentPregnancyDetails;
+    gynecologicalHistory: GynecologicalHistory;
+    sexualContraceptiveHistory: SexualContraceptiveHistory;
+    examination: {
+        general: {
+            generalCondition?: string;
+            pallor?: boolean;
+            icterus?: boolean;
+            edema?: boolean;
+            bmi?: number;
+            otherFindings?: string;
+        };
+        abdominal: {
+            tenderness?: boolean;
+            abdominalMass?: boolean;
+            distension?: boolean;
+            otherFindings?: string;
+        };
+        pelvic: PelvicExamination;
+    };
+    assessment: {
+        primaryDiagnosis: string;
+        diagnosisCode?: string;
+        isNewDiagnosis?: boolean;
+        secondaryDiagnosis?: string;
+        clinicalAssessmentNotes?: string;
+    };
+    treatmentPlan: {
+        treatmentName?: string;
+        description?: string;
+        status?: 'Planned' | 'In Progress' | 'Completed' | 'Cancelled';
+        procedureDate?: string;
+        additionalInstructions?: string;
+    };
+    advice: {
+        medicationInstructions?: string;
+        lifestyleAdvice?: string;
+        dietAdvice?: string;
+        warningSigns?: string;
+        procedureInstructions?: string;
+        pregnancyAdvice?: string;
+        otherInstructions?: string;
+    };
+    followUp: {
+        followUpRequired: boolean;
+        followUpDate?: string;
+        followUpReason?: string;
+        investigationsToBring?: string;
+        referralRequired?: boolean;
+        referralDoctorHospital?: string;
+    };
+}
+

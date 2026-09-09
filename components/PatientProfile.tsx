@@ -15,6 +15,7 @@ import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
 import toast from 'react-hot-toast';
 import AbhaIntegrationWidget from './AbhaIntegrationWidget';
+import { GynecCaseSheet } from './Gynecology/GynecCaseSheet';
 
 
 interface PatientProfileProps {
@@ -500,6 +501,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
+        { id: 'gynecology', label: 'Gynecology Consultation', shortLabel: 'Gynec' },
         { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
@@ -602,6 +604,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         </div>
                     ) : (
                         <>
+
+                            {activeTab === 'gynecology' && (
+                                <GynecCaseSheet
+                                    patient={patient}
+                                    onCompleteConsultation={onCompleteConsultation}
+                                />
+                            )}
 
                             {activeTab === 'timeline' && (
                                 <TimelineContainer patientId={patient.id} />
