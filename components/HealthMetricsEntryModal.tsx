@@ -29,10 +29,19 @@ export const HealthMetricsEntryModal: React.FC<HealthMetricsEntryModalProps> = (
         setIsSubmitting(true);
         try {
             const recorded_at = new Date().toISOString();
-            if (vitals.bp) await api.addPatientVitals(patientId, { vital_type: 'blood_pressure', value: vitals.bp, recorded_at });
-            if (vitals.hr) await api.addPatientVitals(patientId, { vital_type: 'heart_rate', value: vitals.hr, recorded_at });
-            if (vitals.temp) await api.addPatientVitals(patientId, { vital_type: 'temperature', value: vitals.temp, recorded_at });
-            if (vitals.weight) await api.addPatientVitals(patientId, { vital_type: 'weight', value: vitals.weight, recorded_at });
+            const vitalsList = [];
+            if (vitals.bp) vitalsList.push({ vital_type: 'blood_pressure', value: vitals.bp, recorded_at });
+            if (vitals.hr) vitalsList.push({ vital_type: 'heart_rate', value: vitals.hr, recorded_at });
+            if (vitals.temp) vitalsList.push({ vital_type: 'temperature', value: vitals.temp, recorded_at });
+            if (vitals.weight) vitalsList.push({ vital_type: 'weight', value: vitals.weight, recorded_at });
+
+            if (vitalsList.length === 0) {
+                toast.error('Please enter at least one vital measurement');
+                setIsSubmitting(false);
+                return;
+            }
+
+            await api.addPatientVitals(patientId, { vitals: vitalsList });
             
             toast.success('Vitals saved successfully');
             onSuccess();

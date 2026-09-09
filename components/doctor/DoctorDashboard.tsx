@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { UpcomingAppointmentsAlert } from '../DashboardWidgets';
 import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, BrainCircuit, X } from 'lucide-react';
 import { api } from '../../services/api';import toast from 'react-hot-toast';
 
@@ -9,7 +10,7 @@ interface DoctorDashboardProps {
   onPatientSelect?: (patient: any, tab?: string) => void;
 }
 
-export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: propAppointments, onPatientSelect }) => {
+export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: propAppointments, upcomingAppointments, onPatientSelect }) => {
   
   const [loading, setLoading] = useState(true);
 
@@ -283,5 +284,6 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
     </div>
   );
 };
+
 
 

@@ -18,6 +18,8 @@ export const DailyRegisterTable: React.FC = () => {
     const [walkInConsultant, setWalkInConsultant] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
+    const [isConversionModalOpen, setIsConversionModalOpen] = useState(false);
+    const [selectedWalkIn, setSelectedWalkIn] = useState<any>(null);
 
     // Filters
     const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'custom'>('today');
@@ -29,11 +31,11 @@ export const DailyRegisterTable: React.FC = () => {
     const fetchRegisterData = async () => {
         try {
             setLoading(true);
-            
+
             let start_date = '';
             let end_date = '';
             const today = new Date();
-            
+
             if (dateFilter === 'today') {
                 start_date = today.toISOString().split('T')[0];
                 end_date = start_date;
@@ -50,7 +52,7 @@ export const DailyRegisterTable: React.FC = () => {
                 start_date = customStartDate;
                 end_date = customEndDate;
             }
-            
+
             if (dateFilter === 'custom' && (!start_date || !end_date)) {
                 setRegisterData([]);
                 setLoading(false);
