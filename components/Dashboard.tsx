@@ -19,6 +19,7 @@ import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './DoctorDashboard';
 import { DoctorDashboard as ClinicalEscalationsView } from './doctor/DoctorDashboard';
+import { SakhiEscalationsView } from './doctor/SakhiEscalationsView';
 import { NurseDashboard } from './nurse/NurseDashboard';
 import { TriageConsole } from './nurse/TriageConsole';
 import { LobbyRoster } from './nurse/LobbyRoster';
@@ -647,12 +648,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </>
             </RequireTier>
             <RequireTier minTier={1} userRole={userRole}>
-              <NavItem
-                icon={<ShieldAlert size={20} />}
-                label="Clinical Escalations"
-                active={location.pathname === '/dashboard/clinical-escalations'}
-                onClick={() => navigate('/dashboard/clinical-escalations')}
-              />
+              <>
+                <NavItem
+                  icon={<ShieldAlert size={20} />}
+                  label="Clinical Escalations"
+                  active={location.pathname === '/dashboard/clinical-escalations'}
+                  onClick={() => navigate('/dashboard/clinical-escalations')}
+                />
+                <NavItem
+                  icon={<Shield size={20} />}
+                  label="Sakhi Escalations"
+                  active={location.pathname === '/dashboard/sakhi-escalations'}
+                  onClick={() => navigate('/dashboard/sakhi-escalations')}
+                />
+              </>
             </RequireTier>
             
             <RequireTier minTier={3} userRole={userRole}>
@@ -677,6 +686,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 label="IVF Desk"
                 active={false}
                 onClick={() => navigate('/dashboard/patients')}
+              />
+              <NavItem
+                icon={<Shield size={20} />}
+                label="Sakhi Escalations"
+                active={location.pathname === '/dashboard/sakhi-escalations'}
+                onClick={() => navigate('/dashboard/sakhi-escalations')}
               />
             </div>
           )}
@@ -904,7 +919,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </header>
 
         {/* Dynamic Views Container */}
-        <div className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 lg:p-8 min-h-0 relative">
+        <div className={`flex-1 flex flex-col min-h-0 relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') || location.pathname.includes('sakhi-escalations') ? 'p-0' : 'p-3 sm:p-4 md:p-6 lg:p-8'}`}>
           <Routes>
             <Route index element={
               userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
@@ -965,6 +980,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="clinical-escalations" element={
               <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <ClinicalEscalationsView appointments={appointments} onPatientSelect={handlePatientSelect} />
+              </div>
+            } />
+            <Route path="sakhi-escalations" element={
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <SakhiEscalationsView />
               </div>
             } />
             <Route path="nurse" element={<NurseDashboard />} />
