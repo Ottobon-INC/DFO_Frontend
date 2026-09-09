@@ -29,181 +29,10 @@ interface EscalationItem {
   messages?: any[];
 }
 
-const INITIAL_DEMO_ESCALATIONS: EscalationItem[] = [
-  {
-    id: 'esc-1',
-    patient_name: 'Navya Sri',
-    phone: '+919988776655',
-    category: 'Critical',
-    tag: 'Fertility (IUI) • Pre-Care',
-    reason: 'Missed Letrozole Dosage',
-    time: '09:16 AM',
-    stage_info: 'Stimulation Phase (Cycle Day 3)',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm1',
-        sender: 'Navya Sri',
-        role: 'patient',
-        content: 'I missed taking dosage this morning.',
-        time: '09:15 AM'
-      },
-      {
-        id: 'm2',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'THIS SOUNDS LIKE A CLINICAL ALERT. Since this is time-sensitive, I am escalating this to Dr. K. Sravani Rao for immediate cycle dosage adjustment.',
-        time: '09:16 AM'
-      }
-    ]
-  },
-  {
-    id: 'esc-2',
-    patient_name: 'Kavitha Reddy',
-    phone: '+919876543210',
-    category: 'Post-Care',
-    tag: 'Fertility (IVF) • Post-Care',
-    reason: 'Sudden Abdominal Cramping & Spotting',
-    time: '11:22 AM',
-    stage_info: 'Post-Embryo Transfer (Day 5)',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm3',
-        sender: 'Kavitha Reddy',
-        role: 'patient',
-        content: 'I am experiencing sudden abdominal cramping and light spotting since 10 AM. Is this normal?',
-        time: '11:20 AM'
-      },
-      {
-        id: 'm4',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'CLINICAL ESCALATION: Patient reports acute onset post-transfer spotting. Routing to primary clinician Dr. K. Sravani Rao for urgent progesterone protocol review.',
-        time: '11:22 AM'
-      }
-    ]
-  },
-  {
-    id: 'esc-3',
-    patient_name: 'Ananya Varma',
-    phone: '+919765432109',
-    category: 'Critical',
-    tag: 'Fertility (IVF) • Post-Care',
-    reason: 'OHSS Alert: Severe Abdominal Distension',
-    time: '01:10 PM',
-    stage_info: 'Post Oocyte Retrieval (Day 3)',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm5',
-        sender: 'Ananya Varma',
-        role: 'patient',
-        content: 'Feeling sudden severe abdominal swelling and shortness of breath after the retrieval.',
-        time: '01:08 PM'
-      },
-      {
-        id: 'm6',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'HIGH RISK ALERT: Potential moderate-to-severe OHSS symptoms reported. Immediate clinical review flagged.',
-        time: '01:10 PM'
-      }
-    ]
-  },
-  {
-    id: 'esc-4',
-    patient_name: 'Harika Rao',
-    phone: '+919654321098',
-    category: 'Pre-Care',
-    tag: 'Fertility (IVF) • Pre-Care',
-    reason: 'Trigger Shot Timing Clarification',
-    time: '06:30 PM',
-    stage_info: 'Pre-Ovulatory hCG Trigger Preparation',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm7',
-        sender: 'Harika Rao',
-        role: 'patient',
-        content: 'Doctor advised trigger shot tonight at 9:30 PM, but pharmacy delivered Decapeptyl instead of Ovitrelle. Please confirm if I should proceed.',
-        time: '06:28 PM'
-      },
-      {
-        id: 'm8',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'TIMING-CRITICAL MEDICATION INQUIRY: Trigger injection clarification needed prior to scheduled pick-up.',
-        time: '06:30 PM'
-      }
-    ]
-  },
-  {
-    id: 'esc-5',
-    patient_name: 'Swapna Rani',
-    phone: '+919543210987',
-    category: 'Post-Care',
-    tag: 'Fertility (IVF) • Post-Care',
-    reason: 'Two-Week Wait Progesterone Side-Effects',
-    time: '03:45 PM',
-    stage_info: 'Luteal Phase Support (Day 8)',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm9',
-        sender: 'Swapna Rani',
-        role: 'patient',
-        content: 'Extreme dizziness and nausea after starting oral Duphaston tablets alongside vaginal gel.',
-        time: '03:42 PM'
-      },
-      {
-        id: 'm10',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'LUTEAL PHASE SYMPTOM REPORT: Routing to Dr. K. Sravani Rao for review of progesterone dosage and supportive anti-emetics.',
-        time: '03:45 PM'
-      }
-    ]
-  },
-  {
-    id: 'esc-6',
-    patient_name: 'Priyanka Reddy',
-    phone: '+919432109876',
-    category: 'Pre-Care',
-    tag: 'Fertility (IVF) • Pre-Care',
-    reason: 'Pre-OPU Ovarian Hyper-Response Warning',
-    time: '08:15 AM',
-    stage_info: 'Cycle Day 9 Follicular Monitoring',
-    attending_doctor: 'Dr. K. Sravani Rao, MD',
-    status: 'PENDING',
-    messages: [
-      {
-        id: 'm11',
-        sender: 'Priyanka Reddy',
-        role: 'patient',
-        content: 'Estradiol lab result came back at 4200 pg/ml. Should I reduce the Menopur dose today?',
-        time: '08:12 AM'
-      },
-      {
-        id: 'm12',
-        sender: 'SAKHI AI TRIAGE PROTOCOL',
-        role: 'triage_alert',
-        content: 'LAB ALERT: High peak estradiol level with multi-follicular recruitment. Requires dosage titration.',
-        time: '08:15 AM'
-      }
-    ]
-  }
-];
-
 export const SakhiEscalationsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [escalations, setEscalations] = useState<EscalationItem[]>(INITIAL_DEMO_ESCALATIONS);
-  const [selectedId, setSelectedId] = useState<string>('esc-1');
+  const [escalations, setEscalations] = useState<EscalationItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<'All' | 'Critical' | 'Post-Care' | 'Pre-Care'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -215,9 +44,16 @@ export const SakhiEscalationsView: React.FC = () => {
   const fetchEscalations = async () => {
     const userStr = localStorage.getItem('user');
     const loggedInUser = userStr ? JSON.parse(userStr) : null;
-    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'dr_sireesha';
+    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId;
+
+    if (!loggedInDoctorId) {
+      setEscalations([]);
+      setLoading(false);
+      return;
+    }
 
     try {
+      setLoading(true);
       const res = await api.getSakhiEscalations(loggedInDoctorId);
       const data = res.data || res || [];
       if (Array.isArray(data) && data.length > 0) {
@@ -235,28 +71,29 @@ export const SakhiEscalationsView: React.FC = () => {
           return {
             id: item.id || `esc-backend-${idx}`,
             patient_name: patientName,
-            phone: item.metadata?.phone || item.phone || '+919988776655',
+            phone: item.metadata?.phone || item.phone || '',
             category: cat,
             tag: item.metadata?.tag || `Fertility (${cat === 'Post-Care' ? 'IVF' : 'IUI'}) • ${cat}`,
             reason: item.reason || 'Clinical alert raised by Sakhi AI assistant',
-            time: item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '09:16 AM',
+            time: item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
             stage_info: item.metadata?.stage_info || 'Clinical Review',
-            attending_doctor: item.metadata?.attending_doctor || 'Dr. K. Sravani Rao, MD',
+            attending_doctor: item.metadata?.attending_doctor || item.attending_doctor_name || 'Attending Doctor',
             status: item.status || 'PENDING'
           };
         });
 
-        // Use real backend escalations directly if present
         setEscalations(mapped);
         if (!selectedId || !mapped.find(c => c.id === selectedId)) {
           setSelectedId(mapped[0]?.id || '');
         }
       } else {
-        setEscalations(INITIAL_DEMO_ESCALATIONS);
+        setEscalations([]);
+        setSelectedId('');
       }
     } catch (err) {
-      console.error("Failed to fetch Sakhi escalations, using clinical defaults", err);
-      setEscalations(INITIAL_DEMO_ESCALATIONS);
+      console.error("Failed to fetch Sakhi escalations", err);
+      setEscalations([]);
+      setSelectedId('');
     } finally {
       setLoading(false);
     }
@@ -269,26 +106,32 @@ export const SakhiEscalationsView: React.FC = () => {
   const selectedEscalation = escalations.find(e => e.id === selectedId) || escalations[0];
 
   useEffect(() => {
-    if (selectedEscalation && !selectedEscalation.id.startsWith('esc-')) {
+    if (selectedEscalation?.id) {
       api.getEscalationMessages(selectedEscalation.id)
         .then(res => {
           const msgs = res.data || res || [];
-          if (Array.isArray(msgs) && msgs.length > 0) {
+          if (Array.isArray(msgs)) {
             setCustomMessages(prev => ({
               ...prev,
               [selectedEscalation.id]: msgs.map((m: any) => ({
                 id: m.id,
-                sender: m.role === 'assistant' ? 'SAKHI AI TRIAGE PROTOCOL' : selectedEscalation.patient_name,
-                role: m.role === 'assistant' ? 'triage_alert' : 'patient',
+                sender: m.role === 'assistant' || m.role === 'triage_alert' ? 'SAKHI AI TRIAGE PROTOCOL' : (m.role === 'doctor' ? (m.sender || 'Doctor') : selectedEscalation.patient_name),
+                role: m.role === 'assistant' ? 'triage_alert' : m.role,
                 content: m.content,
                 time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'
               }))
             }));
           }
         })
-        .catch(err => console.log('Using default local messages for item:', err));
+        .catch(err => {
+          console.error('Failed to fetch escalation messages:', err);
+          setCustomMessages(prev => ({
+            ...prev,
+            [selectedEscalation.id]: []
+          }));
+        });
     }
-  }, [selectedId]);
+  }, [selectedId, selectedEscalation?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -299,7 +142,7 @@ export const SakhiEscalationsView: React.FC = () => {
       await api.resolveSakhiEscalation(id);
       toast.success(`${selectedEscalation?.patient_name || 'Patient'} escalation marked as resolved`);
     } catch (err) {
-      toast.success(`Escalation marked as resolved (Demo Mode)`);
+      toast.error(`Failed to resolve escalation`);
     }
 
     setEscalations(prev => {
@@ -324,9 +167,13 @@ export const SakhiEscalationsView: React.FC = () => {
     e.preventDefault();
     if (!replyText.trim() || !selectedEscalation) return;
 
+    const userStr = localStorage.getItem('user');
+    const loggedInUser = userStr ? JSON.parse(userStr) : null;
+    const doctorName = loggedInUser?.name || selectedEscalation.attending_doctor || 'Doctor';
+
     const newMsg = {
       id: `reply-${Date.now()}`,
-      sender: 'Dr. K. Sravani Rao, MD',
+      sender: doctorName,
       role: 'doctor',
       content: replyText.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -595,7 +442,13 @@ export const SakhiEscalationsView: React.FC = () => {
 
             {/* Chat History View */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/40 custom-scrollbar">
-              {currentMessages.map((msg, idx) => {
+              {currentMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                  <p className="text-xs font-semibold text-slate-500">No conversation history found for this patient escalation.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Direct patient messages will appear here once received.</p>
+                </div>
+              ) : (
+                currentMessages.map((msg, idx) => {
                 if (msg.role === 'patient') {
                   return (
                     <div key={msg.id || idx} className="flex flex-col items-start space-y-1">
@@ -650,7 +503,7 @@ export const SakhiEscalationsView: React.FC = () => {
                     </div>
                   </div>
                 );
-              })}
+              }))}
               <div ref={messagesEndRef} />
             </div>
 
