@@ -1045,6 +1045,28 @@ export const api = {
         });
     },
 
+    getSakhiEscalations: async (doctorId: string, clinicId?: string) => {
+        const queryParams = new URLSearchParams({ doctorId });
+        if (clinicId) queryParams.append('clinicId', clinicId);
+        return fetchJson<any>(`${API_BASE_URL}/api/escalations/doctor?${queryParams.toString()}`, {
+            headers: getHeaders()
+        });
+    },
+
+    getEscalationMessages: async (escalationId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/escalations/${escalationId}/messages`, {
+            headers: getHeaders()
+        });
+    },
+
+    resolveSakhiEscalation: async (id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/escalations/${id}/status`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: 'RESOLVED' })
+        });
+    },
+
     getNurseQueue: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/nurse`, {
             headers: getHeaders()

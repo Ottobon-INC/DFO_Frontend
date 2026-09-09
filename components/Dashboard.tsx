@@ -18,6 +18,7 @@ import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './doctor/DoctorDashboard';
+import { SakhiEscalationsView } from './doctor/SakhiEscalationsView';
 import { NurseDashboard } from './nurse/NurseDashboard';
 import { TriageConsole } from './nurse/TriageConsole';
 import { LobbyRoster } from './nurse/LobbyRoster';
@@ -605,12 +606,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </>
             </RequireTier>
             <RequireTier minTier={1} userRole={userRole}>
-              <NavItem
-                icon={<Stethoscope size={20} />}
-                label="Clinical Escalations"
-                active={location.pathname === '/dashboard/doctor'}
-                onClick={() => navigate('/dashboard/doctor')}
-              />
+              <>
+                <NavItem
+                  icon={<Stethoscope size={20} />}
+                  label="Clinical Escalations"
+                  active={location.pathname === '/dashboard/doctor'}
+                  onClick={() => navigate('/dashboard/doctor')}
+                />
+                <NavItem
+                  icon={<Shield size={20} />}
+                  label="Sakhi Escalations"
+                  active={location.pathname === '/dashboard/sakhi-escalations'}
+                  onClick={() => navigate('/dashboard/sakhi-escalations')}
+                />
+              </>
             </RequireTier>
             
             <RequireTier minTier={3} userRole={userRole}>
@@ -806,7 +815,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         </header>
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-4 lg:p-5'}`}>
+        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') || location.pathname.includes('sakhi-escalations') ? 'p-0' : 'p-4 lg:p-5'}`}>
           <Routes>
             <Route index element={
               userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
@@ -859,6 +868,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </div>
             } />
             <Route path="doctor" element={<DoctorDashboard />} />
+            <Route path="sakhi-escalations" element={<SakhiEscalationsView />} />
             <Route path="nurse" element={<NurseDashboard />} />
             <Route path="nurse/triage" element={<TriageConsole />} />
             <Route path="nurse/lobby" element={<LobbyRoster />} />
