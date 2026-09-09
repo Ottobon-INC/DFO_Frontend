@@ -503,7 +503,7 @@ export const SakhiEscalationsView: React.FC = () => {
                     </div>
                   </div>
                 );
-              })}
+              }))}
               <div ref={messagesEndRef} />
             </div>
 
