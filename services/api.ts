@@ -1107,7 +1107,7 @@ export const api = {
 
 
     getDoctorQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/thread/queue/doctor`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
             headers: getHeaders()
         });
     },
@@ -1135,7 +1135,7 @@ export const api = {
     },
 
     getNurseQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/thread/queue/nurse`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/nurse`, {
             headers: getHeaders()
         });
     },
