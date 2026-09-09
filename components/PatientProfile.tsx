@@ -767,7 +767,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             </h4>
                                             {(() => {
                                                 const assignedDoc = (doctors || []).find(d => d.id === patient?.assignedDoctorId || d.id === (patient as any)?.assigned_doctor_id);
-                                                const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : (patient?.referralDoctor || (patient as any)?.assignedDoctorName || 'Dr. Sireesha');
+                                                const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : ((patient?.referralDoctor && patient.referralDoctor !== '-') ? patient.referralDoctor : ((patient as any)?.assignedDoctorName || 'Dr. Sireesha'));
                                                 const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Consultant') : 'General Physician';
 
                                                 return (

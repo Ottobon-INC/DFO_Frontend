@@ -577,12 +577,12 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className={sectionCls}>
         <h3 className={headerCls}><User size={16} className="text-sky-500" /> Female Demographics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><label className={labelCls}>Name</label><input value={femName} onChange={e => setFemName(e.target.value)} className={inputCls} placeholder="Patient name" /></div>
+          <div><label className={labelCls}>Name</label><textarea value={femName} onChange={e => setFemName(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Patient name" /></div>
           <div><label className={labelCls}>Date</label><input type="date" value={femDate} onChange={e => setFemDate(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Age</label><input value={femAge} onChange={e => setFemAge(e.target.value)} className={inputCls} placeholder="Age" /></div>
-          <div><label className={labelCls}>Education</label><input value={femEducation} onChange={e => setFemEducation(e.target.value)} className={inputCls} placeholder="Education" /></div>
-          <div><label className={labelCls}>Occupation</label><input value={femOccupation} onChange={e => setFemOccupation(e.target.value)} className={inputCls} placeholder="Occupation" /></div>
-          <div><label className={labelCls}>Marital Life</label><input value={femMaritalLife} onChange={e => setFemMaritalLife(e.target.value)} className={inputCls} placeholder="Years" /></div>
+          <div><label className={labelCls}>Age</label><textarea value={femAge} onChange={e => setFemAge(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Age" /></div>
+          <div><label className={labelCls}>Education</label><textarea value={femEducation} onChange={e => setFemEducation(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Education" /></div>
+          <div><label className={labelCls}>Occupation</label><textarea value={femOccupation} onChange={e => setFemOccupation(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Occupation" /></div>
+          <div><label className={labelCls}>Marital Life</label><textarea value={femMaritalLife} onChange={e => setFemMaritalLife(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Years" /></div>
         </div>
       </div>
 
@@ -590,7 +590,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className={sectionCls}>
         <h3 className={headerCls}><Heart size={16} className="text-pink-500" /> Menstrual History</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div><label className={labelCls}>Age of Menarche</label><input value={ageOfMenarche} onChange={e => setAgeOfMenarche(e.target.value)} className={inputCls} placeholder="Age" /></div>
+          <div><label className={labelCls}>Age of Menarche</label><textarea value={ageOfMenarche} onChange={e => setAgeOfMenarche(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Age" /></div>
           <div><label className={labelCls}>Periods</label>
             <select value={periods} onChange={e => setPeriods(e.target.value)} className={inputCls}>
               <option value="">Select</option><option>Regular</option><option>Irregular</option>
@@ -608,14 +608,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             </select>
           </div>
           <div><label className={labelCls}>Premenstrual Spotting</label>
-            <select value={premenstrualSpotting} onChange={e => setPremenstrualSpotting(e.target.value)} className={inputCls}>
-              <option value="">Select</option><option>Yes</option><option>No</option>
-            </select>
+            <textarea value={premenstrualSpotting} onChange={e => setPremenstrualSpotting(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} />
           </div>
           <div><label className={labelCls}>Intermenstrual Bleeding</label>
-            <select value={intermenstrualBleeding} onChange={e => setIntermenstrualBleeding(e.target.value)} className={inputCls}>
-              <option value="">Select</option><option>Yes</option><option>No</option>
-            </select>
+            <textarea value={intermenstrualBleeding} onChange={e => setIntermenstrualBleeding(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} />
           </div>
         </div>
       </div>
@@ -623,13 +619,11 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       {/* Other Fields */}
       <div className={sectionCls}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div><label className={labelCls}>Bowels</label><input value={bowels} onChange={e => setBowels(e.target.value)} className={inputCls} placeholder="" /></div>
+          <div><label className={labelCls}>Bowels</label><textarea value={bowels} onChange={e => setBowels(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} placeholder="" /></div>
           <div><label className={labelCls}>Consanguinity</label>
-            <select value={consanguinity} onChange={e => setConsanguinity(e.target.value)} className={inputCls}>
-              <option value="">Select</option><option>Yes</option><option>No</option>
-            </select>
+            <textarea value={consanguinity} onChange={e => setConsanguinity(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} />
           </div>
-          <div><label className={labelCls}>Weight Gain</label><input value={weightGain} onChange={e => setWeightGain(e.target.value)} className={inputCls} placeholder="" /></div>
+          <div><label className={labelCls}>Weight Gain</label><textarea value={weightGain} onChange={e => setWeightGain(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} placeholder="" /></div>
         </div>
       </div>
 
@@ -637,16 +631,12 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className={sectionCls}>
         <h3 className={headerCls}>Sexual History</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div><label className={labelCls}>Freq of IC</label><input value={freqOfIC} onChange={e => setFreqOfIC(e.target.value)} className={inputCls} placeholder="" /></div>
+          <div><label className={labelCls}>Freq of IC</label><textarea value={freqOfIC} onChange={e => setFreqOfIC(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} placeholder="" /></div>
           <div><label className={labelCls}>Dyspareunia</label>
-            <select value={dyspareunia} onChange={e => setDyspareunia(e.target.value)} className={inputCls}>
-              <option value="">Select</option><option>Yes</option><option>No</option>
-            </select>
+            <textarea value={dyspareunia} onChange={e => setDyspareunia(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} />
           </div>
           <div><label className={labelCls}>Loss of Libido</label>
-            <select value={lossOfLibido} onChange={e => setLossOfLibido(e.target.value)} className={inputCls}>
-              <option value="">Select</option><option>Yes</option><option>No</option>
-            </select>
+            <textarea value={lossOfLibido} onChange={e => setLossOfLibido(e.target.value)} className={inputCls + " min-h-[40px] resize-y"} />
           </div>
         </div>
       </div>
@@ -673,10 +663,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
                 <tr key={i} className="border-b border-slate-100 hover:bg-sky-50/30">
                   {Object.keys(row).map(key => (
                     <td key={key} className="px-1 py-1">
-                      <input
+                      <textarea
                         value={row[key as keyof ObstetricRow]}
                         onChange={e => setObstetricRows(prev => prev.map((r, idx) => idx === i ? { ...r, [key]: e.target.value } : r))}
-                        className={inputCls}
+                        className={inputCls + " min-h-[36px] resize-y"}
                       />
                     </td>
                   ))}
@@ -703,7 +693,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
         <h3 className={headerCls}><FileText size={16} className="text-amber-500" /> Past History</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div><label className={labelCls}>Past Medical History</label><textarea value={pastMedical} onChange={e => setPastMedical(e.target.value)} className={inputCls + " min-h-[60px]"} /></div>
-          <div><label className={labelCls}>Drug Allergy</label><input value={drugAllergy} onChange={e => setDrugAllergy(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Drug Allergy</label><textarea value={drugAllergy} onChange={e => setDrugAllergy(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
           <div><label className={labelCls}>Family History</label><textarea value={familyHistory} onChange={e => setFamilyHistory(e.target.value)} className={inputCls + " min-h-[60px]"} /></div>
           <div><label className={labelCls}>Surgical History</label><textarea value={surgicalHistory} onChange={e => setSurgicalHistory(e.target.value)} className={inputCls + " min-h-[60px]"} /></div>
           <div><label className={labelCls}>Treatment History</label><textarea value={treatmentHistory} onChange={e => setTreatmentHistory(e.target.value)} className={inputCls + " min-h-[60px]"} /></div>
@@ -715,11 +705,11 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
         <h3 className={headerCls}><Stethoscope size={16} className="text-emerald-500" /> Physical Examination</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div><label className={labelCls}>Exam Date</label><input type="date" value={examDate} onChange={e => setExamDate(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>HT (cm)</label><input value={examHT} onChange={e => setExamHT(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>WT (kg)</label><input value={examWT} onChange={e => setExamWT(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>BMI</label><input value={examBMI} onChange={e => setExamBMI(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>BP</label><input value={examBP} onChange={e => setExamBP(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Acne</label><input value={acne} onChange={e => setAcne(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>HT (cm)</label><textarea value={examHT} onChange={e => setExamHT(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>WT (kg)</label><textarea value={examWT} onChange={e => setExamWT(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>BMI</label><textarea value={examBMI} onChange={e => setExamBMI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>BP</label><textarea value={examBP} onChange={e => setExamBP(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Acne</label><textarea value={acne} onChange={e => setAcne(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
           <div><label className={labelCls}>Hirsutism</label>
             <select value={hirsutism} onChange={e => setHirsutism(e.target.value)} className={inputCls}>
               <option value="">Select</option><option>Yes</option><option>No</option>
@@ -730,13 +720,13 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
               <option value="">Select</option><option>Yes</option><option>No</option>
             </select>
           </div>
-          <div><label className={labelCls}>Breasts</label><input value={breasts} onChange={e => setBreasts(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Breasts</label><textarea value={breasts} onChange={e => setBreasts(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
           <div><label className={labelCls}>Galactorrhoea</label>
             <select value={galactorrhoea} onChange={e => setGalactorrhoea(e.target.value)} className={inputCls}>
               <option value="">Select</option><option>Yes</option><option>No</option>
             </select>
           </div>
-          <div><label className={labelCls}>FG Score</label><input value={fgScore} onChange={e => setFgScore(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>FG Score</label><textarea value={fgScore} onChange={e => setFgScore(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
       </div>
     </div>
@@ -756,9 +746,9 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
         <tbody>
           {rows.map((row, i) => (
             <tr key={i} className="border-b border-slate-100">
-              <td className="px-1 py-1"><input value={row.year} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, year: e.target.value } : r))} className={inputCls} /></td>
-              <td className="px-1 py-1"><input value={row.place} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, place: e.target.value } : r))} className={inputCls} /></td>
-              <td className="px-1 py-1"><input value={row.findings} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, findings: e.target.value } : r))} className={inputCls} /></td>
+              <td className="px-1 py-1"><textarea value={row.year} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, year: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+              <td className="px-1 py-1"><textarea value={row.place} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, place: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+              <td className="px-1 py-1"><textarea value={row.findings} onChange={e => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, findings: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
             </tr>
           ))}
         </tbody>
@@ -803,11 +793,11 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             {rows.map((row, rIdx) => (
               <tr key={rIdx} className="border-b border-slate-100 hover:bg-sky-50/30">
                 <td className="sticky left-0 z-10 bg-white px-2 py-1.5 font-bold text-slate-700 border-r border-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                  {row.testName ? row.testName : <input placeholder="Custom Test" onChange={e => setRows(prev => prev.map((r, idx) => idx === rIdx ? { ...r, testName: e.target.value } : r))} className={inputCls} />}
+                  {row.testName ? row.testName : <textarea placeholder="Custom Test" onChange={e => setRows(prev => prev.map((r, idx) => idx === rIdx ? { ...r, testName: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} />}
                 </td>
                 {row.values.map((val, cIdx) => (
                   <td key={cIdx} className="px-1 py-1 border-l border-slate-100">
-                    <input value={val} onChange={e => updateLabValue(rows, setRows, rIdx, cIdx, e.target.value)} className={inputCls} />
+                    <textarea value={val} onChange={e => updateLabValue(rows, setRows, rIdx, cIdx, e.target.value)} className={inputCls + " min-h-[36px] resize-y"} />
                   </td>
                 ))}
               </tr>
@@ -826,8 +816,8 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
     <div className="space-y-4">
       {renderLabPanel('Female Hormone & Infection Panel', labDates, setLabDates, femaleLabRows, setFemaleLabRows,
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
-          <div><label className={labelCls}>Antithyroid Antibodies</label><input value={antithyroidAntibodies} onChange={e => setAntithyroidAntibodies(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Antimicrosomal Antibodies</label><input value={antimicrosomialAntibodies} onChange={e => setAntimicrosomialAntibodies(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Antithyroid Antibodies</label><textarea value={antithyroidAntibodies} onChange={e => setAntithyroidAntibodies(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Antimicrosomal Antibodies</label><textarea value={antimicrosomialAntibodies} onChange={e => setAntimicrosomialAntibodies(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
       )}
     </div>
@@ -839,7 +829,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
         <h3 className={headerCls}><Activity size={16} className="text-violet-500" /> Baseline USG Evaluation</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <div><label className={labelCls}>Date</label><input type="date" value={usgDate} onChange={e => setUsgDate(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Day of MC</label><input value={dayOfMC} onChange={e => setDayOfMC(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Day of MC</label><textarea value={dayOfMC} onChange={e => setDayOfMC(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
 
         {/* Uterus */}
@@ -851,10 +841,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
                 <option value="">Select</option><option>AV</option><option>MP</option><option>RV</option>
               </select>
             </div>
-            <div><label className={labelCls}>Size</label><input value={uterusSize} onChange={e => setUterusSize(e.target.value)} className={inputCls} /></div>
-            <div><label className={labelCls}>Volume</label><input value={uterusVol} onChange={e => setUterusVol(e.target.value)} className={inputCls} /></div>
-            <div><label className={labelCls}>EMZJ</label><input value={emzj} onChange={e => setEmzj(e.target.value)} className={inputCls} /></div>
-            <div><label className={labelCls}>3D/4D</label><input value={usg3d4d} onChange={e => setUsg3d4d(e.target.value)} className={inputCls} /></div>
+            <div><label className={labelCls}>Size</label><textarea value={uterusSize} onChange={e => setUterusSize(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+            <div><label className={labelCls}>Volume</label><textarea value={uterusVol} onChange={e => setUterusVol(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+            <div><label className={labelCls}>EMZJ</label><textarea value={emzj} onChange={e => setEmzj(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+            <div><label className={labelCls}>3D/4D</label><textarea value={usg3d4d} onChange={e => setUsg3d4d(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
           </div>
         </div>
 
@@ -865,17 +855,17 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             <div>
               <p className="text-[10px] font-bold text-sky-600 mb-1">RT Uterine Artery</p>
               <div className="grid grid-cols-3 gap-2">
-                <div><label className={labelCls}>RI</label><input value={rtUTRI} onChange={e => setRtUTRI(e.target.value)} className={inputCls} /></div>
-                <div><label className={labelCls}>PI</label><input value={rtUTPI} onChange={e => setRtUTPI(e.target.value)} className={inputCls} /></div>
-                <div><label className={labelCls}>Comment</label><input value={rtUTComment} onChange={e => setRtUTComment(e.target.value)} className={inputCls} /></div>
+                <div><label className={labelCls}>RI</label><textarea value={rtUTRI} onChange={e => setRtUTRI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+                <div><label className={labelCls}>PI</label><textarea value={rtUTPI} onChange={e => setRtUTPI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+                <div><label className={labelCls}>Comment</label><textarea value={rtUTComment} onChange={e => setRtUTComment(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
               </div>
             </div>
             <div>
               <p className="text-[10px] font-bold text-sky-600 mb-1">LT Uterine Artery</p>
               <div className="grid grid-cols-3 gap-2">
-                <div><label className={labelCls}>RI</label><input value={ltUTRI} onChange={e => setLtUTRI(e.target.value)} className={inputCls} /></div>
-                <div><label className={labelCls}>PI</label><input value={ltUTPI} onChange={e => setLtUTPI(e.target.value)} className={inputCls} /></div>
-                <div><label className={labelCls}>Comment</label><input value={ltUTComment} onChange={e => setLtUTComment(e.target.value)} className={inputCls} /></div>
+                <div><label className={labelCls}>RI</label><textarea value={ltUTRI} onChange={e => setLtUTRI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+                <div><label className={labelCls}>PI</label><textarea value={ltUTPI} onChange={e => setLtUTPI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+                <div><label className={labelCls}>Comment</label><textarea value={ltUTComment} onChange={e => setLtUTComment(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
               </div>
             </div>
           </div>
@@ -886,21 +876,21 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
           <div>
             <h4 className="text-xs font-bold text-slate-700 mb-2 bg-slate-50 px-2 py-1 rounded">RT Ovary</h4>
             <div className="grid grid-cols-2 gap-2">
-              <div><label className={labelCls}>Size</label><input value={rtOvarySize} onChange={e => setRtOvarySize(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Volume</label><input value={rtOvaryVol} onChange={e => setRtOvaryVol(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Accessibility</label><input value={rtOvaryAccess} onChange={e => setRtOvaryAccess(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>PAF</label><input value={rtOvaryPAF} onChange={e => setRtOvaryPAF(e.target.value)} className={inputCls} /></div>
-              <div className="col-span-2"><label className={labelCls}>Comment</label><input value={rtOvaryComment} onChange={e => setRtOvaryComment(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Size</label><textarea value={rtOvarySize} onChange={e => setRtOvarySize(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Volume</label><textarea value={rtOvaryVol} onChange={e => setRtOvaryVol(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Accessibility</label><textarea value={rtOvaryAccess} onChange={e => setRtOvaryAccess(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>PAF</label><textarea value={rtOvaryPAF} onChange={e => setRtOvaryPAF(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div className="col-span-2"><label className={labelCls}>Comment</label><textarea value={rtOvaryComment} onChange={e => setRtOvaryComment(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
             </div>
           </div>
           <div>
             <h4 className="text-xs font-bold text-slate-700 mb-2 bg-slate-50 px-2 py-1 rounded">LT Ovary</h4>
             <div className="grid grid-cols-2 gap-2">
-              <div><label className={labelCls}>Size</label><input value={ltOvarySize} onChange={e => setLtOvarySize(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Volume</label><input value={ltOvaryVol} onChange={e => setLtOvaryVol(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Accessibility</label><input value={ltOvaryAccess} onChange={e => setLtOvaryAccess(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>PAF</label><input value={ltOvaryPAF} onChange={e => setLtOvaryPAF(e.target.value)} className={inputCls} /></div>
-              <div className="col-span-2"><label className={labelCls}>Comment</label><input value={ltOvaryComment} onChange={e => setLtOvaryComment(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Size</label><textarea value={ltOvarySize} onChange={e => setLtOvarySize(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Volume</label><textarea value={ltOvaryVol} onChange={e => setLtOvaryVol(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Accessibility</label><textarea value={ltOvaryAccess} onChange={e => setLtOvaryAccess(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>PAF</label><textarea value={ltOvaryPAF} onChange={e => setLtOvaryPAF(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div className="col-span-2"><label className={labelCls}>Comment</label><textarea value={ltOvaryComment} onChange={e => setLtOvaryComment(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
             </div>
           </div>
         </div>
@@ -914,14 +904,14 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className={sectionCls}>
         <h3 className={headerCls}><User size={16} className="text-blue-600" /> Evaluation of Male Partner</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <div><label className={labelCls}>Name</label><input value={maleName} onChange={e => setMaleName(e.target.value)} className={inputCls} placeholder="Partner name" /></div>
-          <div><label className={labelCls}>Age</label><input value={maleAge} onChange={e => setMaleAge(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>HT (cm)</label><input value={maleHT} onChange={e => setMaleHT(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>WT (kg)</label><input value={maleWT} onChange={e => setMaleWT(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>BMI</label><input value={maleBMI} onChange={e => setMaleBMI(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Name</label><textarea value={maleName} onChange={e => setMaleName(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Partner name" /></div>
+          <div><label className={labelCls}>Age</label><textarea value={maleAge} onChange={e => setMaleAge(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>HT (cm)</label><textarea value={maleHT} onChange={e => setMaleHT(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>WT (kg)</label><textarea value={maleWT} onChange={e => setMaleWT(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>BMI</label><textarea value={maleBMI} onChange={e => setMaleBMI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <div><label className={labelCls}>Occupation</label><input value={maleOccupation} onChange={e => setMaleOccupation(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Occupation</label><textarea value={maleOccupation} onChange={e => setMaleOccupation(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
           <div><label className={labelCls}>Smoking</label>
             <select value={smoking} onChange={e => setSmoking(e.target.value)} className={inputCls}>
               <option value="">Select</option><option>Yes</option><option>No</option>
@@ -1014,7 +1004,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className="space-y-4">
         <div className={sectionCls}>
           <h3 className={headerCls}><Microscope size={16} className="text-indigo-500" /> Semen Analysis</h3>
-          <div className="mb-3"><label className={labelCls}>Count</label><input value={semenCount} onChange={e => setSemenCount(e.target.value)} className={inputCls + " max-w-[200px]"} /></div>
+          <div className="mb-3"><label className={labelCls}>Count</label><textarea value={semenCount} onChange={e => setSemenCount(e.target.value)} className={inputCls + " min-h-[36px] resize-y max-w-[200px]"} /></div>
 
           <h4 className="text-xs font-bold text-slate-700 mb-2 bg-slate-50 px-2 py-1 rounded">Motility</h4>
           <table className="w-full text-xs mb-4">
@@ -1023,8 +1013,8 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
               {motilityFields.map((f, i) => (
                 <tr key={i} className="border-b border-slate-100">
                   <td className="px-2 py-1.5 font-medium text-slate-700">{f.label}</td>
-                  <td className="px-1 py-1"><input value={f.state.pct} onChange={e => f.setter({ ...f.state, pct: e.target.value })} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={f.state.conc} onChange={e => f.setter({ ...f.state, conc: e.target.value })} className={inputCls} /></td>
+                  <td className="px-1 py-1"><textarea value={f.state.pct} onChange={e => f.setter({ ...f.state, pct: e.target.value })} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={f.state.conc} onChange={e => f.setter({ ...f.state, conc: e.target.value })} className={inputCls + " min-h-[36px] resize-y"} /></td>
                 </tr>
               ))}
             </tbody>
@@ -1037,8 +1027,8 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
               {morphFields.map((f, i) => (
                 <tr key={i} className="border-b border-slate-100">
                   <td className="px-2 py-1.5 font-medium text-slate-700">{f.label}</td>
-                  <td className="px-1 py-1"><input value={f.state.pct} onChange={e => f.setter({ ...f.state, pct: e.target.value })} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={f.state.conc} onChange={e => f.setter({ ...f.state, conc: e.target.value })} className={inputCls} /></td>
+                  <td className="px-1 py-1"><textarea value={f.state.pct} onChange={e => f.setter({ ...f.state, pct: e.target.value })} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={f.state.conc} onChange={e => f.setter({ ...f.state, conc: e.target.value })} className={inputCls + " min-h-[36px] resize-y"} /></td>
                 </tr>
               ))}
             </tbody>
@@ -1054,10 +1044,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       <div className={sectionCls}>
         <h3 className={headerCls}><Dna size={16} className="text-rose-500" /> DNA Fragmentation</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div><label className={labelCls}>Fragmented %</label><input value={fragmented} onChange={e => setFragmented(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Non Fragmented %</label><input value={nonFragmented} onChange={e => setNonFragmented(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>DFI Value</label><input value={dfiValue} onChange={e => setDfiValue(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Impression</label><input value={dnaImpression} onChange={e => setDnaImpression(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Fragmented %</label><textarea value={fragmented} onChange={e => setFragmented(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Non Fragmented %</label><textarea value={nonFragmented} onChange={e => setNonFragmented(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>DFI Value</label><textarea value={dfiValue} onChange={e => setDfiValue(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Impression</label><textarea value={dnaImpression} onChange={e => setDnaImpression(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
       </div>
     </div>
@@ -1089,10 +1079,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             {maleSemenRows.map((row, i) => (
               <tr key={i} className="border-b border-slate-100">
                 <td className="px-1 py-1"><input type="date" value={row.date} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r))} className={inputCls} /></td>
-                <td className="px-1 py-1"><input value={row.tc} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, tc: e.target.value } : r))} className={inputCls} /></td>
-                <td className="px-1 py-1"><input value={row.motility} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, motility: e.target.value } : r))} className={inputCls} /></td>
-                <td className="px-1 py-1"><input value={row.morphology} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, morphology: e.target.value } : r))} className={inputCls} /></td>
-                <td className="px-1 py-1"><input value={row.comment} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, comment: e.target.value } : r))} className={inputCls} /></td>
+                <td className="px-1 py-1"><textarea value={row.tc} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, tc: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                <td className="px-1 py-1"><textarea value={row.motility} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, motility: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                <td className="px-1 py-1"><textarea value={row.morphology} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, morphology: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                <td className="px-1 py-1"><textarea value={row.comment} onChange={e => setMaleSemenRows(prev => prev.map((r, idx) => idx === i ? { ...r, comment: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
               </tr>
             ))}
           </tbody>
@@ -1118,17 +1108,17 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
           <div className="bg-pink-50/50 rounded-lg p-3 border border-pink-100">
             <p className="text-[10px] font-bold text-pink-600 mb-2">MRS (Female)</p>
             <div className="grid grid-cols-3 gap-2">
-              <div><label className={labelCls}>Name</label><input value={summaryFemName} onChange={e => setSummaryFemName(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Age</label><input value={summaryFemAge} onChange={e => setSummaryFemAge(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>BMI</label><input value={summaryFemBMI} onChange={e => setSummaryFemBMI(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Name</label><textarea value={summaryFemName} onChange={e => setSummaryFemName(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Age</label><textarea value={summaryFemAge} onChange={e => setSummaryFemAge(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>BMI</label><textarea value={summaryFemBMI} onChange={e => setSummaryFemBMI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
             </div>
           </div>
           <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-100">
             <p className="text-[10px] font-bold text-blue-600 mb-2">MR (Male)</p>
             <div className="grid grid-cols-3 gap-2">
-              <div><label className={labelCls}>Name</label><input value={summaryMaleName} onChange={e => setSummaryMaleName(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Age</label><input value={summaryMaleAge} onChange={e => setSummaryMaleAge(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>BMI</label><input value={summaryMaleBMI} onChange={e => setSummaryMaleBMI(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>Name</label><textarea value={summaryMaleName} onChange={e => setSummaryMaleName(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>Age</label><textarea value={summaryMaleAge} onChange={e => setSummaryMaleAge(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+              <div><label className={labelCls}>BMI</label><textarea value={summaryMaleBMI} onChange={e => setSummaryMaleBMI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
             </div>
           </div>
         </div>
@@ -1180,10 +1170,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
                     className="rounded border-slate-300 text-sky-500 focus:ring-sky-400" />
                 </td>
                 <td className="px-2 py-1.5 font-medium text-slate-700">
-                    {step.name ? step.name : <input placeholder="Custom Step" onChange={e => setProtocolSteps(prev => prev.map((s, idx) => idx === i ? { ...s, name: e.target.value } : s))} className={inputCls} />}
+                    {step.name ? step.name : <textarea placeholder="Custom Step" onChange={e => setProtocolSteps(prev => prev.map((s, idx) => idx === i ? { ...s, name: e.target.value } : s))} className={inputCls + " min-h-[36px] resize-y"} />}
                 </td>
                 <td className="px-1 py-1"><input type="date" value={step.date} onChange={e => setProtocolSteps(prev => prev.map((s, idx) => idx === i ? { ...s, date: e.target.value } : s))} className={inputCls} /></td>
-                <td className="px-1 py-1"><input value={step.notes} onChange={e => setProtocolSteps(prev => prev.map((s, idx) => idx === i ? { ...s, notes: e.target.value } : s))} className={inputCls} /></td>
+                <td className="px-1 py-1"><textarea value={step.notes} onChange={e => setProtocolSteps(prev => prev.map((s, idx) => idx === i ? { ...s, notes: e.target.value } : s))} className={inputCls + " min-h-[36px] resize-y"} /></td>
               </tr>
             ))}
           </tbody>
@@ -1218,10 +1208,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
         <h3 className={headerCls}><BarChart3 size={16} className="text-emerald-500" /> Follicular Monitoring Log</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
           <div><label className={labelCls}>Date</label><input type="date" value={fmDate} onChange={e => setFmDate(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Wt</label><input value={fmWt} onChange={e => setFmWt(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>BMI</label><input value={fmBMI} onChange={e => setFmBMI(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Diagnosis</label><input value={fmDiagnosis} onChange={e => setFmDiagnosis(e.target.value)} className={inputCls} /></div>
-          <div><label className={labelCls}>Protocol</label><input value={fmProtocol} onChange={e => setFmProtocol(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Wt</label><textarea value={fmWt} onChange={e => setFmWt(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>BMI</label><textarea value={fmBMI} onChange={e => setFmBMI(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Diagnosis</label><textarea value={fmDiagnosis} onChange={e => setFmDiagnosis(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
+          <div><label className={labelCls}>Protocol</label><textarea value={fmProtocol} onChange={e => setFmProtocol(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
         </div>
 
         <div className="overflow-x-auto">
@@ -1242,12 +1232,12 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
               {follicularRows.map((row, i) => (
                 <tr key={i} className="border-b border-slate-100 hover:bg-emerald-50/30">
                   <td className="px-1 py-1"><input type="date" value={row.date} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.dayOfCycle} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, dayOfCycle: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.rtOvary} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, rtOvary: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.ltOvary} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, ltOvary: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.et} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, et: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.mucus} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, mucus: e.target.value } : r))} className={inputCls} /></td>
-                  <td className="px-1 py-1"><input value={row.remarks} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, remarks: e.target.value } : r))} className={inputCls} /></td>
+                  <td className="px-1 py-1"><textarea value={row.dayOfCycle} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, dayOfCycle: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={row.rtOvary} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, rtOvary: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={row.ltOvary} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, ltOvary: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={row.et} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, et: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={row.mucus} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, mucus: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
+                  <td className="px-1 py-1"><textarea value={row.remarks} onChange={e => setFollicularRows(prev => prev.map((r, idx) => idx === i ? { ...r, remarks: e.target.value } : r))} className={inputCls + " min-h-[36px] resize-y"} /></td>
                   <td className="px-1 py-1">
                     {follicularRows.length > 1 && (
                       <button onClick={() => removeFollicularRow(i)} className="p-1 text-red-400 hover:text-red-600"><Trash2 size={12} /></button>
