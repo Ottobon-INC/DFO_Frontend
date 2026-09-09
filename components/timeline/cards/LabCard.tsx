@@ -31,7 +31,7 @@ export const LabCard: React.FC<LabCardProps> = ({ event }) => {
         if (res.success && res.data?.url) {
             return res.data.url;
         }
-        throw new Error(res.error || "Failed to retrieve secure document link");
+        throw new Error((res as any).error || "Failed to retrieve secure document link");
     };
 
     const handleViewDocument = async () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, Inbox, Bed, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus, Sparkles } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -17,7 +17,8 @@ import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
-import { DoctorDashboard } from './doctor/DoctorDashboard';
+import { DoctorDashboard } from './DoctorDashboard';
+import { DoctorDashboard as ClinicalEscalationsView } from './doctor/DoctorDashboard';
 import { NurseDashboard } from './nurse/NurseDashboard';
 import { TriageConsole } from './nurse/TriageConsole';
 import { LobbyRoster } from './nurse/LobbyRoster';
@@ -34,19 +35,37 @@ import DoctorScheduleSettings from './settings/DoctorScheduleSettings';
 import { ProfileSettingsModal } from './settings/ProfileSettingsModal';
 import { RequireTier } from './common/RequireTier';
 import { getRoleTier } from '../constants/roles.constants';
+
+// Isolated Digital Clock component to prevent 1000ms global re-renders of the entire dashboard tree
+const DigitalClock: React.FC = React.memo(() => {
+  const [time, setTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="text-[11px] font-bold text-brand-textPrimary ml-0.5">
+      {time.toLocaleString('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).replace(',', '')}
+    </span>
+  );
+});
+
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [leadsFilter, setLeadsFilter] = useState('All');
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [profileInitialTab, setProfileInitialTab] = useState<string>('overview');
-
-  // --- Clock State ---
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // --- API State ---
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -524,10 +543,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           <div className="space-y-1.5">
             <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 opacity-80">Operations</div>
             <NavItem
-              icon={<LayoutDashboard size={20} />}
-              label={userRole === UserRole.NURSE ? "Vitals Intake" : "Dashboard"}
-              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/' || (userRole === UserRole.NURSE && location.pathname === '/dashboard/nurse')}
-              onClick={() => navigate(userRole === UserRole.NURSE ? '/dashboard/nurse' : '/dashboard')}
+              icon={userRole === UserRole.DOCTOR ? <Stethoscope size={20} /> : <LayoutDashboard size={20} />}
+              label={userRole === UserRole.NURSE ? "Vitals Intake" : userRole === UserRole.DOCTOR ? "OPD Consultation Queue" : "Dashboard"}
+              active={location.pathname === '/dashboard' || location.pathname === '/dashboard/' || (userRole === UserRole.NURSE && location.pathname === '/dashboard/nurse') || (userRole === UserRole.DOCTOR && (location.pathname === '/dashboard' || location.pathname === '/dashboard/doctor'))}
+              onClick={() => navigate(userRole === UserRole.NURSE ? '/dashboard/nurse' : userRole === UserRole.DOCTOR ? '/dashboard/doctor' : '/dashboard')}
             />
               {userRole === UserRole.NURSE && (
                 <>
@@ -595,7 +614,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               icon={<Clock size={20} />}
               label="Doctor Schedules"
               active={location.pathname === '/dashboard/settings/schedules' || location.pathname === '/dashboard/schedules/view'}
-              onClick={() => navigate(userRole === 'Front Desk' ? '/dashboard/schedules/view' : '/dashboard/settings/schedules')}
+              onClick={() => navigate('/dashboard/schedules/view')}
             />
           </div>
 
@@ -629,10 +648,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </RequireTier>
             <RequireTier minTier={1} userRole={userRole}>
               <NavItem
-                icon={<Stethoscope size={20} />}
+                icon={<ShieldAlert size={20} />}
                 label="Clinical Escalations"
-                active={location.pathname === '/dashboard/doctor'}
-                onClick={() => navigate('/dashboard/doctor')}
+                active={location.pathname === '/dashboard/clinical-escalations'}
+                onClick={() => navigate('/dashboard/clinical-escalations')}
               />
             </RequireTier>
             
@@ -645,6 +664,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             </RequireTier>
           </div>
+
+          {/* Specialty Desks */}
+          {currentUser?.clinic_specialty === 'IVF' && (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
+                <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse shadow-sm"></span>
+                Specialty Desks
+              </div>
+              <NavItem
+                icon={<Sparkles size={20} />}
+                label="IVF Desk"
+                active={false}
+                onClick={() => navigate('/dashboard/patients')}
+              />
+            </div>
+          )}
 
           {/* Team Management - Only for Clinic Admins */}
           {(() => {
@@ -686,129 +721,140 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
       {/* Main Content Area */}
       <main className={`flex-1 overflow-y-auto overflow-x-hidden md:ml-52 lg:ml-60 xl:ml-[240px] flex flex-col relative z-10 bg-brand-bg`}>
         {/* Header */}
-        <header className="bg-brand-surface border-b border-brand-border px-5 py-3 flex flex-col md:flex-row justify-between items-start md:items-center flex-shrink-0 gap-3">
+        <header className="bg-brand-surface border-b border-brand-border px-3.5 sm:px-5 py-2.5 sm:py-3 flex justify-between items-center flex-shrink-0 gap-2 sm:gap-3">
 
-          {/* Search Bar - Top Center/Left */}
-          <div className="flex-1 max-w-xl hidden md:flex items-center relative" ref={searchRef}>
-            <div className="flex items-center bg-brand-bg px-4 py-2 rounded-full border border-brand-border w-full focus-within:ring-2 focus-within:ring-brand-primary/30 transition-all">
-              <Search size={16} className="text-brand-textSecondary mr-2" />
-              <input
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                onFocus={() => { if(globalSearch) setShowSearchResults(true); }}
-                placeholder="Search Patient Name, Phone, or ID..."
-                className="bg-transparent outline-none text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary"
-              />
-              <div className="hidden lg:flex items-center gap-1 opacity-60">
-                <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">Ctrl</span>
-                <span className="text-[10px] text-brand-textSecondary">+</span>
-                <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">K</span>
-              </div>
+          {/* Left side: Mobile Toggle + Logo + Search Bar */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <button
+              onClick={() => setIsMobileMenuOpen(prev => !prev)}
+              className="md:hidden p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors flex-shrink-0"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
+            {/* Mobile Brand Icon/Title */}
+            <div className="flex md:hidden items-center gap-1.5 min-w-0">
+              <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain flex-shrink-0" />
+              <span className="font-extrabold text-xs text-slate-900 truncate">Medcy</span>
             </div>
 
-            {/* Predictive Search Dropdown */}
-            {showSearchResults && (
-              <div className="absolute top-full mt-2 w-full bg-brand-surface border border-brand-border rounded-2xl shadow-xl overflow-hidden z-50">
-                {isSearching ? (
-                  <div className="p-4 text-center text-sm text-brand-textSecondary animate-pulse">Searching global records...</div>
-                ) : searchResults.length > 0 ? (
-                  <div className="max-h-80 overflow-y-auto">
-                    <div className="p-2 border-b border-brand-border bg-brand-bg/50">
-                      <span className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest ml-2">Matches Found</span>
-                    </div>
-                    {searchResults.map(patient => (
-                      <div key={patient.id || patient.patientId} className="p-3 hover:bg-brand-hover cursor-pointer border-b border-brand-border last:border-0 flex justify-between items-center group transition-colors">
-                        <div>
-                          <p className="text-sm font-bold text-brand-textPrimary">{patient.name || patient.fullname || patient.patientName}</p>
-                          <p className="text-xs text-brand-textSecondary mt-0.5">{patient.phone || patient.mobile} {patient.uhid ? `• ${patient.uhid}` : ''}</p>
-                        </div>
-                        <button 
-                           onClick={() => {
-                             setShowSearchResults(false);
-                             setGlobalSearch('');
-                             setWalkInInitialData({
-                               name: patient.name || patient.fullname || patient.patientName,
-                               phone: patient.phone || patient.mobile
-                             });
-                             setIsWalkInExpressOpen(true);
-                           }}
-                           className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
-                        >
-                          Check-In
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-<div className="p-6 text-center">
-                     <p className="text-sm font-bold text-brand-textPrimary mb-1">No existing patient found</p>
-                     <p className="text-xs text-brand-textSecondary mb-3">
-                       {globalSearch.trim().replace(/\D/g, '').length >= 3 
-                         ? `Mobile number "${globalSearch.trim()}" will be auto-filled in the registration form.`
-                         : `Patient name "${globalSearch.trim()}" will be auto-filled in the registration form.`}
-                     </p>
-                     <button 
-                       onClick={() => { 
-                         const initial = parseSearchQuery(globalSearch);
-                         setWalkInInitialData(initial);
-                         setShowSearchResults(false); 
-                         setIsWalkInExpressOpen(true); 
-                         setGlobalSearch(''); 
-                       }} 
-                       className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 mx-auto"
-                     >
-                       <UserPlus size={14} /> Register New Walk-In
-                     </button>
-                   </div>
-                )}
+            {/* Search Bar - Top Center/Left (sm+) */}
+            <div className="flex-1 max-w-xl hidden sm:flex items-center relative" ref={searchRef}>
+              <div className="flex items-center bg-brand-bg px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-brand-border w-full focus-within:ring-2 focus-within:ring-brand-primary/30 transition-all">
+                <Search size={15} className="text-brand-textSecondary mr-2 flex-shrink-0" />
+                <input
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  onFocus={() => { if(globalSearch) setShowSearchResults(true); }}
+                  placeholder="Search Patient Name, Phone, or ID..."
+                  className="bg-transparent outline-none text-xs sm:text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary"
+                />
+                <div className="hidden lg:flex items-center gap-1 opacity-60">
+                  <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">Ctrl</span>
+                  <span className="text-[10px] text-brand-textSecondary">+</span>
+                  <span className="text-[10px] bg-brand-surface border border-brand-border px-1.5 py-0.5 rounded text-brand-textSecondary">K</span>
+                </div>
               </div>
-            )}
+
+              {/* Predictive Search Dropdown */}
+              {showSearchResults && (
+                <div className="absolute top-full mt-2 w-full bg-brand-surface border border-brand-border rounded-2xl shadow-xl overflow-hidden z-50">
+                  {isSearching ? (
+                    <div className="p-4 text-center text-sm text-brand-textSecondary animate-pulse">Searching global records...</div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto">
+                      <div className="p-2 border-b border-brand-border bg-brand-bg/50">
+                        <span className="text-xs font-bold text-brand-textSecondary uppercase tracking-widest ml-2">Matches Found</span>
+                      </div>
+                      {searchResults.map(patient => (
+                        <div key={patient.id || patient.patientId} className="p-3 hover:bg-brand-hover cursor-pointer border-b border-brand-border last:border-0 flex justify-between items-center group transition-colors">
+                          <div>
+                            <p className="text-sm font-bold text-brand-textPrimary">{patient.name || patient.fullname || patient.patientName}</p>
+                            <p className="text-xs text-brand-textSecondary mt-0.5">{patient.phone || patient.mobile} {patient.uhid ? `• ${patient.uhid}` : ''}</p>
+                          </div>
+                          <button 
+                             onClick={() => {
+                               setShowSearchResults(false);
+                               setGlobalSearch('');
+                               setWalkInInitialData({
+                                 name: patient.name || patient.fullname || patient.patientName,
+                                 phone: patient.phone || patient.mobile
+                               });
+                               setIsWalkInExpressOpen(true);
+                             }}
+                             className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            Check-In
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-sm font-bold text-brand-textPrimary mb-1">No existing patient found</p>
+                      <p className="text-xs text-brand-textSecondary mb-3">
+                        {globalSearch.trim().replace(/\D/g, '').length >= 3 
+                          ? `Mobile number "${globalSearch.trim()}" will be auto-filled in the registration form.`
+                          : `Patient name "${globalSearch.trim()}" will be auto-filled in the registration form.`}
+                      </p>
+                      <button 
+                        onClick={() => { 
+                          const initial = parseSearchQuery(globalSearch);
+                          setWalkInInitialData(initial);
+                          setShowSearchResults(false); 
+                          setIsWalkInExpressOpen(true); 
+                          setGlobalSearch(''); 
+                        }} 
+                        className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 mx-auto"
+                      >
+                        <UserPlus size={14} /> Register New Walk-In
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Status / Toggles */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             
             {/* Walk-In and Queue Action Buttons */}
             <div className="flex items-center gap-1.5">
                <button 
                 onClick={() => setIsWalkInExpressOpen(true)}
-                className="hidden md:flex items-center gap-1.5 bg-brand-primary hover:bg-brand-primaryDark text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-xs active:scale-95 transition-all"
+                className="flex items-center gap-1 bg-brand-primary hover:bg-brand-primaryDark text-white px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-xs active:scale-95 transition-all"
                >
-                 <Activity size={14} /> Walk-In
+                 <Activity size={13} /> <span className="hidden sm:inline">Walk-In</span>
                </button>
                <button
                 onClick={() => navigate('/dashboard/waiting-room')}
-                className="hidden lg:flex items-center gap-1.5 bg-brand-surface border border-brand-border text-brand-textPrimary hover:border-brand-primary px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-2xs"
+                className="hidden md:flex items-center gap-1.5 bg-brand-surface border border-brand-border text-brand-textPrimary hover:border-brand-primary px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-2xs"
                >
-                 <Users size={14} className="text-brand-primary" /> Queue
+                 <Users size={13} className="text-brand-primary" /> Queue
                </button>
             </div>
 
+            {/* Language Toggles */}
+            <div className="hidden lg:flex items-center bg-slate-100 rounded-md p-0.5 border border-brand-border">
+              <span className="bg-brand-primary text-white text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer shadow-2xs">EN</span>
+              <span className="text-brand-textSecondary text-[10px] font-bold px-2 py-0.5 cursor-pointer hover:text-brand-textPrimary">HI</span>
+            </div>
             {/* Time / Date */}
-            <div className="hidden md:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
+            <div className="hidden xl:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
               <span className="text-[11px] font-semibold text-brand-textSecondary">IST</span>
-              <span className="text-[11px] font-bold text-brand-textPrimary ml-0.5">
-                {currentTime.toLocaleString('en-GB', {
-                  timeZone: 'Asia/Kolkata',
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                }).replace(',', '')}
-              </span>
+              <DigitalClock />
             </div>
 
             {/* User Profile */}
-            <div className="flex items-center space-x-2.5 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+            <div className="flex items-center space-x-2 cursor-pointer relative" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
               <div className="text-right hidden sm:block mr-1">
                 <p className="text-xs font-bold text-brand-textPrimary leading-tight">
                   {currentUser?.name || 'Dr. Rajia'}
                 </p>
-                <p className="text-[11px] text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
+                <p className="text-[10px] text-brand-textSecondary mt-0.5">{userRole === UserRole.ADMIN ? 'Admin Terminal' : userRole === UserRole.CRO ? 'CRO Terminal' : userRole === UserRole.DOCTOR ? 'Doctor Terminal' : userRole === UserRole.NURSE ? 'Nurse Terminal' : 'Front Desk Terminal'}</p>
               </div>
               <div className="w-8 h-8 rounded-md overflow-hidden bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary font-bold text-xs shadow-2xs">
                 {currentUser?.profile_image_url ? (
@@ -819,17 +865,46 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </div>
 
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-brand-surface rounded-lg shadow-xl border border-brand-border py-1 z-50">
-                  <button onClick={() => { setIsProfileModalOpen(true); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-brand-textPrimary hover:bg-brand-hover">Profile Settings</button>
-                  <button onClick={() => { onLogout(); setIsProfileDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-brand-hover">Sign Out</button>
+                <div className="absolute right-0 top-full mt-2 w-56 bg-brand-surface border border-brand-border rounded-xl shadow-xl py-2 z-50 animate-scale-in">
+                  <div className="px-4 py-2 border-b border-brand-border">
+                    <p className="text-xs font-bold text-brand-textPrimary">{currentUser?.name || 'User'}</p>
+                    <p className="text-[10px] text-brand-textSecondary">{currentUser?.email || 'user@example.com'}</p>
+                    <span className="inline-block mt-1 text-[9px] font-bold bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-full">{userRole}</span>
+                  </div>
+
+                  <button
+                    onClick={() => { setIsProfileDropdownOpen(false); setIsProfileModalOpen(true); }}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2 transition-colors"
+                  >
+                    <User size={14} className="text-brand-textSecondary" />
+                    <span>My Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setIsProfileDropdownOpen(false); setIsChangePasswordModalOpen(true); }}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-brand-textPrimary hover:bg-brand-hover flex items-center space-x-2 transition-colors"
+                  >
+                    <Lock size={14} className="text-brand-textSecondary" />
+                    <span>Change Password</span>
+                  </button>
+
+                  <div className="border-t border-brand-border my-1"></div>
+
+                  <button
+                    onClick={() => { setIsProfileDropdownOpen(false); onLogout(); }}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center space-x-2 transition-colors"
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </header>
 
-        {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto custom-scrollbar relative ${location.pathname.includes('cro-inbox') || location.pathname.includes('leads') ? 'p-0' : 'p-4 lg:p-5'}`}>
+        {/* Dynamic Views Container */}
+        <div className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 lg:p-8 min-h-0 relative">
           <Routes>
             <Route index element={
               userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
@@ -850,7 +925,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               />
             } />
             <Route path="leads" element={
-              <div className="absolute inset-0 bg-brand-surface overflow-hidden animate-slide-up flex flex-col">
+              <div className="w-full flex-1 bg-brand-surface rounded-lg shadow-2xs border border-brand-border overflow-hidden animate-slide-up flex flex-col min-h-0">
                 <LeadsView
                   leads={leads}
                   onUpdateLead={handleUpdateLead}
@@ -861,28 +936,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </div>
             } />
             <Route path="appointments" element={
-              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <AppointmentsView userRole={userRole} />
               </div>
             } />
             <Route path="rooms" element={
-              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <RoomsView />
               </div>
             } />
             <Route path="pending-files" element={
-              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
-                <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden h-full flex flex-col">
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <div className="bg-brand-surface rounded-lg shadow-2xs border border-brand-border overflow-hidden h-full flex flex-col">
                   <UnassignedDocumentsView />
                 </div>
               </div>
             } />
             <Route path="patients" element={
-              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <PatientsView userRole={userRole} onNavigateToLeads={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }} />
               </div>
             } />
-            <Route path="doctor" element={<DoctorDashboard upcomingAppointments={upcomingAppointments} />} />
+            <Route path="doctor" element={
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <DoctorDashboard appointments={appointments} upcomingAppointments={upcomingAppointments} onPatientSelect={handlePatientSelect} />
+              </div>
+            } />
+            <Route path="clinical-escalations" element={
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <ClinicalEscalationsView appointments={appointments} onPatientSelect={handlePatientSelect} />
+              </div>
+            } />
             <Route path="nurse" element={<NurseDashboard />} />
             <Route path="nurse/triage" element={<TriageConsole />} />
             <Route path="nurse/lobby" element={<LobbyRoster />} />
@@ -892,7 +976,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="daily-register" element={<DailyRegisterTable />} />
             <Route path="waiting-room" element={
-              <div className="absolute inset-0 p-6 lg:p-8 flex flex-col animate-slide-up">
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <WaitingRoomView />
               </div>
             } />
@@ -905,7 +989,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               </div>
             } />
             <Route path="team" element={
-              <div className="bg-brand-surface rounded-2xl shadow-sm border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-6">
+              <div className="bg-brand-surface rounded-lg shadow-2xs border border-brand-border overflow-hidden animate-slide-up h-full flex flex-col p-4 sm:p-6">
                 <TeamManagementView />
               </div>
             } />

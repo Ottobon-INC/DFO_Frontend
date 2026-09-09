@@ -50,7 +50,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [doctors, setDoctors] = useState<any[]>([]);
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
-    
+
     // Vitals Modal & History State
     const [showVitalsHistory, setShowVitalsHistory] = useState(false);
     const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
@@ -64,13 +64,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         setSavingVitals(true);
         try {
             await api.addPatientVitals(patient.id, {
-            vitals: [{
-                vital_type: vitalType,
-                value: vitalValue,
-                unit: vitalUnit,
-                recorded_at: new Date().toISOString()
-            }]
-        });
+                vitals: [{
+                    vital_type: vitalType,
+                    value: vitalValue,
+                    unit: vitalUnit,
+                    recorded_at: new Date().toISOString()
+                }]
+            });
             setIsVitalsModalOpen(false);
             setVitalValue('');
             fetchDashboardMetrics();
@@ -99,7 +99,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [uploadingDoc, setUploadingDoc] = useState(false);
     const [docTypeToUpload, setDocTypeToUpload] = useState('prescription');
     const [previewDoc, setPreviewDoc] = useState<any>(null);
-    
+
     // Metrics Entry
     const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
@@ -108,7 +108,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             // Fetch manually uploaded docs
             const response = await api.getPatientDocuments(patient.id);
             const manualDocs = response?.data || (Array.isArray(response) ? response : []);
-            
+
             // Fetch system-generated docs (prescriptions, summaries)
             let generatedDocs = [];
             try {
@@ -119,7 +119,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         patientId: patient.id,
                         type: d.type === 'prescription' ? 'Prescription' : d.type,
                         name: d.file_name,
-                        url: d.signed_url, 
+                        url: d.signed_url,
                         uploadDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Just now',
                         generation_status: d.generation_status
                     }));
@@ -129,7 +129,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
             }
 
             const combined = [...(Array.isArray(manualDocs) ? manualDocs : []), ...generatedDocs];
-            
+
             // Deduplicate by ID, preferring items with a url (from generatedDocs)
             const uniqueDocsMap = new Map();
             combined.forEach(doc => {
@@ -138,7 +138,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 }
             });
             const deduplicatedDocs = Array.from(uniqueDocsMap.values());
-            
+
             setPatientDocuments(deduplicatedDocs);
         } catch (e) {
             console.warn("Failed to fetch documents", e);
@@ -169,7 +169,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const handleVitalUpdate = React.useCallback((newVital: any) => {
         setDashboardData((prev: any) => {
             if (!prev) return prev;
-            
+
             // Check if vital already exists (update vs insert)
             const exists = prev.vitals?.find((v: any) => v.id === newVital.id);
             let updatedVitals;
@@ -196,7 +196,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            
+
             const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
             if (file.size > MAX_FILE_SIZE) {
                 toast('File size exceeds the 25MB limit. Please upload a smaller file.');
@@ -451,14 +451,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 blood_group: getVal('edit-bloodGroup'),
                 marital_status: getVal('edit-maritalStatus'),
                 referral_doctor: getVal('edit-referralDoctor'),
-                                registration_date: getVal('edit-registrationDate'),
+                registration_date: getVal('edit-registrationDate'),
                 uhid: getVal('edit-uhid'),
                 aadhar: getVal('edit-aadhar'),
 
                 // Keeping camelCase just in case the backend uses specific DTOs
                 maritalStatus: getVal('edit-maritalStatus'),
                 referralDoctor: getVal('edit-referralDoctor'),
-                                registrationDate: getVal('edit-registrationDate'),
+                registrationDate: getVal('edit-registrationDate'),
             };
 
             await api.updatePatient(patient.id, payload);
@@ -614,6 +614,15 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
                             {activeTab === 'timeline' && (
                                 <TimelineContainer patientId={patient.id} />
+                            )}
+
+                            {activeTab === 'ivf' && (
+                                <IvfCaseSheetSuite
+                                    patientId={patient.id}
+                                    patientName={patient.name}
+                                    patientAge={patient.age?.toString() || ''}
+                                    patientGender={patient.gender || ''}
+                                />
                             )}
 
                             {activeTab === 'overview' && (
@@ -894,7 +903,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             <Activity size={18} className="mr-2 text-brand-primary" /> Physiological Vitals & Trends
                                                         </h3>
                                                         <div className="flex items-center space-x-2">
-                                                            <button 
+                                                            <button
                                                                 onClick={fetchDashboardMetrics}
                                                                 disabled={isLoadingDashboard}
                                                                 className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-bg hover:bg-brand-primary/10 rounded-lg transition-colors disabled:opacity-50"
@@ -902,7 +911,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             >
                                                                 <RefreshCw size={16} className={isLoadingDashboard ? "animate-spin" : ""} />
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => setIsMetricsModalOpen(true)}
                                                                 className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center"
                                                             >
@@ -935,31 +944,31 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                         </div>
                                                     </div>
 
-                                                     {/* View History Toggle Button */}
-                                                     <div className="flex justify-end pt-2">
-                                                         <button
-                                                             onClick={() => {
-                                                                 setShowVitalsHistory(prev => {
-                                                                     const next = !prev;
-                                                                     if (next) {
-                                                                         setTimeout(() => {
-                                                                             document.getElementById('vitals-history-table')?.scrollIntoView({ behavior: 'smooth' });
-                                                                         }, 50);
-                                                                     }
-                                                                     return next;
-                                                                 });
-                                                             }}
-                                                             className="px-3.5 py-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary hover:bg-brand-primary/10 rounded-lg transition-colors flex items-center gap-1 border border-brand-primary/20 shadow-2xs"
-                                                         >
-                                                             {showVitalsHistory ? 'Hide History' : 'View History'} <ChevronRight size={14} className={showVitalsHistory ? 'rotate-90 transition-transform' : 'transition-transform'} />
-                                                         </button>
-                                                     </div>
-                                                 </div>
+                                                    {/* View History Toggle Button */}
+                                                    <div className="flex justify-end pt-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowVitalsHistory(prev => {
+                                                                    const next = !prev;
+                                                                    if (next) {
+                                                                        setTimeout(() => {
+                                                                            document.getElementById('vitals-history-table')?.scrollIntoView({ behavior: 'smooth' });
+                                                                        }, 50);
+                                                                    }
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className="px-3.5 py-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary hover:bg-brand-primary/10 rounded-lg transition-colors flex items-center gap-1 border border-brand-primary/20 shadow-2xs"
+                                                        >
+                                                            {showVitalsHistory ? 'Hide History' : 'View History'} <ChevronRight size={14} className={showVitalsHistory ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                                                        </button>
+                                                    </div>
+                                                </div>
 
-                                                 {/* Vitals History Flowsheet Table (Conditionally Visible) */}
-                                                 {showVitalsHistory && (
-                                                     <VitalsHistoryWidget vitals={dashboardData?.vitals} />
-                                                 )}
+                                                {/* Vitals History Flowsheet Table (Conditionally Visible) */}
+                                                {showVitalsHistory && (
+                                                    <VitalsHistoryWidget vitals={dashboardData?.vitals} />
+                                                )}
 
                                                 {/* Clinical Alerts & Active Conditions Grid */}
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -983,7 +992,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                 <FileText size={18} className="mr-2 text-brand-primary" /> Clinical Note
                                             </h3>
                                             {isClinical && (
-                                                <button 
+                                                <button
                                                     onClick={() => setIsDigitalPrescriptionModalOpen(true)}
                                                     className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm"
                                                 >
@@ -1155,9 +1164,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                             return Object.entries(groupedDocuments).map(([type, docs]: [string, any[]]) => (
                                                 <div key={type} className="mb-6">
                                                     <h4 className="text-sm font-bold text-brand-textPrimary mb-3 uppercase tracking-wider flex items-center gap-2">
-                                                        {type.toLowerCase().includes('prescription') ? <Pill size={16} className="text-brand-primary" /> : 
-                                                         type.toLowerCase().includes('report') ? <FileText size={16} className="text-brand-primary" /> :
-                                                         <FileText size={16} className="text-brand-textSecondary" />}
+                                                        {type.toLowerCase().includes('prescription') ? <Pill size={16} className="text-brand-primary" /> :
+                                                            type.toLowerCase().includes('report') ? <FileText size={16} className="text-brand-primary" /> :
+                                                                <FileText size={16} className="text-brand-textSecondary" />}
                                                         {type}
                                                     </h4>
                                                     <div className="grid grid-cols-2 gap-4">
@@ -1180,10 +1189,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 try {
                                                                                     const res = await api.getSecureAssetUrl(doc.id);
                                                                                     if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                                } catch (e) { }
                                                                             }
                                                                             if (url && url !== '#') {
-                                                                                setPreviewDoc({...doc, url});
+                                                                                setPreviewDoc({ ...doc, url });
                                                                             } else {
                                                                                 toast('Preview not available for this document.');
                                                                             }
@@ -1200,7 +1209,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 try {
                                                                                     const res = await api.getSecureAssetUrl(doc.id);
                                                                                     if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                                } catch (e) { }
                                                                             }
                                                                             if (url && url !== '#') {
                                                                                 window.open(url, '_blank');
@@ -1221,7 +1230,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 toast.error('A reason is required to unlink a document.');
                                                                                 return;
                                                                             }
-                                                                            
+
                                                                             if (confirm('Are you sure you want to remove this document from the patient? It will be sent back to Pending Files.')) {
                                                                                 try {
                                                                                     await api.unlinkDocument(doc.id, reason);
@@ -1269,7 +1278,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     )}
                 </div>
             </div >
-            
+
             {/* Appointment Modal */}
             <BookAppointmentModal
                 isOpen={isBookingModalOpen}
@@ -1309,11 +1318,11 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     <div className="bg-brand-surface w-full max-w-sm rounded-2xl p-6 shadow-xl border border-brand-border animate-scale-in">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-brand-textPrimary text-lg">Reset Portal Access PIN</h3>
-                                <button onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
-                                    <X size={20} />
-                                </button>
+                            <button onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }} className="text-brand-textSecondary hover:text-red-600 hover:bg-red-100 p-1 rounded-full transition-colors">
+                                <X size={20} />
+                            </button>
                         </div>
-                        
+
                         {!resetPinSuccess ? (
                             <div className="space-y-4">
                                 <p className="text-sm text-brand-textSecondary">
@@ -1321,16 +1330,16 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                 </p>
                                 <div>
                                     <label className="text-xs font-bold text-brand-textSecondary uppercase block mb-1">Custom PIN (Optional)</label>
-                                    <input 
-                                        type="text" 
-                                        maxLength={4} 
-                                        placeholder="Leave blank to auto-generate" 
-                                        value={newPinInput} 
+                                    <input
+                                        type="text"
+                                        maxLength={4}
+                                        placeholder="Leave blank to auto-generate"
+                                        value={newPinInput}
                                         onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ''))}
                                         className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded-lg px-3 py-2 outline-none focus:border-brand-primary"
                                     />
                                 </div>
-                                <button 
+                                <button
                                     onClick={handleResetPin}
                                     disabled={isResettingPin}
                                     className={`w-full py-2.5 bg-brand-primary text-white font-bold rounded-lg shadow-sm hover:bg-brand-secondary transition-all active:scale-95 ${isResettingPin ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1351,7 +1360,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                     <p className="text-xs font-bold text-brand-textSecondary uppercase mb-1">New Portal PIN</p>
                                     <p className="text-3xl font-black text-brand-primary tracking-widest">{resetPinSuccess}</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => { setIsResetPinModalOpen(false); setResetPinSuccess(null); }}
                                     className="w-full py-2.5 bg-brand-surface border border-brand-border text-brand-textPrimary font-bold rounded-lg hover:bg-brand-bg transition-colors mt-4"
                                 >
@@ -1380,8 +1389,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                 >
                                     <Download size={18} />
                                 </button>
-                                <button 
-                                    onClick={() => setPreviewDoc(null)} 
+                                <button
+                                    onClick={() => setPreviewDoc(null)}
                                     className="p-2 text-brand-textSecondary hover:text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                                 >
                                     <X size={20} />
@@ -1398,7 +1407,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                     </div>
                 </div>
             )}
-            
+
             <DigitalPrescriptionModal
                 isOpen={isDigitalPrescriptionModalOpen}
                 onClose={() => setIsDigitalPrescriptionModalOpen(false)}
@@ -1408,7 +1417,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         patient_id: patient.id
                     } as any);
                     toast.success("Prescription generated successfully! It will appear in the documents list shortly.");
-                    
+
                     // The backend generates this asynchronously via BullMQ, so we poll for it
                     setTimeout(fetchPatientDocuments, 2000);
                     setTimeout(fetchPatientDocuments, 5000);

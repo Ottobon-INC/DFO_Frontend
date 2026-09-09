@@ -103,6 +103,17 @@ const getHeaders = () => {
             const user = JSON.parse(userStr);
             if (user && user.token) {
                 headers['Authorization'] = `Bearer ${user.token}`;
+            }
+            if (user && user.id) {
+                headers['x-user-id'] = user.id;
+            }
+            if (user && user.role) {
+                headers['x-user-role'] = user.role;
+            }
+            if (user && user.clinic_id) {
+                headers['x-clinic-id'] = user.clinic_id;
+            }
+            if (user && user.token) {
                 return headers;
             }
         }
@@ -182,8 +193,12 @@ export const api = {
         });
     },
 
-    getDoctorSlots: async (doctorId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/slots`, {
+    getDoctorSlots: async (doctorId: string, startDate?: string, endDate?: string) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        const queryStr = params.toString() ? `?${params.toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/slots${queryStr}`, {
             headers: getHeaders()
         });
     },
@@ -196,12 +211,44 @@ export const api = {
         });
     },
 
-    saveSchedules: async (doctorId: string, schedules: any[]) => {
+    saveSchedules: async (doctorId: string, schedules: any[], startDate?: string, endDate?: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}`, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ schedules })
+            body: JSON.stringify({ schedules, startDate, endDate })
         });
+    },
+
+    setDoctorLeave: async (doctorId: string, leaveDate: string, leaveType?: string, reason?: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leave`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ leaveDate, leaveType, reason })
+        });
+    },
+
+    removeDoctorLeave: async (doctorId: string, leaveDate: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leave/${leaveDate}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+    },
+
+    getDoctorLeaves: async (doctorId: string, startDate?: string, endDate?: string) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        const queryStr = params.toString() ? `?${params.toString()}` : '';
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/v1/clinics/schedules/${doctorId}/leaves${queryStr}`, {
+                headers: getHeaders()
+            });
+            if (!res.ok) return { success: true, data: [] };
+            const json = await res.json();
+            return json || { success: true, data: [] };
+        } catch (e) {
+            return { success: true, data: [] };
+        }
     },
 
     getAppointmentById: async (id: string) => {
@@ -295,6 +342,15 @@ export const api = {
             body: JSON.stringify(data)
         });
     },
+
+    enqueuePatient: async (appointment_id: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/qms/queue/enqueue`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ appointment_id })
+        });
+    },
+
 
     updateAppointment: async (id: string, data: AppointmentUpdatePayload) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/appointments/${id}`, {
@@ -1051,13 +1107,13 @@ export const api = {
 
 
     getDoctorQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
+        return fetchJson<any>(`${API_BASE_URL}/thread/queue/doctor`, {
             headers: getHeaders()
         });
     },
 
     getNurseQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/nurse`, {
+        return fetchJson<any>(`${API_BASE_URL}/thread/queue/nurse`, {
             headers: getHeaders()
         });
     },

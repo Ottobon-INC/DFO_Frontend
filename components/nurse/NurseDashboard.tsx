@@ -394,10 +394,10 @@ export const NurseDashboard: React.FC = () => {
       </div>
 
       {/* Main Workspace */}
-      <div className="flex-1 p-6 overflow-hidden flex gap-6">
+      <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto flex flex-col lg:flex-row gap-4 lg:gap-6">
         
         {/* Left Pane: Awaiting Vitals Queue */}
-        <div className="w-1/3 min-w-[300px] max-w-sm flex flex-col bg-brand-surface border border-brand-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="w-full lg:w-1/3 lg:min-w-[300px] lg:max-w-sm flex flex-col bg-brand-surface border border-brand-border rounded-xl lg:rounded-2xl shadow-sm overflow-hidden">
           <div className="p-3.5 border-b border-brand-border bg-brand-bg/30 flex justify-between items-center">
              <h3 className="text-xs font-bold text-brand-textSecondary uppercase tracking-wider flex items-center gap-1.5">
                <Clock size={14} className="text-brand-primary" /> Awaiting Vitals
