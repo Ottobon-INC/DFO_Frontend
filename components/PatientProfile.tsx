@@ -15,6 +15,8 @@ import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
 import toast from 'react-hot-toast';
 import AbhaIntegrationWidget from './AbhaIntegrationWidget';
+import { isGynecSpecialty } from '../utils/specialty.utils';
+import { GynecCaseSheet } from './specialties/gynecology/GynecCaseSheet';
 
 
 interface PatientProfileProps {
@@ -105,8 +107,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const fetchPatientDocuments = async () => {
         try {
             // Fetch manually uploaded docs
-            const response = await api.getPatientDocuments(patient.id);
-            const manualDocs = response?.data || (Array.isArray(response) ? response : []);
+            let manualDocs: any[] = [];
+            try {
+                const response = await api.getPatientDocuments(patient.id);
+                manualDocs = response?.data || (Array.isArray(response) ? response : []);
+            } catch (err) {
+                console.warn("Could not fetch manual docs", err);
+            }
 
             // Fetch system-generated docs (prescriptions, summaries)
             let generatedDocs = [];
@@ -498,8 +505,14 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     // Determine tabs based on role
     const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE || userRole === 'Receptionist' || userRole === UserRole.ADMIN;
 
+    const userStr = localStorage.getItem('user');
+    const loggedUser = userStr ? JSON.parse(userStr) : null;
+    const isGynecClinic = isGynecSpecialty(loggedUser?.clinic_specialty);
+    const isDoctorUser = userRole === UserRole.DOCTOR || userRole === 'Doctor';
+
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
+        ...(isGynecClinic && isDoctorUser ? [{ id: 'gynecology', label: 'Gynecology Consultation', shortLabel: 'Gynec' }] : []),
         { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
@@ -602,6 +615,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         </div>
                     ) : (
                         <>
+
+                            {activeTab === 'gynecology' && (
+                                <GynecCaseSheet
+                                    patient={patient}
+                                    onCompleteConsultation={onCompleteConsultation}
+                                />
+                            )}
 
                             {activeTab === 'timeline' && (
                                 <TimelineContainer patientId={patient.id} />

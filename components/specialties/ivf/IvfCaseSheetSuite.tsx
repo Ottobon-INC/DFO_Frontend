@@ -298,8 +298,8 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
 
   const addMaleSemenRow = () => setMaleSemenRows(prev => [...prev, { date: '', tc: '', motility: '', morphology: '', comment: '' }]);
 
-  const addLabRow = (setRows: React.Dispatch<React.SetStateAction<LabRow[]>>) => {
-    setRows(prev => [...prev, { testName: '', values: Array(femaleLabDates.length).fill('') }]);
+  const addLabRow = (dateCount: number, setRows: React.Dispatch<React.SetStateAction<LabRow[]>>) => {
+    setRows(prev => [...prev, { testName: '', values: Array(dateCount).fill('') }]);
   };
 
   const addLabColumn = (setDates: React.Dispatch<React.SetStateAction<string[]>>, setRows: React.Dispatch<React.SetStateAction<LabRow[]>>) => {
@@ -475,7 +475,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             setSuccessRateExplained(!!d.treatmentTracking.success_rate_explained);
             setFmDate(d.treatmentTracking.fm_date || '');
             setFmWt(d.treatmentTracking.fm_wt || '');
-            setFmBmi(d.treatmentTracking.fm_bmi || '');
+            setFmBMI(d.treatmentTracking.fm_bmi || '');
             setFmDiagnosis(d.treatmentTracking.fm_diagnosis || '');
             setFmProtocol(d.treatmentTracking.fm_protocol || '');
             if (d.treatmentTracking.follicular_rows) setFollicularRows(d.treatmentTracking.follicular_rows);
@@ -588,7 +588,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
 
       {/* Menstrual History */}
       <div className={sectionCls}>
-        <h3 className={headerCls}><Heart size={16} className="text-pink-500" /> Menstrual History</h3>
+        <h3 className={headerCls}><Heart size={16} className="text-blue-500" /> Menstrual History</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div><label className={labelCls}>Age of Menarche</label><textarea value={ageOfMenarche} onChange={e => setAgeOfMenarche(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} placeholder="Age" /></div>
           <div><label className={labelCls}>Periods</label>
@@ -804,7 +804,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             ))}
           </tbody>
         </table>
-        <button onClick={() => addLabRow(setRows)} className="mt-2 text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+        <button onClick={() => addLabRow(dates.length, setRows)} className="mt-2 text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1">
           <Plus size={12} /> Add Custom Test
         </button>
       </div>
@@ -1105,8 +1105,8 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
 
         {/* Couple Header */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-pink-50/50 rounded-lg p-3 border border-pink-100">
-            <p className="text-[10px] font-bold text-pink-600 mb-2">MRS (Female)</p>
+          <div className="bg-indigo-50/50 rounded-lg p-3 border border-indigo-100">
+            <p className="text-[10px] font-bold text-indigo-600 mb-2">MRS (Female)</p>
             <div className="grid grid-cols-3 gap-2">
               <div><label className={labelCls}>Name</label><textarea value={summaryFemName} onChange={e => setSummaryFemName(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>
               <div><label className={labelCls}>Age</label><textarea value={summaryFemAge} onChange={e => setSummaryFemAge(e.target.value)} className={inputCls + " min-h-[36px] resize-y"} /></div>

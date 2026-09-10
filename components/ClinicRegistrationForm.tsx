@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, MapPin, Calendar, HeartPulse, Stethoscope, ChevronDown, CheckCircle, Activity, UserPlus, FileText } from 'lucide-react';
 import { api } from '../services/api';
+import { DEFAULT_DOCTORS } from '../hooks/useDoctors';
 import toast from 'react-hot-toast';
 
 interface ClinicRegistrationFormProps {
@@ -11,7 +12,7 @@ interface ClinicRegistrationFormProps {
 
 export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ initialData, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [doctors, setDoctors] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<any[]>(DEFAULT_DOCTORS);
   const [successModalData, setSuccessModalData] = useState<any>(null);
   
   // Input Refs for Smart Auto-Focus
@@ -95,7 +96,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
       try {
         const res = await api.getDoctors();
         const docs = res?.data || res;
-        if (Array.isArray(docs)) {
+        if (Array.isArray(docs) && docs.length > 0) {
           setDoctors(docs);
           // Auto match doctor by name if lead had treatmentDoctor
           if (initialData?.treatmentDoctor && !doctorId) {
@@ -107,9 +108,12 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
               setDoctorId(matchedDoc.id || matchedDoc.doctorId);
             }
           }
+        } else {
+          setDoctors(DEFAULT_DOCTORS);
         }
       } catch (err) {
         console.error("Failed to fetch doctors", err);
+        setDoctors(DEFAULT_DOCTORS);
       }
     };
     fetchDocs();

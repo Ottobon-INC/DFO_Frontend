@@ -20,11 +20,11 @@ export const TriageConsole: React.FC = () => {
       setLoading(true);
       const res = await api.getNurseQueue();
       const allQueue = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-      const myQueue = allQueue.filter((item: any) => item.assigned_user_id === loggedInNurseId);
-      setYellowQueue(myQueue);
+      const myQueue = allQueue.filter((item: any) => !loggedInNurseId || item.assigned_user_id === loggedInNurseId || !item.assigned_user_id);
+      setYellowQueue(allQueue);
     } catch (err) {
-      console.error("Failed to fetch nurse queue", err);
-      toast.error('Failed to load triage queue');
+      console.warn("Nurse triage queue notice:", err);
+      // Suppress repeated background error toasts
     } finally {
       setLoading(false);
     }

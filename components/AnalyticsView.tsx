@@ -47,7 +47,7 @@ export const AnalyticsView: React.FC = () => {
                         <TrendingUp size={18} className="mr-2 text-brand-primary" /> Lead Source ROI
                     </h3>
                     <div className="space-y-3 sm:space-y-4">
-                        <SourceBar label="Sakhi App Referral" count={45} total={120} color="bg-pink-500" />
+                        <SourceBar label="Sakhi App Referral" count={45} total={120} color="bg-sky-500" />
                         <SourceBar label="Google Ads" count={30} total={120} color="bg-blue-500" />
                         <SourceBar label="Walk-Ins" count={25} total={120} color="bg-brand-success" />
                         <SourceBar label="Social Media" count={20} total={120} color="bg-purple-500" />

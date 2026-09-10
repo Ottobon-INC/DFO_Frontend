@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
+import { DEFAULT_DOCTORS } from '../hooks/useDoctors';
 import { 
   Clock, Stethoscope, CheckCircle2, Volume2, Users, 
   Trash2, UserPlus, Activity, Sparkles, Search, 
@@ -43,7 +44,8 @@ export const WaitingRoomView: React.FC<WaitingRoomViewProps> = ({ onOpenWalkIn }
       ]);
 
       const items = Array.isArray(apptRes.data) ? apptRes.data : (apptRes.data?.items || []);
-      const docsList = Array.isArray(docRes.data) ? docRes.data : (Array.isArray(docRes) ? docRes : []);
+      const rawDocs = Array.isArray(docRes.data) ? docRes.data : (Array.isArray(docRes) ? docRes : []);
+      const docsList = rawDocs.length > 0 ? rawDocs : DEFAULT_DOCTORS;
       setDoctors(docsList);
       
       const queueItems = items.filter((a: any) => {

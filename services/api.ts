@@ -31,8 +31,9 @@ class ApiError extends Error {
     }
 }
 
-async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(url, { ...options, credentials: 'include' });
+async function fetchJson<T>(url: string, options: RequestInit & { suppressToast?: boolean } = {}): Promise<T> {
+    const { suppressToast, ...fetchOptions } = options;
+    const response = await fetch(url, { ...fetchOptions, credentials: 'include' });
 
     if (response.status === 401 && !url.includes('/api/auth/login') && !url.includes('/api/v1/superadmin/auth/login')) {
         // Only force-logout if the token itself is expired/invalid.
@@ -47,12 +48,12 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
             localStorage.removeItem('token');
             localStorage.removeItem('userRole');
             window.location.href = '/login';
-            toast.error('Session expired. Please log in again.');
+            if (!suppressToast) toast.error('Session expired. Please log in again.');
             throw new Error('Session expired. Please log in again.');
         }
         // Otherwise, throw an ApiError so the calling component can show a "Forbidden" toast
         const apiError = new ApiError(errorBody?.error || 'Access denied', 401, errorBody);
-        toast.error(apiError.message);
+        if (!suppressToast) toast.error(apiError.message);
         throw apiError;
     }
 
@@ -79,12 +80,12 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
                 if (text) errorMessage = text;
             } catch (textErr) { }
         }
-        toast.error(errorMessage);
+        if (!suppressToast) toast.error(errorMessage);
         throw new ApiError(errorMessage, response.status, errorData);
     }
     const json = await response.json();
     if (json && typeof json === 'object' && 'success' in json && !json.success) {
-        toast.error(json.error || 'Unknown error');
+        if (!suppressToast) toast.error(json.error || 'Unknown error');
         throw new Error(json.error || 'Unknown error');
     }
     return json;
@@ -499,13 +500,15 @@ export const api = {
 
     getPatientDocuments: async (id: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/patients/${id}/documents`, {
-            headers: getHeaders()
+            headers: getHeaders(),
+            suppressToast: true
         });
     },
 
     getGeneratedDocuments: async (id: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/janmasethu/documents/patient/${id}`, {
-            headers: getHeaders()
+        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/documents/patient/${id}`, {
+            headers: getHeaders(),
+            suppressToast: true
         });
     },
 
@@ -1107,8 +1110,9 @@ export const api = {
 
 
     getDoctorQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/thread/queue/doctor`, {
-            headers: getHeaders()
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
+            headers: getHeaders(),
+            suppressToast: true
         });
     },
 
@@ -1135,8 +1139,9 @@ export const api = {
     },
 
     getNurseQueue: async () => {
-        return fetchJson<any>(`${API_BASE_URL}/thread/queue/nurse`, {
-            headers: getHeaders()
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/nurse`, {
+            headers: getHeaders(),
+            suppressToast: true
         });
     },
 
@@ -1377,6 +1382,20 @@ export const api = {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ patientId, txnId, otp, abhaAddress })
+        });
+    },
+
+    getIvfCaseSheet: async (patientId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/specialties/ivf/${patientId}`, {
+            headers: getHeaders()
+        });
+    },
+
+    saveIvfCaseSheet: async (patientId: string, data: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/specialties/ivf/${patientId}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
         });
     }
 };

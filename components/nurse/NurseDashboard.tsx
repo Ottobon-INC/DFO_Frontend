@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, RefreshCw, User, CheckCircle, AlertTriangle, Activity, ShieldAlert, FileText, Plus, Clock, Scale, Thermometer, Wind, Eye } from 'lucide-react';
+import { Heart, RefreshCw, User, CheckCircle, AlertTriangle, Activity, ShieldAlert, FileText, Plus, Clock, Scale, Thermometer, Wind, Eye, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import toast from 'react-hot-toast';
+import { isGynecSpecialty } from '../../utils/specialty.utils';
+import { getGynecRecord } from '../../services/mockGynecStore';
 
 export const NurseDashboard: React.FC = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -114,10 +116,29 @@ export const NurseDashboard: React.FC = () => {
         };
       });
 
-      // Filter Checked-In or Waiting for vitals intake
-      const vitalsQueue = resolvedAppts.filter(a => 
-        a.status === 'Checked-In' || a.status === 'Waiting' || a.status === 'Arrived'
-      );
+      // Include all registered patients who don't have an explicit appointment today yet
+      const apptPatientIds = new Set(resolvedAppts.map((a: any) => String(a.patientId || '')));
+      patientsList.forEach((p: any) => {
+        if (p.id && !apptPatientIds.has(String(p.id))) {
+          resolvedAppts.push({
+            id: `p-${p.id}`,
+            patientId: p.id,
+            patientName: p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Registered Patient',
+            phone: p.mobile || p.phone || '-',
+            uhid: p.uhid || '-',
+            gender: p.gender || '-',
+            age: p.age || '-',
+            timeDisplay: 'New Register',
+            status: 'Scheduled'
+          });
+        }
+      });
+
+      // Filter active non-completed appointments for vitals intake
+      const vitalsQueue = resolvedAppts.filter((a: any) => {
+        const s = String(a.status || '').toLowerCase();
+        return s !== 'completed' && s !== 'canceled' && s !== 'cancelled';
+      });
       
       setAppointments(vitalsQueue);
     } catch (err) {
@@ -531,6 +552,62 @@ export const NurseDashboard: React.FC = () => {
                 {/* TAB 1: VITALS */}
                 {activeTab === 'vitals' && (
                   <form id="nurse-vitals-form" onSubmit={handleSaveVitals} className="space-y-6 max-w-3xl">
+                    {/* Front Desk Gynecology Intake Summary Card (Nurse Read-Only) */}
+                    {(() => {
+                      const userStr = localStorage.getItem('user');
+                      const loggedUser = userStr ? JSON.parse(userStr) : null;
+                      const isGynecClinic = isGynecSpecialty(loggedUser?.clinic_specialty);
+                      
+                      if (!isGynecClinic || !selectedPatientId) return null;
+                      const gynecRecord = getGynecRecord(selectedPatientId, activeAppointmentId);
+                      const intake = gynecRecord?.intake;
+                      if (!intake) return null;
+
+                      return (
+                        <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200/80 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles size={14} className="text-blue-600" />
+                              Front Desk Gynecology Intake Summary
+                            </span>
+                            <span className="px-2 py-0.5 bg-blue-200 text-blue-800 text-[10px] font-extrabold rounded-md uppercase">
+                              Read-Only Intake
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-1">
+                            <div>
+                              <span className="text-gray-500 text-[11px] block font-medium">Main Concern:</span>
+                              <span className="font-bold text-gray-900">{intake.mainConcern}</span>
+                            </div>
+                            {intake.lmpDate && (
+                              <div>
+                                <span className="text-gray-500 text-[11px] block font-medium">LMP Date:</span>
+                                <span className="font-bold text-gray-900">{intake.lmpDate}</span>
+                              </div>
+                            )}
+                            {intake.eddDate && (
+                              <div>
+                                <span className="text-gray-500 text-[11px] block font-medium">Calculated EDD:</span>
+                                <span className="font-bold text-blue-700">{intake.eddDate}</span>
+                              </div>
+                            )}
+                            {intake.currentContraceptiveMethod && (
+                              <div>
+                                <span className="text-gray-500 text-[11px] block font-medium">Contraception Method:</span>
+                                <span className="font-bold text-gray-900">{intake.currentContraceptiveMethod}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {intake.additionalNotes && (
+                            <p className="text-[11px] text-blue-950 pt-1 border-t border-blue-200/60 italic">
+                              Reception Notes: "{intake.additionalNotes}"
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {/* BP & Pulse Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>

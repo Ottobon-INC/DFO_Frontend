@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, User, MapPin, Phone, Mail, Stethoscope, FileText, CheckCircle2, Search } from 'lucide-react';
-import { Appointment } from '../types';
+import { Appointment, GynecIntakeData } from '../types';
 import { api } from '../services/api';
-import { useDoctors } from '../hooks/useDoctors';
+import { useDoctors, DEFAULT_DOCTORS } from '../hooks/useDoctors';
+import { isGynecSpecialty } from '../utils/specialty.utils';
+import { GynecologyFrontDeskIntake } from './specialties/gynecology/GynecologyFrontDeskIntake';
+import { saveGynecIntake } from '../services/mockGynecStore';
 
 interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -40,7 +43,19 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOpen, onClose, onConfirm, initialDate, initialTime, initialTab, initialData, doctors: passedDoctors, patients: initialPatients }) => {
     const { doctors: fetchedDoctors } = useDoctors();
-    const doctors = passedDoctors || fetchedDoctors;
+    const rawDoctors = passedDoctors || fetchedDoctors;
+    const doctors = rawDoctors && rawDoctors.length > 0 ? rawDoctors : DEFAULT_DOCTORS;
+
+    // Detect clinic specialty
+    const userStr = localStorage.getItem('user');
+    const loggedUser = userStr ? JSON.parse(userStr) : null;
+    const isGynecClinic = isGynecSpecialty(loggedUser?.clinic_specialty);
+
+    const [gynecIntake, setGynecIntake] = useState<GynecIntakeData>({
+        mainConcern: 'Routine Gynecology Checkup',
+        lmpDate: ''
+    });
+
     const [formData, setFormData] = useState({
         name: '',
         date: initialDate ? initialDate.toISOString().split('T')[0] : '',
@@ -54,7 +69,7 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
         email: '',
         phone: '',
         consultant: '',
-        speciality: 'Consultation',
+        speciality: isGynecClinic ? 'Gynecology' : 'Consultation',
         visitReason: '',
         referralDoctor: '',
         referralDoctorMobile: '',
@@ -188,7 +203,14 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(formData);
+        const payload = {
+            ...formData,
+            visitReason: isGynecClinic ? gynecIntake.mainConcern : formData.visitReason
+        };
+        if (isGynecClinic) {
+            saveGynecIntake(formData.patientId || formData.name, undefined, gynecIntake);
+        }
+        onConfirm(payload);
         onClose();
     };
 
@@ -379,21 +401,23 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Email (Optional)</label>
-                                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" placeholder="patient@example.com" />
-                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Email (Optional)</label>
+                                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" placeholder="patient@example.com" />
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Source</label>
-                                        <select name="source" value={(formData as any).source} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
-                                            <option value="Walk-In">Walk-In</option>
-                                            <option value="WhatsApp">WhatsApp</option>
-                                            <option value="Social Media">Social Media</option>
-                                            <option value="Google">Google</option>
-                                            <option value="Referral">Referral</option>
-                                            <option value="Camp">Camp</option>
-                                        </select>
+                                        <div>
+                                            <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Source</label>
+                                            <select name="source" value={(formData as any).source} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all">
+                                                <option value="Walk-In">Walk-In</option>
+                                                <option value="WhatsApp">WhatsApp</option>
+                                                <option value="Social Media">Social Media</option>
+                                                <option value="Google">Google</option>
+                                                <option value="Referral">Referral</option>
+                                                <option value="Camp">Camp</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -441,11 +465,23 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Visit Reason / Notes</label>
-                                    <textarea name="visitReason" value={(formData as any).visitReason || ''} onChange={(e) => setFormData({ ...formData, visitReason: e.target.value })} rows={2} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all resize-none" placeholder="e.g. Follow-up, Hand Pain, General Check-up" />
-                                </div>
+                                {!isGynecClinic && (
+                                    <div>
+                                        <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Visit Reason / Notes</label>
+                                        <textarea name="visitReason" value={(formData as any).visitReason || ''} onChange={(e) => setFormData({ ...formData, visitReason: e.target.value })} rows={2} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all resize-none" placeholder="e.g. Follow-up, Hand Pain, General Check-up" />
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Full Width Gynecology Front Desk Intake */}
+                            {isGynecClinic && (
+                                <div className="col-span-1 lg:col-span-2 pt-2">
+                                    <GynecologyFrontDeskIntake
+                                        value={gynecIntake}
+                                        onChange={setGynecIntake}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 

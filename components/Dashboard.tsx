@@ -678,7 +678,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           {currentUser?.clinic_specialty === 'IVF' && (
             <div className="space-y-1.5">
               <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
-                <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse shadow-sm"></span>
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shadow-sm"></span>
                 Specialty Desks
               </div>
               <NavItem
