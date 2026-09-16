@@ -131,6 +131,19 @@ export interface PatientDocument {
     url: string;
 }
 
+export interface FollowUp {
+    id: string;
+    clinic_id: string;
+    patient_id: string;
+    patient?: { fullname: string; phone: string; uhid: string }; // Populated by backend join
+    doctor_id: string;
+    doctor?: { name: string; role: string }; // Populated by backend join
+    follow_up_date: string;
+    reason?: string;
+    status: 'Pending' | 'Called' | 'Appointment Booked' | 'Cancelled';
+    notes?: string;
+}
+
 export interface TriageDocument {
     id: string;
     name: string;

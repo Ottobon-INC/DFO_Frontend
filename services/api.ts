@@ -145,6 +145,28 @@ const generateUUID = () => {
 };
 
 export const api = {
+    // Follow-Ups
+    createFollowUp: async (payload: { patient_id: string; doctor_id?: string; follow_up_date: string; reason?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/follow-ups`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+    getFollowUps: async (params?: { patient_id?: string; date?: string; status?: string }) => {
+        const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/follow-ups${query}`, {
+            headers: getHeaders()
+        });
+    },
+    updateFollowUp: async (id: string, payload: { status?: string; notes?: string }) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/follow-ups/${id}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
+        });
+    },
+
     // Appointments
     getAppointments: async (params?: { date?: string; doctor_id?: string; start_date?: string; end_date?: string; limit?: number; page?: number }) => {
         const query = params ? `?${new URLSearchParams(params as any).toString()}` : '';
@@ -153,14 +175,21 @@ export const api = {
         });
 
         // Map backend schema to frontend expectations
-        const mapAppointment = (appt: any) => ({
-            ...appt,
-            id: appt.appointmentId || appt.id,
-            patientName: appt.patientName || (appt.patient ? `${appt.patient.firstName || ''} ${appt.patient.lastName || ''}`.trim() : 'Unknown'),
-            time: appt.slotTime || appt.time,
-            date: appt.appointmentDate ? appt.appointmentDate.split('T')[0] : appt.date,
-            type: appt.type || (appt.department ? appt.department.name : 'General Consultation')
-        });
+        const mapAppointment = (appt: any) => {
+            let typeStr = appt.type || (appt.department ? appt.department.name : 'Visit');
+            if (typeStr.toLowerCase() === 'consultant' || typeStr.toLowerCase() === 'consultation' || typeStr.toLowerCase() === 'general consultation') {
+                typeStr = 'Visit';
+            }
+            
+            return {
+                ...appt,
+                id: appt.appointmentId || appt.id,
+                patientName: appt.patientName || (appt.patient ? `${appt.patient.firstName || ''} ${appt.patient.lastName || ''}`.trim() : 'Unknown'),
+                time: appt.slotTime || appt.time,
+                date: appt.appointmentDate ? appt.appointmentDate.split('T')[0] : appt.date,
+                type: typeStr
+            };
+        };
 
         if (res.data && Array.isArray(res.data)) {
             res.data = res.data.map(mapAppointment);
@@ -481,7 +510,8 @@ export const api = {
         });
     },
 
-    addPrescription: async (data: { consultation_id?: string; patient_id: string; medications: any[] }) => {
+    // Medications
+    addPrescription: async (data: { consultation_id?: string; patient_id: string; clinical_notes?: string; medications: any[] }) => {
         return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/consultations/prescription`, {
             method: 'POST',
             headers: getHeaders(),
@@ -1377,6 +1407,20 @@ export const api = {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ patientId, txnId, otp, abhaAddress })
+        });
+    },
+
+    // Specialty Records - IVF
+    getIvfCaseSheet: async (patientId: string) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/specialty-records/ivf/${patientId}`, {
+            headers: getHeaders()
+        });
+    },
+    saveIvfCaseSheet: async (patientId: string, payload: any) => {
+        return fetchJson<any>(`${API_BASE_URL}/api/v1/clinics/specialty-records/ivf/${patientId}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(payload)
         });
     }
 };

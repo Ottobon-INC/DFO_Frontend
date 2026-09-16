@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginCard } from './components/LoginCard';
-import { Dashboard } from './components/Dashboard';
-import { ControlTower } from './components/ControlTower';
 import { LandingPage } from './components/LandingPage';
 import { SystemLogin } from './components/superadmin/SystemLogin';
-import { SuperAdminDashboard } from './components/superadmin/SuperAdminDashboard';
+
+const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
+const ControlTower = lazy(() => import('./components/ControlTower').then(module => ({ default: module.ControlTower })));
+const SuperAdminDashboard = lazy(() => import('./components/superadmin/SuperAdminDashboard').then(module => ({ default: module.SuperAdminDashboard })));
 import { 
   Headphones, Phone, Mail, Clock, AlertTriangle, 
   CheckCircle2, X, Send, ShieldCheck, Activity, Server, 
@@ -129,7 +130,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full font-sans text-brand-textPrimary bg-brand-bg selection:bg-brand-primary selection:text-white flex flex-col transition-colors duration-500">
-      <Routes>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-brand-bg"><p className="text-brand-textSecondary animate-pulse text-sm font-medium">Loading module...</p></div>}>
+        <Routes>
         <Route path="/" element={<LandingPage onLoginClick={() => navigate('/login')} />} />
         <Route path="/login" element={
           <div className="min-h-screen flex flex-col items-center justify-center relative bg-brand-bg overflow-hidden animate-slide-up p-4">
@@ -324,8 +326,8 @@ const AppContent: React.FC = () => {
         } />
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-
+        </Routes>
+      </Suspense>
     </div>
   );
 };

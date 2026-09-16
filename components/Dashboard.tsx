@@ -10,11 +10,12 @@ import { UnassignedDocumentsView } from './UnassignedDocumentsView';
 import { SettingsView } from './SettingsView';
 import { PatientProfile } from './PatientProfile';
 import { RoomsView } from './RoomsView';
+import { FollowUpsView } from './FollowUpsView';
 import { RescheduleModal, Toast, AddLeadModal } from './Modals';
 import { BookAppointmentModal } from './AppointmentModals';
 import { ClinicRegistrationForm } from './ClinicRegistrationForm';
+import { QueueManagementView } from './QueueManagementView';
 
-import { WaitingRoomView } from './WaitingRoomView';
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
 import { DoctorDashboard } from './DoctorDashboard';
@@ -549,6 +550,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               active={location.pathname === '/dashboard' || location.pathname === '/dashboard/' || (userRole === UserRole.NURSE && location.pathname === '/dashboard/nurse') || (userRole === UserRole.DOCTOR && (location.pathname === '/dashboard' || location.pathname === '/dashboard/doctor'))}
               onClick={() => navigate(userRole === UserRole.NURSE ? '/dashboard/nurse' : userRole === UserRole.DOCTOR ? '/dashboard/doctor' : '/dashboard')}
             />
+            <NavItem
+              icon={<UserCheck size={20} />}
+              label="Patients"
+              active={location.pathname === '/dashboard/patients'}
+              onClick={() => navigate('/dashboard/patients')}
+            />
               {userRole === UserRole.NURSE && (
                 <>
                   <NavItem
@@ -557,22 +564,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                     active={location.pathname === '/dashboard/nurse/triage'}
                     onClick={() => navigate('/dashboard/nurse/triage')}
                   />
+                  {/* Lobby Roster has been merged into the new unified Queue Management Board
                   <NavItem
                     icon={<Users size={20} />}
                     label="Lobby Roster"
                     active={location.pathname === '/dashboard/nurse/lobby'}
                     onClick={() => navigate('/dashboard/nurse/lobby')}
                   />
+                  */}
                 </>
               )}
-            <RequireTier minTier={3} userRole={userRole}>
-              <NavItem
-                icon={<Users size={20} />}
-                label="Leads Pipeline"
-                active={location.pathname === '/dashboard/leads'}
-                onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
-              />
-            </RequireTier>
+            {userRole !== UserRole.FRONT_DESK && (
+              <RequireTier minTier={3} userRole={userRole}>
+                <NavItem
+                  icon={<Users size={20} />}
+                  label="Leads Pipeline"
+                  active={location.pathname === '/dashboard/leads'}
+                  onClick={() => { setLeadsFilter('All'); navigate('/dashboard/leads'); }}
+                />
+              </RequireTier>
+            )}
             <RequireTier minTier={3} userRole={userRole}>
               <NavItem
                 icon={<FileText size={20} />}
@@ -583,9 +594,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </RequireTier>
             <NavItem
               icon={<Users size={20} />}
-              label="Waiting Room"
-              active={location.pathname === '/dashboard/waiting-room'}
-              onClick={() => navigate('/dashboard/waiting-room')}
+              label="Queue Management"
+              active={location.pathname === '/dashboard/queue'}
+              onClick={() => navigate('/dashboard/queue')}
             />
             <NavItem
               icon={<CalendarDays size={20} />}
@@ -594,17 +605,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               onClick={() => navigate('/dashboard/appointments')}
             />
             <NavItem
+              icon={<MessageSquare size={20} />}
+              label="Follow-Ups Queue"
+              active={location.pathname === '/dashboard/follow-ups'}
+              onClick={() => navigate('/dashboard/follow-ups')}
+            />
+            <NavItem
               icon={<Inbox size={20} />}
               label="Pending Files"
               active={location.pathname === '/dashboard/pending-files'}
               onClick={() => navigate('/dashboard/pending-files')}
             />
-            <NavItem
-              icon={<UserCheck size={20} />}
-              label="Patients"
-              active={location.pathname === '/dashboard/patients'}
-              onClick={() => navigate('/dashboard/patients')}
-            />
+
             <NavItem
               icon={<Bed size={20} />}
               label="Rooms & Admissions"
@@ -620,62 +632,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           </div>
 
           {/* Specialist & Clinical Dashboards */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
-              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse shadow-sm"></span>
-              Operations Dashboards
+          {userRole !== UserRole.FRONT_DESK && userRole !== UserRole.NURSE && (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
+                <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse shadow-sm"></span>
+                Operations Dashboards
+              </div>
+              <RequireTier minTier={3} userRole={userRole}>
+                <>
+                  <NavItem
+                    icon={<Activity size={20} />}
+                    label="Admin Overview"
+                    active={location.pathname === '/dashboard/control-tower'}
+                    onClick={() => navigate('/dashboard/control-tower')}
+                  />
+                  <NavItem
+                    icon={<TrendingUp size={20} />}
+                    label="Performance Reports"
+                    active={location.pathname === '/dashboard/cro-analytics'}
+                    onClick={() => navigate('/dashboard/cro-analytics')}
+                  />
+                </>
+              </RequireTier>
+              <RequireTier minTier={1} userRole={userRole}>
+                <>
+                  <NavItem
+                    icon={<ShieldAlert size={20} />}
+                    label="Clinical Escalations"
+                    active={location.pathname === '/dashboard/clinical-escalations'}
+                    onClick={() => navigate('/dashboard/clinical-escalations')}
+                  />
+                  <NavItem
+                    icon={<Shield size={20} />}
+                    label="Sakhi Escalations"
+                    active={location.pathname === '/dashboard/sakhi-escalations'}
+                    onClick={() => navigate('/dashboard/sakhi-escalations')}
+                  />
+                </>
+              </RequireTier>
+              
+              <RequireTier minTier={3} userRole={userRole}>
+                <NavItem
+                  icon={<Clock size={20} />}
+                  label="Audit Logs"
+                  active={location.pathname === '/dashboard/audit-logs'}
+                  onClick={() => navigate('/dashboard/audit-logs')}
+                />
+              </RequireTier>
             </div>
-            <RequireTier minTier={3} userRole={userRole}>
-              <>
-                <NavItem
-                  icon={<Activity size={20} />}
-                  label="Admin Overview"
-                  active={location.pathname === '/dashboard/control-tower'}
-                  onClick={() => navigate('/dashboard/control-tower')}
-                />
-                <NavItem
-                  icon={<MessageSquare size={20} />}
-                  label="Follow-up Tasks"
-                  active={location.pathname === '/dashboard/cro-inbox'}
-                  onClick={() => navigate('/dashboard/cro-inbox')}
-                />
-                <NavItem
-                  icon={<TrendingUp size={20} />}
-                  label="Performance Reports"
-                  active={location.pathname === '/dashboard/cro-analytics'}
-                  onClick={() => navigate('/dashboard/cro-analytics')}
-                />
-              </>
-            </RequireTier>
-            <RequireTier minTier={1} userRole={userRole}>
-              <>
-                <NavItem
-                  icon={<ShieldAlert size={20} />}
-                  label="Clinical Escalations"
-                  active={location.pathname === '/dashboard/clinical-escalations'}
-                  onClick={() => navigate('/dashboard/clinical-escalations')}
-                />
-                <NavItem
-                  icon={<Shield size={20} />}
-                  label="Sakhi Escalations"
-                  active={location.pathname === '/dashboard/sakhi-escalations'}
-                  onClick={() => navigate('/dashboard/sakhi-escalations')}
-                />
-              </>
-            </RequireTier>
-            
-            <RequireTier minTier={3} userRole={userRole}>
-              <NavItem
-                icon={<Clock size={20} />}
-                label="Audit Logs"
-                active={location.pathname === '/dashboard/audit-logs'}
-                onClick={() => navigate('/dashboard/audit-logs')}
-              />
-            </RequireTier>
-          </div>
+          )}
 
           {/* Specialty Desks */}
-          {currentUser?.clinic_specialty === 'IVF' && (
+          {currentUser?.clinic_specialty === 'IVF' && userRole !== UserRole.FRONT_DESK && userRole !== UserRole.NURSE && (
             <div className="space-y-1.5">
               <div className="text-[10px] font-bold text-brand-textSecondary uppercase tracking-widest px-4 mb-3 flex items-center gap-2 opacity-80">
                 <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse shadow-sm"></span>
@@ -949,6 +957,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <AppointmentsView userRole={userRole} />
               </div>
             } />
+            <Route path="follow-ups" element={
+              <FollowUpsView />
+            } />
             <Route path="rooms" element={
               <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <RoomsView />
@@ -983,17 +994,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             } />
             <Route path="nurse" element={<NurseDashboard />} />
             <Route path="nurse/triage" element={<TriageConsole />} />
-            <Route path="nurse/lobby" element={<LobbyRoster />} />
+            {/* <Route path="nurse/lobby" element={<LobbyRoster />} /> */}
             <Route path="control-tower" element={<ControlTowerConsole />} />
             <Route path="cro-inbox" element={<CroInbox />} />
             <Route path="cro-analytics" element={<CroAnalytics />} />
             <Route path="audit-logs" element={<AuditLogsView />} />
             <Route path="daily-register" element={<DailyRegisterTable />} />
-            <Route path="waiting-room" element={
-              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
-                <WaitingRoomView />
-              </div>
-            } />
+            <Route path="queue" element={<QueueManagementView />} />
+            <Route path="waiting-room" element={<Navigate to="/dashboard/queue" replace />} />
             <Route path="settings/schedules" element={<DoctorScheduleSettings userRole={userRole} currentUser={currentUser} />} />
             <Route path="schedules/view" element={<DoctorSchedulesView userRole={userRole} currentUser={currentUser} />} />
 

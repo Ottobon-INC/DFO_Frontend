@@ -14,12 +14,8 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - clinical-network
+      - digital-op-desk-network
 
 networks:
-  clinical-network:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.200.0.0/24
+  digital-op-desk-network:
+    external: true

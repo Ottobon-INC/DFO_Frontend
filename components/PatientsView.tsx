@@ -86,7 +86,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNavigateToLeads, u
                 uhid: item.uhid || item.UHID || '-',
                 bloodGroup: item.bloodGroup || item.blood_group || '-',
                 maritalStatus: item.maritalStatus || item.marital_status || '-',
-                referralDoctor: item.referralDoctor || item.referral_doctor || '-',
+                referralDoctor: item.referralDoctor || item.referral_doctor || '',
                 aadhar: item.aadhar || item.aadhar_id || '-',
             }));
 

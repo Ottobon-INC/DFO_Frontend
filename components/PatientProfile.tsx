@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import {
     X, Calendar, Phone, Mail, FileText, Activity,
     Clock, CreditCard, Plus, Pill, Stethoscope,
-    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye, RefreshCw, ChevronRight
+    MessageSquare, Download, Upload, User, AlertCircle, CheckCircle2, Trash2, Eye, RefreshCw, ChevronRight, ArrowLeft,
+    Heart, Thermometer, Scale, Sparkles, ExternalLink, Loader2
 } from 'lucide-react';
 import { Patient, Appointment, FinancialRecord, PatientDocument, UserRole } from '../types';
 import { api } from '../services/api';
@@ -13,9 +14,11 @@ import { HealthMetricsEntryModal } from './HealthMetricsEntryModal';
 import { DynamicTrendChart, ClinicalAlertsWidget, ConditionsWidget, TreatmentsWidget, VitalsHistoryWidget } from './PatientWidgets';
 import { useRealtimeVitals } from '../hooks/useRealtimeVitals';
 import { DigitalPrescriptionModal, PrescriptionData } from './DigitalPrescriptionModal';
+import { UnifiedConsultationPad } from './UnifiedConsultationPad';
 import toast from 'react-hot-toast';
 import AbhaIntegrationWidget from './AbhaIntegrationWidget';
 import { IvfCaseSheetSuite } from './specialties/ivf/IvfCaseSheetSuite';
+import { PatientFollowUps } from './PatientFollowUps';
 
 
 interface PatientProfileProps {
@@ -48,6 +51,9 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     const [patientAppointments, setPatientAppointments] = useState<Appointment[]>([]);
     const [patientDocuments, setPatientDocuments] = useState<PatientDocument[]>([]);
     const [doctors, setDoctors] = useState<any[]>([]);
+    const [isAssigningDoctor, setIsAssigningDoctor] = useState(false);
+    const [selectedDoctorId, setSelectedDoctorId] = useState('');
+    const [isSavingDoctor, setIsSavingDoctor] = useState(false);
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
     
@@ -121,6 +127,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         name: d.file_name,
                         url: d.signed_url, 
                         uploadDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Just now',
+                        status: d.generation_status || 'published',
                         generation_status: d.generation_status
                     }));
                 }
@@ -130,16 +137,33 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
 
             const combined = [...(Array.isArray(manualDocs) ? manualDocs : []), ...generatedDocs];
             
-            // Deduplicate by ID, preferring items with a url (from generatedDocs)
+            // Deduplicate by ID, merging properties intelligently
             const uniqueDocsMap = new Map();
-            combined.forEach(doc => {
-                if (!uniqueDocsMap.has(doc.id) || (doc.url && !uniqueDocsMap.get(doc.id).url)) {
-                    uniqueDocsMap.set(doc.id, doc);
-                }
+            combined.forEach(rawDoc => {
+                const docId = rawDoc.id;
+                if (!docId) return;
+                const existing = uniqueDocsMap.get(docId);
+                const merged = {
+                    ...existing,
+                    ...rawDoc,
+                    status: rawDoc.status || existing?.status || rawDoc.generation_status || 'published',
+                    uploadDate: rawDoc.uploadDate || existing?.uploadDate || (rawDoc.created_at ? new Date(rawDoc.created_at).toLocaleDateString() : 'Just now'),
+                    url: rawDoc.url || existing?.url || null,
+                    type: rawDoc.type || existing?.type || 'Prescription'
+                };
+                uniqueDocsMap.set(docId, merged);
             });
             const deduplicatedDocs = Array.from(uniqueDocsMap.values());
             
             setPatientDocuments(deduplicatedDocs);
+
+            // Auto-poll if any document is still generating/pending
+            const hasPending = deduplicatedDocs.some(d => d.status === 'pending' || d.generation_status === 'pending');
+            if (hasPending) {
+                setTimeout(() => {
+                    fetchPatientDocuments();
+                }, 3000);
+            }
         } catch (e) {
             console.warn("Failed to fetch documents", e);
         }
@@ -343,7 +367,47 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         }
     };
 
+    const fetchDoctors = async () => {
+        try {
+            const res = await api.getDoctors();
+            const docs = res?.data || (Array.isArray(res) ? res : []);
+            setDoctors(docs);
+            return docs;
+        } catch (e) {
+            console.warn("Failed to fetch doctors list", e);
+            return [];
+        }
+    };
+
+    const handleAssignDoctor = async (doctorIdToAssign: string) => {
+        if (!doctorIdToAssign) {
+            toast.error("Please select a doctor to assign.");
+            return;
+        }
+        try {
+            setIsSavingDoctor(true);
+            await api.updatePatient(patient.id, { assigned_doctor_id: doctorIdToAssign });
+            const assigned = doctors.find(d => d.id === doctorIdToAssign);
+            const docDisplayName = assigned ? (assigned.name || [assigned.first_name, assigned.last_name].filter(Boolean).join(' ')) : 'Doctor';
+            setPatient(prev => ({
+                ...prev,
+                assignedDoctorId: doctorIdToAssign,
+                assigned_doctor_id: doctorIdToAssign,
+                assignedDoctorName: docDisplayName
+            }));
+            toast.success(`Assigned to Dr. ${docDisplayName.replace(/^Dr\.?\s*/i, '')}`);
+            setIsAssigningDoctor(false);
+            if (onPatientUpdate) onPatientUpdate();
+        } catch (err) {
+            console.error("Failed to assign doctor", err);
+            toast.error("Failed to assign primary doctor.");
+        } finally {
+            setIsSavingDoctor(false);
+        }
+    };
+
     useEffect(() => {
+        fetchDoctors();
         fetchPatientDetails();
         fetchPatientAppointments();
         fetchPatientDocuments();
@@ -505,68 +569,77 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
         { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
+        { id: 'followups', label: 'Follow-Ups', shortLabel: 'Follow-Ups' },
         { id: 'documents', label: 'Documents', shortLabel: 'Docs' },
     ];
 
     return createPortal(
-        <div className="fixed inset-0 bg-brand-bg/80 z-50 flex justify-end animate-fade-in">
-            <div className="w-full max-w-[95vw] sm:max-w-[90vw] lg:max-w-6xl bg-brand-surface h-full shadow-2xl flex flex-col animate-slide-in-right border-l border-brand-border overflow-hidden">
+        <div className="fixed inset-0 bg-brand-bg/90 z-50 flex flex-col animate-fade-in">
+            <div className="w-full h-full bg-brand-surface shadow-none flex flex-col border-0 overflow-hidden">
 
                 {/* Header */}
-                <div className="p-2 sm:p-3 lg:p-4 xl:p-6 border-b border-brand-border flex justify-between items-start bg-brand-bg/50 gap-2">
-                    <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-5 min-w-0 flex-1">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center text-sm sm:text-base lg:text-xl xl:text-2xl font-bold border-2 border-brand-surface shadow-sm flex-shrink-0">
-                            {patient.name.charAt(0)}
+                <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-white shadow-2xs gap-4">
+                    <div className="flex items-center space-x-4 min-w-0 flex-1">
+                        <button
+                            onClick={onClose}
+                            className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all shadow-2xs flex-shrink-0"
+                            title="Return to Patient List"
+                        >
+                            <ArrowLeft size={14} className="text-slate-600" /> <span>Back to Patients</span>
+                        </button>
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center text-lg font-black shadow-sm flex-shrink-0">
+                            {patient.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-brand-textPrimary truncate">{patient.name}</h2>
-                                {activeTab === 'overview' && (
-                                    <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full border ${isConnected ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                                        {isConnected ? 'Live' : 'Offline'}
-                                    </span>
-                                )}
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">{patient.name}</h2>
                             </div>
-                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 lg:gap-4 text-[10px] sm:text-xs lg:text-sm text-brand-textSecondary mt-0.5 sm:mt-1">
-                                <span className="flex items-center"><Phone size={10} className="mr-0.5 sm:mr-1 flex-shrink-0" /> <span className="truncate max-w-[80px] sm:max-w-none">{patient.mobile}</span></span>
-                                <span className="hidden md:flex items-center"><Mail size={10} className="mr-1 flex-shrink-0" /> {patient.email}</span>
-                                <span className="hidden sm:inline px-1 sm:px-1.5 py-0.5 bg-brand-bg rounded text-[8px] sm:text-[10px] font-bold text-brand-textSecondary border border-brand-border">ID: {patient.id.slice(0, 8)}...</span>
+                            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 text-xs text-slate-500 mt-1">
+                                <span className="flex items-center font-medium text-slate-700"><Phone size={12} className="mr-1 text-slate-400 flex-shrink-0" /> {patient.mobile}</span>
+                                {patient.email && <span className="hidden md:flex items-center font-medium text-slate-700"><Mail size={12} className="mr-1 text-slate-400 flex-shrink-0" /> {patient.email}</span>}
+                                <span className="px-2 py-0.5 bg-slate-100 rounded-md text-[11px] font-mono font-bold text-slate-700 border border-slate-200">ID: {patient.id.slice(0, 8)}</span>
+                                {patient.gender && <span className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-md font-bold text-xs">{patient.gender}</span>}
+                                {patient.age && <span className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-md font-bold text-xs">{patient.age} Yrs</span>}
+                                {patient.bloodGroup && <span className="px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-bold">{patient.bloodGroup}</span>}
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                        {isClinical && (
-                            <button
-                                onClick={() => setIsMetricsModalOpen(true)}
-                                className="px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white font-bold rounded-lg transition-all active:scale-95 text-[10px] sm:text-xs lg:text-sm mr-1 sm:mr-2"
-                            >
-                                <span className="flex items-center"><Activity size={14} className="mr-0.5 sm:mr-1" /> Update Metrics</span>
-                            </button>
-                        )}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                        <button
+                            onClick={() => setIsBookingModalOpen(true)}
+                            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl transition-all border border-slate-200 shadow-2xs text-xs flex items-center gap-1.5"
+                        >
+                            <Calendar size={14} className="text-sky-600" /> <span className="hidden sm:inline">Book Appointment</span>
+                        </button>
+                        <button
+                            onClick={() => setIsMetricsModalOpen(true)}
+                            className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl transition-all border border-sky-200 shadow-2xs text-xs flex items-center gap-1.5"
+                        >
+                            <Activity size={14} className="text-sky-600" /> <span className="hidden sm:inline">Update Metrics</span>
+                        </button>
                         {onCompleteConsultation && !isConsultationComplete && (
                             <button
                                 onClick={handleComplete}
-                                className="px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md shadow-green-600/20 flex items-center transition-all active:scale-95 text-[10px] sm:text-xs lg:text-sm"
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs flex items-center transition-all active:scale-95 text-xs gap-1.5"
                             >
-                                <CheckCircle2 size={14} className="mr-0.5 sm:mr-1" /> <span className="hidden sm:inline">Done</span>
+                                <CheckCircle2 size={14} /> Done
                             </button>
                         )}
-                        <button onClick={onClose} className="p-1 sm:p-1.5 lg:p-2 hover:bg-red-100 rounded-full text-brand-textSecondary hover:text-red-600 transition-colors">
-                            <X size={16} className="sm:w-5 sm:h-5" />
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-800 transition-colors ml-1" title="Close">
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="px-1 sm:px-2 lg:px-4 xl:px-6 border-b border-brand-border flex overflow-x-auto custom-scrollbar bg-brand-surface">
+                <div className="px-4 sm:px-6 border-b border-brand-border flex overflow-x-auto custom-scrollbar bg-brand-surface gap-1">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`py-2 sm:py-2.5 lg:py-3 px-2 sm:px-3 lg:px-4 text-[10px] sm:text-xs lg:text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
+                            className={`py-2.5 sm:py-3 px-3 sm:px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${activeTab === tab.id
                                 ? 'border-brand-primary text-brand-primary'
-                                : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary'
+                                : 'border-transparent text-brand-textSecondary hover:text-brand-textPrimary hover:border-slate-300'
                                 }`}
                         >
                             <span className="hidden sm:inline">{tab.label}</span>
@@ -576,7 +649,17 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain transform-gpu p-3 sm:p-4 md:p-6 lg:p-8 bg-brand-bg/30 custom-scrollbar">
+                {activeTab === 'ivf' ? (
+                    <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
+                        <IvfCaseSheetSuite
+                            patientId={patient.id}
+                            patientName={patient.name}
+                            patientAge={patient.age?.toString() || ''}
+                            patientGender={patient.gender || ''}
+                        />
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto overscroll-contain transform-gpu p-4 sm:p-6 lg:p-8 bg-brand-bg/30 custom-scrollbar">
 
                     {isConsultationComplete ? (
                         <div className="flex flex-col items-center justify-center h-full space-y-6 animate-fade-in">
@@ -609,13 +692,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                 <TimelineContainer patientId={patient.id} />
                             )}
 
-                            {activeTab === 'ivf' && (
-                                <IvfCaseSheetSuite
-                                    patientId={patient.id}
-                                    patientName={patient.name}
-                                    patientAge={patient.age?.toString() || ''}
-                                    patientGender={patient.gender || ''}
-                                />
+                            {activeTab === 'followups' && (
+                                <PatientFollowUps patientId={patient.id} />
                             )}
 
                             {activeTab === 'overview' && (
@@ -643,334 +721,587 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                     const weightDisplay = latestWeight ? `${latestWeight.vital_value || latestWeight.value} ${latestWeight.unit || 'kg'}` : '70 kg';
 
                                     return (
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                            {/* LEFT COLUMN: Demographics & Context */}
-                                            <div className="space-y-6 lg:col-span-5">
-                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <h3 className="font-bold text-brand-textPrimary flex items-center">
-                                                            <User size={18} className="mr-2 text-brand-primary" /> Patient Details
-                                                        </h3>
-                                                        {!isEditing ? (
-                                                            <button
-                                                                onClick={() => setIsEditing(true)}
-                                                                className="text-xs font-bold text-brand-primary hover:bg-brand-primary/10 px-3 py-1.5 rounded-lg transition-colors"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                        ) : (
-                                                            <div className="flex space-x-2">
-                                                                <button
-                                                                    onClick={() => setIsEditing(false)}
-                                                                    className="text-xs font-bold text-brand-textSecondary hover:bg-brand-bg px-3 py-1.5 rounded-lg transition-colors border border-brand-border"
-                                                                >
-                                                                    Cancel
-                                                                </button>
-                                                                <button
-                                                                    onClick={handleSaveDemographics}
-                                                                    className="text-xs font-bold text-white bg-brand-primary hover:bg-brand-secondary px-3 py-1.5 rounded-lg transition-colors shadow-sm"
-                                                                >
-                                                                    Save
-                                                                </button>
+                                        <div className="max-w-[1600px] mx-auto w-full space-y-6">
+                                            {/* 1. TOP TELEMETRY RIBBON: Physiological Vitals & Real-Time Telemetry */}
+                                            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 transition-all">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-xl bg-sky-50 flex items-center justify-center text-sky-600">
+                                                            <Activity size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h3 className="font-bold text-slate-900 text-sm tracking-tight">Physiological Vitals & Telemetry</h3>
+                                                                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${isConnected ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                                    <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                                                    {isConnected ? 'Live Telemetry' : 'Static Record'}
+                                                                </span>
                                                             </div>
-                                                        )}
+                                                            <p className="text-xs text-slate-500">Continuous observation of physiological baseline parameters</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                                                        <button
+                                                            onClick={fetchDashboardMetrics}
+                                                            disabled={isLoadingDashboard}
+                                                            className="p-2 text-slate-500 hover:text-sky-600 bg-slate-50 hover:bg-sky-50 rounded-xl transition-colors border border-slate-200/70"
+                                                            title="Refresh telemetry"
+                                                        >
+                                                            <RefreshCw size={15} className={isLoadingDashboard ? "animate-spin" : ""} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setShowVitalsHistory(prev => !prev)}
+                                                            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all border flex items-center gap-1.5 ${
+                                                                showVitalsHistory 
+                                                                    ? 'bg-sky-50 text-sky-700 border-sky-200' 
+                                                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                                            }`}
+                                                        >
+                                                            <Clock size={14} />
+                                                            <span>{showVitalsHistory ? 'Hide History' : 'View History'}</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setIsMetricsModalOpen(true)}
+                                                            className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                                                        >
+                                                            <Plus size={14} /> <span>Record Vitals</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* 4 Telemetry Metric Cards */}
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                                                    {/* BP */}
+                                                    <div className="bg-gradient-to-br from-rose-50/30 to-white p-4 rounded-xl border border-rose-100/80 hover:border-rose-200 transition-all">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Blood Pressure</span>
+                                                            <div className="w-6 h-6 rounded-lg bg-rose-100/70 flex items-center justify-center text-rose-600">
+                                                                <Heart size={13} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 flex items-baseline gap-1.5">
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestBp ? (latestBp.vital_value || latestBp.value) : '110/80'}</span>
+                                                            <span className="text-xs font-medium text-slate-500">{latestBp?.unit || 'mmHg'}</span>
+                                                        </div>
+                                                        <div className="mt-2 flex items-center justify-between text-[11px]">
+                                                            <span className="text-slate-500 font-medium">Systolic / Diastolic</span>
+                                                            <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestBp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {latestBp ? 'Recorded' : 'Baseline'}
+                                                            </span>
+                                                        </div>
                                                     </div>
 
-                                                    {isEditing ? (
-                                                        <div className="grid grid-cols-1 gap-y-4 animate-fade-in">
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
-                                                                <input name="name" defaultValue={patient.name} id="edit-name" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
-                                                                <input name="relation" defaultValue={patient.relation} id="edit-relation" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
-                                                                <input type="date" name="dob" defaultValue={patient.dob} id="edit-dob" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
-                                                                <select name="gender" defaultValue={patient.gender} id="edit-gender" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
-                                                                    <option value="Female">Female</option>
-                                                                    <option value="Male">Male</option>
-                                                                    <option value="Other">Other</option>
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
-                                                                <input name="bloodGroup" defaultValue={patient.bloodGroup} id="edit-bloodGroup" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                            </div>
-                                                            <div className="col-span-2 grid grid-cols-2 gap-4">
-                                                                <div className="col-span-2">
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address (House, Street, Area)</label>
-                                                                    <div className="flex space-x-2">
-                                                                        <input name="house" defaultValue={patient.house} id="edit-house" placeholder="House/Apt" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                                        <input name="street" defaultValue={patient.street} id="edit-street" placeholder="Street" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                                        <input name="area" defaultValue={patient.area} id="edit-area" placeholder="Area" className="w-1/3 text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <input name="city" defaultValue={patient.city} id="edit-city" placeholder="City" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
-                                                                </div>
-                                                                <div>
-                                                                    <input name="state" defaultValue={patient.state} id="edit-state" placeholder="State" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary mb-2" />
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Mobile</label>
-                                                                <input name="mobile" defaultValue={patient.mobile} id="edit-mobile" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Email</label>
-                                                                <input name="email" defaultValue={patient.email} id="edit-email" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                    {/* Heart Rate */}
+                                                    <div className="bg-gradient-to-br from-emerald-50/30 to-white p-4 rounded-xl border border-emerald-100/80 hover:border-emerald-200 transition-all">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Heart Rate</span>
+                                                            <div className="w-6 h-6 rounded-lg bg-emerald-100/70 flex items-center justify-center text-emerald-600">
+                                                                <Activity size={13} />
                                                             </div>
                                                         </div>
-                                                    ) : (
-                                                        <div className="grid grid-cols-2 gap-4 gap-y-6">
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Full Name</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.name}</p>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Relation</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.relation || 'N/A'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Date of Birth</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.dob || 'Not Provided'} ({patient.age ? `${patient.age} Yrs` : '-'})</p>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Gender</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.gender || 'Female'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Blood Group</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.bloodGroup || 'N/A'}</p>
-                                                            </div>
-                                                            <div className="col-span-2">
-                                                                <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Address</label>
-                                                                <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">
-                                                                    {[
-                                                                        patient.house,
-                                                                        patient.street,
-                                                                        patient.area,
-                                                                        patient.city,
-                                                                        patient.state,
-                                                                        patient.postalCode
-                                                                    ].filter(Boolean).join(', ') || 'No address on file'}
-                                                                </p>
-                                                            </div>
+                                                        <div className="mt-2 flex items-baseline gap-1.5">
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestHr ? (latestHr.vital_value || latestHr.value) : '87'}</span>
+                                                            <span className="text-xs font-medium text-slate-500">{latestHr?.unit || 'bpm'}</span>
                                                         </div>
-                                                    )}
+                                                        <div className="mt-2 flex items-center justify-between text-[11px]">
+                                                            <span className="text-slate-500 font-medium">Resting Pulse</span>
+                                                            <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestHr ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {latestHr ? 'Recorded' : 'Baseline'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
 
-                                                    <div className="mt-8 pt-6 border-t border-brand-border">
-                                                        <h4 className="text-sm font-bold text-brand-textPrimary mb-4">Registration & Referral</h4>
+                                                    {/* Temperature */}
+                                                    <div className="bg-gradient-to-br from-amber-50/30 to-white p-4 rounded-xl border border-amber-100/80 hover:border-amber-200 transition-all">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Temperature</span>
+                                                            <div className="w-6 h-6 rounded-lg bg-amber-100/70 flex items-center justify-center text-amber-600">
+                                                                <Thermometer size={13} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 flex items-baseline gap-1.5">
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestTemp ? (latestTemp.vital_value || latestTemp.value) : '99'}</span>
+                                                            <span className="text-xs font-medium text-slate-500">{latestTemp?.unit || '°F'}</span>
+                                                        </div>
+                                                        <div className="mt-2 flex items-center justify-between text-[11px]">
+                                                            <span className="text-slate-500 font-medium">Body Temperature</span>
+                                                            <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestTemp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {latestTemp ? 'Recorded' : 'Baseline'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Weight */}
+                                                    <div className="bg-gradient-to-br from-sky-50/30 to-white p-4 rounded-xl border border-sky-100/80 hover:border-sky-200 transition-all">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Weight</span>
+                                                            <div className="w-6 h-6 rounded-lg bg-sky-100/70 flex items-center justify-center text-sky-600">
+                                                                <Scale size={13} />
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 flex items-baseline gap-1.5">
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestWeight ? (latestWeight.vital_value || latestWeight.value) : '70'}</span>
+                                                            <span className="text-xs font-medium text-slate-500">{latestWeight?.unit || 'kg'}</span>
+                                                        </div>
+                                                        <div className="mt-2 flex items-center justify-between text-[11px]">
+                                                            <span className="text-slate-500 font-medium">Standard Scale</span>
+                                                            <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestWeight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
+                                                                {latestWeight ? 'Recorded' : 'Baseline'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Expandable Vitals History Flowsheet */}
+                                                {showVitalsHistory && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-100 animate-fade-in">
+                                                        <VitalsHistoryWidget vitals={dashboardData?.vitals} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* 2. MAIN 2-COLUMN BALANCED WORKSPACE */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                                {/* LEFT COLUMN: Demographics & Context */}
+                                                <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+                                                    {/* Demographics Card */}
+                                                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
+                                                        <div className="flex justify-between items-center pb-4 mb-4 border-b border-slate-100">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-7 h-7 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
+                                                                    <User size={16} />
+                                                                </div>
+                                                                <h3 className="font-bold text-slate-900 text-sm">Patient Demographics</h3>
+                                                            </div>
+                                                            {!isEditing ? (
+                                                                <button
+                                                                    onClick={() => setIsEditing(true)}
+                                                                    className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 px-2.5 py-1 rounded-lg transition-colors border border-sky-100"
+                                                                >
+                                                                    Edit Details
+                                                                </button>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => setIsEditing(false)}
+                                                                        className="text-xs font-bold text-slate-600 hover:bg-slate-100 px-2.5 py-1 rounded-lg transition-colors border border-slate-200"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={handleSaveDemographics}
+                                                                        className="text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded-lg transition-colors shadow-xs"
+                                                                    >
+                                                                        Save
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
                                                         {isEditing ? (
-                                                            <div className="grid grid-cols-1 gap-4 animate-fade-in">
+                                                            <div className="grid grid-cols-1 gap-y-4 animate-fade-in">
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
-                                                                    <input name="uhid" defaultValue={patient.uhid} id="edit-uhid" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Full Name</label>
+                                                                    <input name="name" defaultValue={patient.name} id="edit-name" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
-                                                                    <input name="aadhar" defaultValue={patient.aadhar} id="edit-aadhar" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Relation</label>
+                                                                    <input name="relation" defaultValue={patient.relation} id="edit-relation" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
-                                                                    <select name="maritalStatus" defaultValue={patient.maritalStatus} id="edit-maritalStatus" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary">
-                                                                        <option value="Single">Single</option>
-                                                                        <option value="Married">Married</option>
-                                                                        <option value="Divorced">Divorced</option>
-                                                                        <option value="Widowed">Widowed</option>
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Date of Birth</label>
+                                                                    <input type="date" name="dob" defaultValue={patient.dob} id="edit-dob" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Gender</label>
+                                                                    <select name="gender" defaultValue={patient.gender} id="edit-gender" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                                                                        <option value="Female">Female</option>
+                                                                        <option value="Male">Male</option>
+                                                                        <option value="Other">Other</option>
                                                                     </select>
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
-                                                                    <input name="referralDoctor" defaultValue={patient.referralDoctor} id="edit-referralDoctor" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Blood Group</label>
+                                                                    <input name="bloodGroup" defaultValue={patient.bloodGroup} id="edit-bloodGroup" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
                                                                 </div>
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
-                                                                    <input type="date" name="registrationDate" defaultValue={patient.registrationDate} id="edit-registrationDate" className="w-full text-sm font-bold text-brand-textPrimary border border-brand-border rounded px-2 py-1 outline-none focus:border-brand-primary" />
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Address (House, Street, Area)</label>
+                                                                    <div className="grid grid-cols-3 gap-2">
+                                                                        <input name="house" defaultValue={patient.house} id="edit-house" placeholder="House/Apt" className="text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                        <input name="street" defaultValue={patient.street} id="edit-street" placeholder="Street" className="text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                        <input name="area" defaultValue={patient.area} id="edit-area" placeholder="Area" className="text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                                                        <input name="city" defaultValue={patient.city} id="edit-city" placeholder="City" className="text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                        <input name="state" defaultValue={patient.state} id="edit-state" placeholder="State" className="text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Mobile</label>
+                                                                    <input name="mobile" defaultValue={patient.mobile} id="edit-mobile" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Email</label>
+                                                                    <input name="email" defaultValue={patient.email} id="edit-email" className="w-full text-sm font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500" />
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <div className="grid grid-cols-2 gap-4 gap-y-6">
-                                                                <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">UHID</label>
-                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.uhid || 'N/A'}</p>
+                                                            /* CLEAN TYPOGRAPHY KEY-VALUE PAIRS (NO GREY BOXES) */
+                                                            <div className="space-y-4">
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Full Legal Name</dt>
+                                                                        <dd className="text-sm font-bold text-slate-900 mt-0.5">{patient.name || '-'}</dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Relation</dt>
+                                                                        <dd className="text-sm font-semibold text-slate-700 mt-0.5">{patient.relation || 'N/A'}</dd>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Aadhar ID</label>
-                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.aadhar || 'N/A'}</p>
+
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date of Birth</dt>
+                                                                        <dd className="text-sm font-semibold text-slate-800 mt-0.5">
+                                                                            {patient.dob || 'Not Provided'} {patient.age ? `(${patient.age} Yrs)` : ''}
+                                                                        </dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender</dt>
+                                                                        <dd className="mt-0.5">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/60">
+                                                                                {patient.gender || 'Female'}
+                                                                            </span>
+                                                                        </dd>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Marital Status</label>
-                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.maritalStatus || 'N/A'}</p>
+
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Blood Group</dt>
+                                                                        <dd className="mt-0.5">
+                                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                                                                                {patient.bloodGroup || 'N/A'}
+                                                                            </span>
+                                                                        </dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Marital Status</dt>
+                                                                        <dd className="text-sm font-semibold text-slate-800 mt-0.5">{patient.maritalStatus || 'Married'}</dd>
+                                                                    </div>
                                                                 </div>
+
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Referral Doctor</label>
-                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.referralDoctor || 'N/A'}</p>
+                                                                    <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Address</dt>
+                                                                    <dd className="text-xs font-medium text-slate-700 mt-0.5 leading-relaxed">
+                                                                        {[
+                                                                            patient.house,
+                                                                            patient.street,
+                                                                            patient.area,
+                                                                            patient.city,
+                                                                            patient.state,
+                                                                            patient.postalCode
+                                                                        ].filter(Boolean).join(', ') || 'No address on file'}
+                                                                    </dd>
                                                                 </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="mt-6 pt-5 border-t border-slate-100">
+                                                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">Registration & Referral</h4>
+                                                            {isEditing ? (
+                                                                <div className="grid grid-cols-1 gap-3.5 animate-fade-in">
+                                                                    <div>
+                                                                        <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">UHID</label>
+                                                                        <input name="uhid" defaultValue={patient.uhid} id="edit-uhid" className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Aadhar ID</label>
+                                                                        <input name="aadhar" defaultValue={patient.aadhar} id="edit-aadhar" className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Marital Status</label>
+                                                                        <select name="maritalStatus" defaultValue={patient.maritalStatus} id="edit-maritalStatus" className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500">
+                                                                            <option value="Single">Single</option>
+                                                                            <option value="Married">Married</option>
+                                                                            <option value="Divorced">Divorced</option>
+                                                                            <option value="Widowed">Widowed</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Referral Doctor</label>
+                                                                        <input name="referralDoctor" defaultValue={patient.referralDoctor} id="edit-referralDoctor" className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Registration Date</label>
+                                                                        <input type="date" name="registrationDate" defaultValue={patient.registrationDate} id="edit-registrationDate" className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-sky-500" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="grid grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/60">
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">UHID</dt>
+                                                                        <dd className="font-mono text-xs font-bold text-slate-900 mt-0.5">{patient.uhid || 'JAN-2026-038'}</dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Aadhar ID</dt>
+                                                                        <dd className="text-xs font-semibold text-slate-700 mt-0.5">{patient.aadhar || '-'}</dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Referral Doctor</dt>
+                                                                        <dd className="text-xs font-semibold text-slate-700 mt-0.5">{patient.referralDoctor || '-'}</dd>
+                                                                    </div>
+                                                                    <div>
+                                                                        <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Registration Date</dt>
+                                                                        <dd className="text-xs font-semibold text-slate-700 mt-0.5">{patient.registrationDate || '-'}</dd>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <AbhaIntegrationWidget patient={patient} onUpdate={fetchPatientDetails} />
+
+                                                    {/* Care Team / Primary Doctor */}
+                                                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                                                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                                                    <Stethoscope size={16} />
+                                                                </div>
+                                                                <h3 className="font-bold text-slate-900 text-sm">Assigned Primary Doctor</h3>
+                                                            </div>
+                                                            {!isAssigningDoctor && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const currentId = patient.assignedDoctorId || (patient as any).assigned_doctor_id || (doctors[0]?.id || doctors[0]?.user_id || '');
+                                                                        setSelectedDoctorId(currentId);
+                                                                        setIsAssigningDoctor(true);
+                                                                    }}
+                                                                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors inline-flex items-center gap-1"
+                                                                >
+                                                                    <Plus size={13} />
+                                                                    {patient.assignedDoctorId || (patient as any).assigned_doctor_id ? 'Change' : 'Assign'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            {isAssigningDoctor ? (
+                                                                <div className="p-3.5 bg-indigo-50/50 border border-indigo-200/80 rounded-xl space-y-3 animate-fade-in">
+                                                                    <div>
+                                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-950 block mb-1.5">
+                                                                            Select Doctor for this Clinic
+                                                                        </label>
+                                                                        <select
+                                                                            value={selectedDoctorId}
+                                                                            onChange={e => setSelectedDoctorId(e.target.value)}
+                                                                            className="w-full text-xs font-semibold text-slate-900 border border-slate-300 rounded-lg px-3 py-2 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                                                        >
+                                                                            <option value="">-- Select a Doctor --</option>
+                                                                            {doctors.map((doc: any) => {
+                                                                                const docId = doc.id || doc.user_id;
+                                                                                const docTitle = (doc.name || [doc.first_name, doc.last_name].filter(Boolean).join(' ') || doc.email || 'Doctor').replace(/^Dr\.?\s*/i, '');
+                                                                                return (
+                                                                                    <option key={docId} value={docId}>
+                                                                                        Dr. {docTitle} {doc.specialization ? `• ${doc.specialization}` : ''}
+                                                                                    </option>
+                                                                                );
+                                                                            })}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-end gap-2 pt-1">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setIsAssigningDoctor(false)}
+                                                                            disabled={isSavingDoctor}
+                                                                            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleAssignDoctor(selectedDoctorId)}
+                                                                            disabled={isSavingDoctor || !selectedDoctorId}
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg shadow-xs transition-all"
+                                                                        >
+                                                                            {isSavingDoctor ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                                                                            {isSavingDoctor ? 'Saving...' : 'Save Assignment'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (() => {
+                                                                // 1. Match directly assigned doctor
+                                                                const assignedDocId = patient.assignedDoctorId || (patient as any).assigned_doctor_id;
+                                                                let assignedDoc = doctors.find(d => d.id === assignedDocId || d.user_id === assignedDocId);
+
+                                                                // 2. Check if patient has an appointment with a doctor
+                                                                const apptWithDoc = patientAppointments.find(a => a.doctorId || (a as any).doctor_id || (a as any).doctor_name_snapshot);
+                                                                if (!assignedDoc && apptWithDoc) {
+                                                                    const apptDocId = apptWithDoc.doctorId || (apptWithDoc as any).doctor_id;
+                                                                    const found = doctors.find(d => d.id === apptDocId || d.user_id === apptDocId);
+                                                                    if (found) assignedDoc = found;
+                                                                    else if ((apptWithDoc as any).doctor_name_snapshot && (apptWithDoc as any).doctor_name_snapshot.toLowerCase() !== 'unknown') {
+                                                                        assignedDoc = {
+                                                                            name: (apptWithDoc as any).doctor_name_snapshot,
+                                                                            specialization: 'Attending Consultant'
+                                                                        };
+                                                                    }
+                                                                }
+
+                                                                // 3. Fallback to assignedDoctorName
+                                                                const rawDocName = assignedDoc ? (assignedDoc.name || [assignedDoc.first_name, assignedDoc.last_name].filter(Boolean).join(' ') || assignedDoc.email) : ((patient as any).assignedDoctorName || (patient as any).assigned_doctor || null);
+                                                                const isUnknown = !rawDocName || rawDocName === '-' || rawDocName.toLowerCase().includes('unknown');
+                                                                const hasValidDoc = !isUnknown && rawDocName.trim().length > 0;
+                                                                const docName = hasValidDoc ? rawDocName.trim() : null;
+                                                                const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Primary Consultant') : 'Primary Consultant';
+                                                                const docInitials = docName ? docName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'CT';
+
+                                                                return docName ? (
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center space-x-3 min-w-0">
+                                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-black text-xs shadow-xs flex-shrink-0">
+                                                                                {docInitials}
+                                                                            </div>
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <p className="text-sm font-bold text-slate-900 truncate">Dr. {docName.replace(/^Dr\.?\s*/i, '')}</p>
+                                                                                <p className="text-xs text-slate-500 truncate">{Array.isArray(docSpeciality) ? docSpeciality.join(', ') : docSpeciality}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="p-4 bg-slate-50/80 rounded-xl border border-dashed border-slate-200 text-center space-y-2">
+                                                                        <p className="text-xs text-slate-500 font-medium">No primary doctor assigned yet</p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setSelectedDoctorId(doctors[0]?.id || doctors[0]?.user_id || '');
+                                                                                setIsAssigningDoctor(true);
+                                                                            }}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs"
+                                                                        >
+                                                                            <Plus size={13} /> Select & Assign Doctor
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Record Management / Admin Actions */}
+                                                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+                                                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                                                            Record Administration
+                                                        </h4>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <button
+                                                                onClick={() => setIsResetPinModalOpen(true)}
+                                                                className="py-2.5 px-3 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-100 transition-colors shadow-2xs"
+                                                            >
+                                                                Reset PIN
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (confirm('Are you sure you want to archive this patient record?')) {
+                                                                        try {
+                                                                            await api.updatePatient(patient.id, { status: 'Archived' });
+                                                                            toast.success('Patient record archived successfully.');
+                                                                            if (onPatientUpdate) onPatientUpdate();
+                                                                            onClose();
+                                                                        } catch (error: any) {
+                                                                            console.error('Failed to archive patient:', error);
+                                                                            toast.error(error?.message || 'Failed to archive patient.');
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="py-2.5 px-3 bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-2xs"
+                                                            >
+                                                                Archive Record
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* RIGHT COLUMN: IVF Case Sheet Spotlight + Trend Chart + Alerts/Conditions + Treatments + Clinical Notes */}
+                                                <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+                                                    {/* 1. IVF Case Sheet Spotlight Card */}
+                                                    <div className="relative overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-md">
+                                                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                                                            <div className="space-y-2">
+                                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold backdrop-blur-xs">
+                                                                    <Sparkles size={13} className="text-amber-300" />
+                                                                    <span>Specialty Clinical Module</span>
+                                                                </div>
+                                                                <h3 className="text-xl font-black tracking-tight text-white">IVF Specialty Clinical Case Sheet</h3>
+                                                                <p className="text-sky-100 text-xs sm:text-sm max-w-xl leading-relaxed">
+                                                                    Comprehensive 8-stage reproductive cycle documentation: stimulation charts, OPU/embryo tracking, cryopreservation records, and all-in-one printable dossier.
+                                                                </p>
+                                                                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-semibold text-sky-200">
+                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Stimulation & Monitoring</span>
+                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">OPU & Embryology</span>
+                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Embryo Transfer</span>
+                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Cryopreservation</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setActiveTab('ivf')}
+                                                                className="px-5 py-3 bg-white text-sky-700 hover:bg-sky-50 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 flex-shrink-0 group active:scale-95 cursor-pointer"
+                                                            >
+                                                                <span>Launch IVF Case Sheet</span>
+                                                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 2. Physiological Trend Chart */}
+                                                    <DynamicTrendChart vitals={dashboardData?.vitals || []} />
+
+                                                    {/* 3. Clinical Alerts & Active Conditions Grid */}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                        <ClinicalAlertsWidget alerts={dashboardData?.allergies} />
+                                                        <ConditionsWidget conditions={dashboardData?.medicalHistory} />
+                                                    </div>
+
+                                                    {/* 4. Ongoing Treatments & Medications */}
+                                                    <TreatmentsWidget treatments={dashboardData?.ongoingTreatments} />
+
+                                                    {/* 5. Recent Consultation Notes Summary Teaser (Fills bottom space elegantly) */}
+                                                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+                                                        <div className="flex justify-between items-center pb-3 mb-3 border-b border-slate-100">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                                                    <FileText size={16} />
+                                                                </div>
+                                                                <h3 className="font-bold text-slate-900 text-sm">Recent Clinical Consultation Notes</h3>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setActiveTab('consultation')}
+                                                                className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 border border-sky-100"
+                                                            >
+                                                                <span>Open Consultation Notes</span> <ChevronRight size={13} />
+                                                            </button>
+                                                        </div>
+                                                        {consultationNote ? (
+                                                            <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/60 text-xs text-slate-800 line-clamp-3 leading-relaxed font-normal">
+                                                                {consultationNote}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
                                                                 <div>
-                                                                    <label className="text-xs text-brand-textSecondary font-bold uppercase block mb-1">Registration Date</label>
-                                                                    <p className="text-sm font-bold text-brand-textPrimary bg-gray-100 px-3 py-2 rounded-lg border border-gray-200 w-fit">{patient.registrationDate || 'N/A'}</p>
+                                                                    <p className="text-xs font-semibold text-slate-700">No consultation note recorded for this visit session</p>
+                                                                    <p className="text-[11px] text-slate-400 mt-0.5">Record clinical observations, diagnoses, or generate formal prescriptions</p>
                                                                 </div>
+                                                                <button
+                                                                    onClick={() => setActiveTab('consultation')}
+                                                                    className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold rounded-xl transition-colors border border-sky-200 flex-shrink-0"
+                                                                >
+                                                                    + Write Consultation Note
+                                                                </button>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
-
-                                                <AbhaIntegrationWidget patient={patient} onUpdate={fetchPatientDetails} />
-
-                                                {/* Care Team / Primary Doctor */}
-                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                                    <h3 className="font-bold text-brand-textPrimary mb-6 flex items-center">
-                                                        <Stethoscope size={18} className="mr-2 text-brand-primary" /> Primary Doctor
-                                                    </h3>
-                                                    <div className="space-y-4">
-                                                        {(() => {
-                                                            const assignedDoc = doctors.find(d => d.id === patient.assignedDoctorId || d.id === (patient as any).assigned_doctor_id);
-                                                            const docName = assignedDoc ? (assignedDoc.name || `${assignedDoc.first_name || ''} ${assignedDoc.last_name || ''}`.trim()) : (patient.referralDoctor || (patient as any).assignedDoctorName || null);
-                                                            const docSpeciality = assignedDoc ? (assignedDoc.specialization || assignedDoc.role || 'Consultant') : (patient.referralDoctor ? 'Referral Specialist' : 'Consultant');
-                                                            const docInitials = docName ? docName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'CT';
-
-                                                            return docName ? (
-                                                                <div className="flex items-center space-x-3">
-                                                                    <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
-                                                                        {docInitials}
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-sm font-bold text-brand-textPrimary">{docName}</p>
-                                                                        <p className="text-xs text-brand-textSecondary">{Array.isArray(docSpeciality) ? docSpeciality.join(', ') : docSpeciality}</p>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <p className="text-xs text-brand-textSecondary italic">No primary doctor assigned yet</p>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </div>
-
-                                                {/* Record Management / Admin Actions */}
-                                                <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-textSecondary mb-4">
-                                                        RECORD MANAGEMENT
-                                                    </h3>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <button
-                                                            onClick={() => setIsResetPinModalOpen(true)}
-                                                            className="py-2 px-3 bg-brand-bg border border-brand-border text-brand-textPrimary text-xs font-bold rounded-lg hover:bg-brand-surface transition-colors"
-                                                        >
-                                                            Reset PIN
-                                                        </button>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm('Are you sure you want to archive this patient record?')) {
-                                                                    try {
-                                                                        await api.updatePatient(patient.id, { status: 'Archived' });
-                                                                        toast.success('Patient record archived successfully.');
-                                                                        if (onPatientUpdate) onPatientUpdate();
-                                                                        onClose();
-                                                                    } catch (error: any) {
-                                                                        console.error('Failed to archive patient:', error);
-                                                                        toast.error(error?.message || 'Failed to archive patient.');
-                                                                    }
-                                                                }
-                                                            }}
-                                                            className="py-2 px-3 bg-red-50 border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors"
-                                                        >
-                                                            Archive
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* RIGHT COLUMN: Vitals, Trends, Alerts, Treatments, Flowsheet */}
-                                            <div className="space-y-6 lg:col-span-7">
-                                                {/* Physiological Vitals & Trends */}
-                                                <div className="bg-white p-6 rounded-2xl border border-brand-border shadow-sm space-y-5">
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="font-bold text-brand-textPrimary flex items-center">
-                                                            <Activity size={18} className="mr-2 text-brand-primary" /> Physiological Vitals & Trends
-                                                        </h3>
-                                                        <div className="flex items-center space-x-2">
-                                                            <button 
-                                                                onClick={fetchDashboardMetrics}
-                                                                disabled={isLoadingDashboard}
-                                                                className="p-2 text-brand-textSecondary hover:text-brand-primary bg-brand-bg hover:bg-brand-primary/10 rounded-lg transition-colors disabled:opacity-50"
-                                                                title="Refresh Metrics"
-                                                            >
-                                                                <RefreshCw size={16} className={isLoadingDashboard ? "animate-spin" : ""} />
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => setIsMetricsModalOpen(true)}
-                                                                className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center"
-                                                            >
-                                                                <Plus size={14} className="mr-1" /> Record Vitals
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 4 Metric Boxes */}
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
-                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">BLOOD PRESSURE</p>
-                                                            <p className="text-sm font-bold text-slate-900 mt-1">{bpDisplay}</p>
-                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestBp ? 'text-emerald-600' : 'text-slate-400'}`}>{latestBp ? 'Recorded' : 'Not Recorded'}</p>
-                                                        </div>
-                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
-                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">HEART RATE</p>
-                                                            <p className="text-sm font-bold text-slate-900 mt-1">{hrDisplay}</p>
-                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestHr ? 'text-emerald-600' : 'text-slate-400'}`}>{latestHr ? 'Recorded' : 'Not Recorded'}</p>
-                                                        </div>
-                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
-                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">TEMPERATURE</p>
-                                                            <p className="text-sm font-bold text-slate-900 mt-1">{tempDisplay}</p>
-                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestTemp ? 'text-emerald-600' : 'text-slate-400'}`}>{latestTemp ? 'Recorded' : 'Not Recorded'}</p>
-                                                        </div>
-                                                        <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl">
-                                                            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">WEIGHT</p>
-                                                            <p className="text-sm font-bold text-slate-900 mt-1">{weightDisplay}</p>
-                                                            <p className={`text-[10px] font-semibold mt-0.5 ${latestWeight ? 'text-emerald-600' : 'text-slate-400'}`}>{latestWeight ? 'Recorded' : 'Not Recorded'}</p>
-                                                        </div>
-                                                    </div>
-
-                                                     {/* View History Toggle Button */}
-                                                     <div className="flex justify-end pt-2">
-                                                         <button
-                                                             onClick={() => {
-                                                                 setShowVitalsHistory(prev => {
-                                                                     const next = !prev;
-                                                                     if (next) {
-                                                                         setTimeout(() => {
-                                                                             document.getElementById('vitals-history-table')?.scrollIntoView({ behavior: 'smooth' });
-                                                                         }, 50);
-                                                                     }
-                                                                     return next;
-                                                                 });
-                                                             }}
-                                                             className="px-3.5 py-1.5 text-xs font-bold text-brand-primary hover:text-brand-secondary hover:bg-brand-primary/10 rounded-lg transition-colors flex items-center gap-1 border border-brand-primary/20 shadow-2xs"
-                                                         >
-                                                             {showVitalsHistory ? 'Hide History' : 'View History'} <ChevronRight size={14} className={showVitalsHistory ? 'rotate-90 transition-transform' : 'transition-transform'} />
-                                                         </button>
-                                                     </div>
-                                                 </div>
-
-                                                 {/* Vitals History Flowsheet Table (Conditionally Visible) */}
-                                                 {showVitalsHistory && (
-                                                     <VitalsHistoryWidget vitals={dashboardData?.vitals} />
-                                                 )}
-
-                                                {/* Clinical Alerts & Active Conditions Grid */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <ClinicalAlertsWidget alerts={dashboardData?.allergies} />
-                                                    <ConditionsWidget conditions={dashboardData?.medicalHistory} />
-                                                </div>
-
-                                                {/* Ongoing Treatments */}
-                                                <TreatmentsWidget treatments={dashboardData?.ongoingTreatments} />
                                             </div>
                                         </div>
                                     );
@@ -978,75 +1309,24 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                             )}
 
                             {activeTab === 'consultation' && (
-                                <div className="space-y-6">
-                                    <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="font-bold text-brand-textPrimary flex items-center">
-                                                <FileText size={18} className="mr-2 text-brand-primary" /> Clinical Note
-                                            </h3>
-                                            {isClinical && (
-                                                <button 
-                                                    onClick={() => setIsDigitalPrescriptionModalOpen(true)}
-                                                    className="px-4 py-2 bg-brand-primary text-brand-bg text-xs font-bold rounded-lg hover:bg-brand-secondary transition-colors flex items-center shadow-sm"
-                                                >
-                                                    <Pill size={14} className="mr-1" /> Prescription Generator
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="space-y-4">
-                                            <textarea
-                                                value={consultationNote}
-                                                onChange={(e) => setConsultationNote(e.target.value)}
-                                                readOnly={!isClinical}
-                                                className={`w-full p-4 bg-brand-bg border border-brand-border rounded-xl text-base text-brand-textPrimary outline-none focus:border-brand-primary transition-all h-64 resize-none leading-relaxed ${!isClinical ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                                placeholder="Type your clinical consultation notes here..."
-                                            />
-                                        </div>
-                                        {isClinical && (
-                                            <div className="mt-6 flex justify-end">
-                                                <button
-                                                    onClick={async () => {
-                                                        setIsSavingNote(true);
-                                                        try {
-                                                            await api.saveClinicalNote(patient.id, consultationNote);
-                                                            toast.success("Note saved successfully!");
-                                                        } catch (e) {
-                                                            console.error(e);
-                                                            toast.error("Failed to save note. Please check your connection.");
-                                                        } finally {
-                                                            setIsSavingNote(false);
-                                                        }
-                                                    }}
-                                                    disabled={isSavingNote}
-                                                    className={`px-6 py-2 bg-brand-surface border border-brand-border text-brand-textPrimary font-bold rounded-xl shadow-lg shadow-brand-bg/20 hover:bg-brand-bg transition-all active:scale-95 ${isSavingNote ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                >
-                                                    {isSavingNote ? 'Saving...' : 'Save Clinical Note'}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="bg-brand-surface p-6 rounded-2xl border border-brand-border shadow-sm">
-                                        <h3 className="font-bold text-brand-textPrimary mb-4">Past Consultation History</h3>
-                                        <div className="space-y-4">
-                                            {historyNotes.length > 0 ? (
-                                                historyNotes.map((note: any, idx: number) => (
-                                                    <div key={note.id || idx} className="p-4 border border-brand-border rounded-xl bg-brand-bg/50">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <p className="text-sm font-bold text-brand-textPrimary">{note.doctor_name || 'Doctor'}</p>
-                                                            <span className="text-xs text-brand-textSecondary">{note.created_at ? new Date(note.created_at).toLocaleDateString() : 'Unknown Date'}</span>
-                                                        </div>
-                                                        <p className="text-sm text-brand-textSecondary line-clamp-3 whitespace-pre-line">{note.note || note.content}</p>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="p-4 border border-brand-border rounded-xl bg-brand-bg/50 text-center">
-                                                    <p className="text-sm text-brand-textSecondary">No past clinical notes found.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                                <UnifiedConsultationPad
+                                    patientId={patient.id}
+                                    userRole={userRole}
+                                    existingNote={consultationNote}
+                                    historyNotes={historyNotes}
+                                    onSaveComplete={() => {
+                                        // Refresh notes list
+                                        api.getClinicalNotes(patient.id).then((res: any) => {
+                                            setHistoryNotes(res?.data || []);
+                                        }).catch(() => {});
+                                        // Auto-refresh documents list after a short delay 
+                                        // (PDF generation is async, give it a few seconds)
+                                        fetchPatientDocuments();
+                                        setTimeout(() => fetchPatientDocuments(), 3000);
+                                        setTimeout(() => fetchPatientDocuments(), 8000);
+                                    }}
+                                    onConsultationComplete={onCompleteConsultation}
+                                />
                             )}
 
 
@@ -1170,24 +1450,45 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                         <FileText size={20} />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="text-sm font-bold text-brand-textPrimary truncate max-w-[150px]">{doc.name}</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="text-sm font-bold text-brand-textPrimary truncate max-w-[150px]">{doc.name}</p>
+                                                                            {(doc.status === 'pending' || doc.generation_status === 'pending') && (
+                                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-800 rounded-full animate-pulse">
+                                                                                    <Loader2 size={10} className="animate-spin" />
+                                                                                    Generating...
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                         <p className="text-xs text-brand-textSecondary">{doc.uploadDate}</p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                     <button
                                                                         onClick={async () => {
-                                                                            let url = doc.url;
-                                                                            if (!url && doc.id) {
-                                                                                try {
-                                                                                    const res = await api.getSecureAssetUrl(doc.id);
-                                                                                    if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                            const isPending = doc.status === 'pending' || doc.generation_status === 'pending';
+                                                                            if (isPending) {
+                                                                                toast('Document is still being generated. Please give it a few moments...');
+                                                                                fetchPatientDocuments();
+                                                                                return;
                                                                             }
+
+                                                                            let url = doc.url;
+                                                                            try {
+                                                                                const res = await api.getSecureAssetUrl(doc.id);
+                                                                                if (res.success && res.data?.url) {
+                                                                                    url = res.data.url;
+                                                                                } else if ((res as any)?.pending) {
+                                                                                    toast('Document is being prepared in storage. Please wait a moment...');
+                                                                                    setTimeout(fetchPatientDocuments, 2500);
+                                                                                    return;
+                                                                                }
+                                                                            } catch (e) {}
+
                                                                             if (url && url !== '#') {
                                                                                 setPreviewDoc({...doc, url});
                                                                             } else {
-                                                                                toast('Preview not available for this document.');
+                                                                                toast('Preview not available. Document may still be generating.');
+                                                                                setTimeout(fetchPatientDocuments, 2000);
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
@@ -1197,13 +1498,25 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                     </button>
                                                                     <button
                                                                         onClick={async () => {
-                                                                            let url = doc.url;
-                                                                            if (!url && doc.id) {
-                                                                                try {
-                                                                                    const res = await api.getSecureAssetUrl(doc.id);
-                                                                                    if (res.success && res.data?.url) url = res.data.url;
-                                                                                } catch (e) {}
+                                                                            const isPending = doc.status === 'pending' || doc.generation_status === 'pending';
+                                                                            if (isPending) {
+                                                                                toast('Document is still being generated. Please give it a few moments...');
+                                                                                fetchPatientDocuments();
+                                                                                return;
                                                                             }
+
+                                                                            let url = doc.url;
+                                                                            try {
+                                                                                const res = await api.getSecureAssetUrl(doc.id);
+                                                                                if (res.success && res.data?.url) {
+                                                                                    url = res.data.url;
+                                                                                } else if ((res as any)?.pending) {
+                                                                                    toast('Document is being prepared in storage. Please wait a moment...');
+                                                                                    setTimeout(fetchPatientDocuments, 2500);
+                                                                                    return;
+                                                                                }
+                                                                            } catch (e) {}
+
                                                                             if (url && url !== '#') {
                                                                                 window.open(url, '_blank');
                                                                             } else {
@@ -1270,7 +1583,8 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                         </>
                     )}
                 </div>
-            </div >
+                )}
+            </div>
             
             {/* Appointment Modal */}
             <BookAppointmentModal
@@ -1405,15 +1719,20 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                 isOpen={isDigitalPrescriptionModalOpen}
                 onClose={() => setIsDigitalPrescriptionModalOpen(false)}
                 onSave={async (data) => {
-                    await api.addPrescription({
-                        ...data,
-                        patient_id: patient.id
-                    } as any);
-                    toast.success("Prescription generated successfully! It will appear in the documents list shortly.");
-                    
-                    // The backend generates this asynchronously via BullMQ, so we poll for it
-                    setTimeout(fetchPatientDocuments, 2000);
-                    setTimeout(fetchPatientDocuments, 5000);
+                    try {
+                        await api.addPrescription({
+                            ...data,
+                            patient_id: patient.id
+                        } as any);
+                        toast.success("Prescription generation started! Preparing PDF...");
+                        
+                        // Immediate fetch to show pending document in list, followed by staged checks
+                        setTimeout(fetchPatientDocuments, 1200);
+                        setTimeout(fetchPatientDocuments, 4000);
+                        setTimeout(fetchPatientDocuments, 7500);
+                    } catch (err: any) {
+                        toast.error(err?.message || "Failed to generate prescription");
+                    }
                 }}
             />
         </div >,

@@ -228,3 +228,155 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(14, 165, 233, 0.8);
 }
+
+/* ==========================================================================
+   Print Stylesheet - IVF Case Sheet & Clinical Reports
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  /* Reset document and body so pages can paginate continuously */
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide the entire application UI and all other body children */
+  body > *:not(#ivf-print-container),
+  #root,
+  .no-print,
+  .print-hidden,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Dedicated Print Container (Direct child of <body> via createPortal) */
+  #ivf-print-container {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+    float: none !important;
+  }
+
+  #ivf-print-container * {
+    visibility: visible !important;
+  }
+
+  /* Force page breaks between sections */
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Hide interactive controls inside print container */
+  #ivf-print-container button {
+    display: none !important;
+  }
+
+  /* Clean up inputs and textareas into readable report fields */
+  #ivf-print-container input,
+  #ivf-print-container select,
+  #ivf-print-container textarea {
+    border: none !important;
+    border-bottom: 1px solid #94a3b8 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    padding: 1px 2px !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 22px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  #ivf-print-container textarea {
+    resize: none !important;
+    height: auto !important;
+    min-height: 24px !important;
+    max-height: none !important;
+  }
+
+  /* Hide all placeholders in print so empty inputs render as clean blanks for write-in */
+  #ivf-print-container input::placeholder,
+  #ivf-print-container textarea::placeholder {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    opacity: 0 !important;
+  }
+
+  /* Clean tables in print */
+  #ivf-print-container table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10px !important;
+    page-break-inside: auto !important;
+  }
+
+  #ivf-print-container tr {
+    page-break-inside: avoid !important;
+  }
+
+  #ivf-print-container th,
+  #ivf-print-container td {
+    padding: 3px 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  #ivf-print-container th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Section cards styling in print */
+  #ivf-print-container .bg-white {
+    background-color: transparent !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+  }
+
+  #ivf-print-container .rounded-xl {
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    margin-bottom: 6px !important;
+    padding: 6px 8px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  #ivf-print-container .space-y-4 > * + * {
+    margin-top: 6px !important;
+  }
+
+  #ivf-print-container .space-y-6 > * + * {
+    margin-top: 8px !important;
+  }
+}

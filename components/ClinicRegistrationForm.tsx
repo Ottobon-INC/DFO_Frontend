@@ -131,7 +131,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
         setIsCheckingDuplicate(false);
       }, 500);
       return () => clearTimeout(timeout);
-    } else {
+    } else if (mobile.length < 7) {
       setDuplicateMatch(null);
     }
   }, [mobile, useExistingPatient]);

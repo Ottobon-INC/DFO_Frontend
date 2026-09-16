@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon, Upload, Download } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus, List, Calendar as CalendarIcon, Upload, Download, Phone, CheckCircle2, FileText } from 'lucide-react';
 import { Doctor, Appointment, Patient, UserRole } from '../types';
 import { getRoleTier } from '../constants/roles.constants';
 import { BookAppointmentModal, AppointmentActionCard } from './AppointmentModals';
@@ -8,6 +8,7 @@ import { RescheduleModal } from './Modals';
 import { PatientProfile } from './PatientProfile';
 import { Pagination } from './Pagination';
 import { api } from '../services/api';
+import toast from 'react-hot-toast';
 
 const DEFAULT_PATIENT_PROFILE: Patient = {
     id: '',
@@ -171,7 +172,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                             doctorId: docId,
                             time: item.start_time || item.slotTime || item.time,
                             date: item.appointment_date ? item.appointment_date.split('T')[0] : (item.date ? item.date.split('T')[0] : 'N/A'),
-                            type: resolvedType || 'Consultation',
+                            type: resolvedType || 'Visit',
                             status: item.status,
                             visit_reason: visit_reason,
                             queueStatus: item.queue_status || item.queueStatus,
@@ -201,6 +202,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
 
     // Modal States
+    const [expandedSlot, setExpandedSlot] = useState<{ date: Date, hour: number, appointments: Appointment[] } | null>(null);
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [bookModalData, setBookModalData] = useState<{
         date: Date;
@@ -394,7 +396,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         start_time: time || '09:00',
                         doctor_id: matchedDoc ? matchedDoc.id : undefined,
                         doctor_name_snapshot: doctorName || undefined,
-                        type: type || 'Consultation',
+                        type: type || 'Visit',
                         status: status || 'Scheduled',
                         visit_reason: visitReason || 'Consultation',
                         patient_name_snapshot: patientName,
@@ -554,7 +556,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 doctorId: doctorId,
                 time: formData.time,
                 date: formData.date,
-                type: formData.speciality || 'Consultation',
+                type: formData.speciality || 'Visit',
                 status: 'Scheduled',
             };
             setAppointments(prev => [...prev, newApt]);
@@ -661,63 +663,60 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
 
     return (
         <div className="flex flex-col lg:flex-row h-full min-h-0 flex-1 gap-3 md:gap-4 relative w-full overflow-hidden">
-            {/* Sidebar Filters - Hidden on mobile, narrower on tablet */}
-            <div className="hidden md:flex w-48 lg:w-56 xl:w-64 flex-shrink-0 flex-col gap-4 lg:gap-6 overflow-y-auto custom-scrollbar">
+            {/* Sidebar - Sleek unified panel */}
+            <div className="hidden md:flex w-56 lg:w-64 xl:w-72 flex-shrink-0 flex-col bg-brand-surface border border-brand-border rounded-2xl shadow-sm overflow-hidden h-full">
+                
                 {getRoleTier(userRole) >= 2 && ( // Hide filters sidebar for Doctors (Tier 1)
-                    <div className="bg-brand-surface p-3 lg:p-4 xl:p-6 rounded-xl lg:rounded-2xl shadow-sm border border-brand-border">
-                        <div className="flex items-center space-x-2 mb-3 lg:mb-4 xl:mb-6 text-brand-textPrimary">
+                    <div className="p-4 lg:p-5 border-b border-brand-border/50">
+                        <div className="flex items-center space-x-2 mb-4 text-brand-textPrimary">
                             <Filter size={16} className="text-brand-primary" />
-                            <h3 className="font-bold text-sm lg:text-base">Filters</h3>
+                            <h3 className="font-bold text-sm">Doctors & Staff</h3>
                         </div>
 
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-textSecondary uppercase tracking-wider mb-3">Doctors & Staff</label>
-                                <div className="space-y-2">
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => setSelectedDoctor('all')}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-all ${selectedDoctor === 'all' ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20' : 'text-brand-textSecondary hover:bg-brand-bg hover:text-brand-textPrimary'
+                                    }`}
+                            >
+                                All Staff
+                            </button>
+                            <div className="pt-2 space-y-1 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                                {doctors.map(doc => (
                                     <button
-                                        onClick={() => setSelectedDoctor('all')}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedDoctor === 'all' ? 'bg-brand-primary/20 text-brand-primary font-bold' : 'text-brand-textSecondary hover:bg-brand-bg'
+                                        key={doc.id}
+                                        onClick={() => setSelectedDoctor(doc.id)}
+                                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center ${selectedDoctor === doc.id ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20' : 'text-brand-textSecondary hover:bg-brand-bg hover:text-brand-textPrimary'
                                             }`}
                                     >
-                                        All Staff
+                                        <span className={`w-2 h-2 rounded-full mr-2 ${selectedDoctor === doc.id ? 'bg-brand-primary' : doc.color.split(' ')[0].replace('/20', '')}`}></span>
+                                        {doc.name}
                                     </button>
-                                    {doctors.map(doc => (
-                                        <button
-                                            key={doc.id}
-                                            onClick={() => setSelectedDoctor(doc.id)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center ${selectedDoctor === doc.id ? 'bg-brand-bg text-brand-textPrimary font-bold' : 'text-brand-textSecondary hover:bg-brand-bg'
-                                                }`}
-                                        >
-                                            <span className={`w-2 h-2 rounded-full mr-2 ${doc.color.split(' ')[0].replace('/20', '')}`}></span>
-                                            {doc.name}
-                                        </button>
-                                    ))}
-                                </div>
+                                ))}
                             </div>
-
                         </div>
                     </div>
                 )}
 
-                <div className="bg-brand-surface p-4 rounded-2xl shadow-sm border border-brand-border flex-1">
+                <div className="p-4 lg:p-5 flex-1 flex flex-col min-h-0 bg-brand-surface/50">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="font-bold text-brand-textPrimary text-sm">Mini Calendar</h4>
                     </div>
-                    <div className="bg-brand-bg rounded-xl border border-brand-border p-3">
-                        <div className="flex justify-between items-center mb-2">
+                    <div className="bg-brand-surface rounded-xl border border-brand-border/50 p-3 shadow-sm">
+                        <div className="flex justify-between items-center mb-3">
                             <button onClick={() => {
                                 const d = new Date(miniCalendarDate);
                                 d.setMonth(d.getMonth() - 1);
                                 setMiniCalendarDate(d);
-                            }}><ChevronLeft size={16} /></button>
-                            <span className="text-xs font-bold">{miniCalendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                            }} className="p-1 hover:bg-brand-bg rounded-md text-brand-textSecondary"><ChevronLeft size={16} /></button>
+                            <span className="text-xs font-bold text-brand-textPrimary">{miniCalendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                             <button onClick={() => {
                                 const d = new Date(miniCalendarDate);
                                 d.setMonth(d.getMonth() + 1);
                                 setMiniCalendarDate(d);
-                            }}><ChevronRight size={16} /></button>
+                            }} className="p-1 hover:bg-brand-bg rounded-md text-brand-textSecondary"><ChevronRight size={16} /></button>
                         </div>
-                        <div className="grid grid-cols-7 text-center mb-1">
+                        <div className="grid grid-cols-7 text-center mb-2">
                             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                                 <div key={`${d}-${i}`} className="text-[10px] text-brand-textSecondary font-bold">{d}</div>
                             ))}
@@ -739,12 +738,11 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                             key={i}
                                             onClick={() => {
                                                 setViewDate(currentDate);
-                                                // Optional: Sync mini calendar to selected date if desired, but keeping it independent allows browsing
                                             }}
-                                            className={`w-6 h-6 rounded-full text-xs flex items-center justify-center transition-colors 
-                                                ${isSelected ? 'bg-brand-primary text-white shadow-md' :
-                                                    isToday ? 'bg-brand-primary/10 text-brand-primary font-bold border border-brand-primary/30' :
-                                                        'hover:bg-brand-surface text-brand-textPrimary'}`}
+                                            className={`w-7 h-7 mx-auto rounded-full text-xs font-bold flex items-center justify-center transition-all duration-200
+                                                ${isSelected ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/30 scale-110' :
+                                                    isToday ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/30' :
+                                                        'hover:bg-brand-bg text-brand-textSecondary hover:text-brand-textPrimary'}`}
                                         >
                                             {i}
                                         </button>
@@ -760,57 +758,52 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             {/* Right Side Content Container (Scrollable vertically) */}
             <div className="flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1 pb-4">
                 {/* Main Calendar Area */}
-                <div className="flex flex-col bg-brand-surface rounded-xl sm:rounded-2xl shadow-sm border border-brand-border min-h-[600px] flex-shrink-0">
-                {/* Header */}
-                <div className="p-2 sm:p-3 lg:p-4 border-b border-brand-border bg-brand-bg/50">
-                    {/* Navigation & Controls - Single Row */}
-                    <div className="flex items-center justify-between gap-2">
-                        {/* Left: Month Navigation */}
-                        <div className="flex items-center space-x-0.5">
-                            <button onClick={handlePrev} className="p-1 hover:bg-brand-bg hover:shadow-sm rounded-lg text-brand-textSecondary transition-all"><ChevronLeft size={14} /></button>
-                            <h2 className="text-xs sm:text-sm lg:text-base font-bold text-brand-textPrimary min-w-[80px] sm:min-w-[120px] text-center whitespace-nowrap">
-                                <span className="hidden sm:inline">
-                                    {viewMode === 'month' && viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                    {viewMode === 'day' && viewDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                    {viewMode === 'week' && (
-                                        (() => {
-                                            const start = new Date(viewDate);
-                                            start.setDate(viewDate.getDate() - viewDate.getDay());
-                                            const end = new Date(start);
-                                            end.setDate(start.getDate() + 6);
-                                            const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                                            const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                            return `${startStr} - ${endStr}`;
-                                        })()
-                                    )}
-                                </span>
-                                <span className="sm:hidden">
-                                    {viewMode === 'month' && viewDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
-                                    {viewMode === 'day' && viewDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    {viewMode === 'week' && 'This Week'}
-                                </span>
+                <div className="flex flex-col bg-brand-surface/80 backdrop-blur-md rounded-2xl shadow-sm border border-brand-border min-h-[600px] flex-shrink-0 overflow-hidden">
+                
+                {/* Sleek Header */}
+                <div className="p-4 lg:p-5 border-b border-brand-border/60 bg-gradient-to-b from-brand-surface to-brand-surface/50">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        {/* Left: Date Navigation */}
+                        <div className="flex items-center space-x-2">
+                            <div className="flex items-center bg-brand-surface border border-brand-border/60 rounded-full shadow-sm p-1">
+                                <button onClick={handlePrev} className="p-1.5 hover:bg-brand-bg rounded-full text-brand-textSecondary transition-all active:scale-95"><ChevronLeft size={16} /></button>
+                                <button onClick={handleNext} className="p-1.5 hover:bg-brand-bg rounded-full text-brand-textSecondary transition-all active:scale-95"><ChevronRight size={16} /></button>
+                            </div>
+                            <h2 className="text-sm lg:text-lg font-bold text-brand-textPrimary min-w-[120px] text-center whitespace-nowrap hidden sm:block">
+                                {viewMode === 'month' && viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                {viewMode === 'day' && viewDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                {viewMode === 'week' && (
+                                    (() => {
+                                        const start = new Date(viewDate);
+                                        start.setDate(viewDate.getDate() - viewDate.getDay());
+                                        const end = new Date(start);
+                                        end.setDate(start.getDate() + 6);
+                                        return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                                    })()
+                                )}
                             </h2>
-                            <button onClick={handleNext} className="p-1 hover:bg-brand-bg hover:shadow-sm rounded-lg text-brand-textSecondary transition-all"><ChevronRight size={14} /></button>
                         </div>
 
-                        {/* Right: View Toggle + Book Button */}
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                            <div className="flex bg-brand-bg p-0.5 rounded-md sm:rounded-lg border border-brand-border">
+                        {/* Right: Actions & View Toggle */}
+                        <div className="flex items-center gap-3 ml-auto">
+                            
+                            {/* Premium Segmented Control */}
+                            <div className="hidden sm:flex bg-brand-surface border border-brand-border/60 p-1 rounded-full shadow-sm">
                                 <button
                                     onClick={() => setViewMode('day')}
-                                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold transition-all ${viewMode === 'day' ? 'bg-brand-surface text-brand-primary shadow-sm' : 'text-brand-textSecondary'}`}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${viewMode === 'day' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-textSecondary hover:text-brand-textPrimary hover:bg-brand-bg'}`}
                                 >
                                     Day
                                 </button>
                                 <button
                                     onClick={() => setViewMode('week')}
-                                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold transition-all ${viewMode === 'week' ? 'bg-brand-surface text-brand-primary shadow-sm' : 'text-brand-textSecondary'}`}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${viewMode === 'week' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-textSecondary hover:text-brand-textPrimary hover:bg-brand-bg'}`}
                                 >
                                     Week
                                 </button>
                                 <button
                                     onClick={() => setViewMode('month')}
-                                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-bold transition-all ${viewMode === 'month' ? 'bg-brand-surface text-brand-primary shadow-sm' : 'text-brand-textSecondary'}`}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${viewMode === 'month' ? 'bg-brand-primary text-white shadow-md' : 'text-brand-textSecondary hover:text-brand-textPrimary hover:bg-brand-bg'}`}
                                 >
                                     Month
                                 </button>
@@ -823,26 +816,29 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                 accept=".csv"
                                 className="hidden"
                             />
-                            <button
-                                onClick={handleExportCSV}
-                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
-                                title="Export to CSV"
-                            >
-                                <Download size={12} className="sm:mr-1" /> <span className="hidden sm:inline">Export</span>
-                            </button>
-                            <button
-                                onClick={handleImportClick}
-                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-surface border border-brand-border hover:bg-brand-bg text-brand-textSecondary font-bold rounded-lg sm:rounded-xl flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
-                                title="Import from CSV"
-                            >
-                                <Upload size={12} className="sm:mr-1" /> <span className="hidden sm:inline">Import</span>
-                            </button>
-                            <button
-                                onClick={() => { setBookModalData({ date: new Date(), time: 9 }); setIsBookModalOpen(true); }}
-                                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-lg sm:rounded-xl shadow-md shadow-brand-primary/20 flex items-center text-[9px] sm:text-xs transition-all active:scale-95 whitespace-nowrap"
-                            >
-                                <Plus size={12} className="mr-0.5 sm:mr-1" /><span className="hidden sm:inline">Book</span><span className="sm:hidden">+</span>
-                            </button>
+                            
+                            <div className="flex gap-2 border-l border-brand-border/50 pl-3">
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="p-2 sm:px-3 sm:py-2 bg-brand-surface border border-brand-border/60 hover:bg-brand-bg hover:border-brand-border text-brand-textSecondary hover:text-brand-textPrimary font-bold rounded-xl flex items-center text-xs transition-all active:scale-95 shadow-sm"
+                                    title="Export"
+                                >
+                                    <Download size={14} className="sm:mr-1.5" /> <span className="hidden sm:inline">Export</span>
+                                </button>
+                                <button
+                                    onClick={handleImportClick}
+                                    className="p-2 sm:px-3 sm:py-2 bg-brand-surface border border-brand-border/60 hover:bg-brand-bg hover:border-brand-border text-brand-textSecondary hover:text-brand-textPrimary font-bold rounded-xl flex items-center text-xs transition-all active:scale-95 shadow-sm"
+                                    title="Import"
+                                >
+                                    <Upload size={14} className="sm:mr-1.5" /> <span className="hidden sm:inline">Import</span>
+                                </button>
+                                <button
+                                    onClick={() => { setBookModalData({ date: new Date(), time: 9 }); setIsBookModalOpen(true); }}
+                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-brand-bg font-bold rounded-xl shadow-md shadow-brand-primary/25 flex items-center text-xs transition-all active:scale-95"
+                                >
+                                    <Plus size={14} className="mr-1.5" />Book
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -939,14 +935,14 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     {(viewMode === 'week' || viewMode === 'day') && (
                         <div className="flex-1 flex flex-col min-h-0 bg-brand-surface relative overflow-y-auto custom-scrollbar">
                             {/* Days Header */}
-                            <div className={`grid ${viewMode === 'week' ? 'grid-cols-8' : 'grid-cols-2'} border-b border-brand-border bg-brand-bg sticky top-0 z-10 shadow-sm`}>
-                                <div className="p-4 text-xs font-bold text-brand-textSecondary uppercase text-center border-r border-brand-border flex items-center justify-center">
+                            <div className={`grid ${viewMode === 'week' ? 'grid-cols-8' : 'grid-cols-2'} border-b border-brand-border/60 bg-brand-surface/95 backdrop-blur-md sticky top-0 z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]`}>
+                                <div className="p-4 text-xs font-bold text-brand-textSecondary uppercase text-center border-r border-brand-border/60 flex items-center justify-center bg-brand-surface">
                                     Time
                                 </div>
                                 {(viewMode === 'week' ? weekDays : [viewDate]).map((day, i) => (
-                                    <div key={i} className={`p-3 text-center border-r border-brand-border ${day.toDateString() === new Date().toDateString() ? 'bg-brand-primary/10' : ''}`}>
+                                    <div key={i} className={`p-3 text-center border-r border-brand-border/60 ${day.toDateString() === new Date().toDateString() ? 'bg-brand-primary/5' : ''}`}>
                                         <p className="text-[10px] font-bold text-brand-textSecondary uppercase mb-1">{day.toLocaleDateString('en-US', { weekday: 'short' })}</p>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto text-sm font-bold ${day.toDateString() === new Date().toDateString() ? 'bg-brand-primary text-brand-bg shadow-md shadow-brand-primary/20' : 'text-brand-textPrimary'
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto text-sm font-bold ${day.toDateString() === new Date().toDateString() ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/30' : 'text-brand-textPrimary'
                                             }`}>
                                             {day.getDate()}
                                         </div>
@@ -957,9 +953,9 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                             {/* Time Slots Grid */}
                             <div className="flex-1 relative">
                                 {timeSlots.map(hour => (
-                                    <div key={hour} className={`grid ${viewMode === 'week' ? 'grid-cols-8' : 'grid-cols-2'} border-b border-brand-border min-h-[120px]`}>
+                                    <div key={hour} className={`grid ${viewMode === 'week' ? 'grid-cols-8' : 'grid-cols-2'} border-b border-brand-border/60 min-h-[120px]`}>
                                         {/* Time Label */}
-                                        <div className="p-4 text-xs font-bold text-brand-textSecondary text-center border-r border-brand-border bg-brand-bg/30 flex flex-col justify-center">
+                                        <div className="p-4 text-xs font-bold text-brand-textSecondary text-center border-r border-brand-border/60 bg-brand-surface flex flex-col justify-center shadow-[4px_0_10px_-10px_rgba(0,0,0,0.1)] relative z-10">
                                             <span>{hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}</span>
                                         </div>
 
@@ -1004,38 +1000,56 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                                                 <div
                                                     key={i}
                                                     onClick={() => handleSlotClick(day, hour)}
-                                                    className="border-r border-brand-border p-1 relative group hover:bg-brand-bg/50 transition-colors cursor-pointer"
+                                                    className={`border-r border-brand-border/60 p-1 sm:p-1.5 relative group hover:bg-brand-primary/5 transition-colors cursor-pointer ${new Date().toDateString() === day.toDateString() ? 'bg-brand-primary/[0.02]' : ''}`}
                                                 >
                                                     {/* Hover "Add" Indicator */}
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                                                        <Plus className="text-brand-primary/50" size={24} />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300">
+                                                        <Plus className="text-brand-primary/30 transform scale-150" size={24} />
                                                     </div>
 
                                                     {/* Render Appointments */}
-                                                    {slotAppointments.map(apt => {
+                                                    {slotAppointments.slice(0, 2).map(apt => {
                                                         const doctor = doctors.find(d => d.name === apt.doctorName) || doctors.find(d => d.id === apt.doctorId);
                                                         const colorClass = doctor?.color || 'bg-brand-surface text-brand-textSecondary border-brand-border';
 
                                                         return (
                                                             <div
                                                                 key={apt.id}
-                                                                onClick={(e) => handleAppointmentClick(e, apt)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleAppointmentClick(e, apt);
+                                                                }}
                                                                 className={`
-                                                                    mb-1 p-2 rounded-lg border-l-4 text-xs shadow-sm hover:shadow-md transition-all cursor-pointer relative z-10
-                                                                    ${colorClass} ${apt.status === 'Canceled' ? 'opacity-50 grayscale' : ''}
+                                                                    mb-1.5 p-2 sm:p-2.5 rounded-xl border border-l-[3px] text-xs shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer relative z-10 group/apt
+                                                                    ${colorClass} ${apt.status === 'Canceled' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:brightness-95'}
                                                                 `}
                                                             >
-                                                                <p className="font-bold truncate">{apt.patientName}</p>
-                                                                <p className="opacity-80 truncate text-[10px]">{apt.type}</p>
+                                                                <div className="flex justify-between items-start">
+                                                                    <p className="font-bold truncate leading-tight group-hover/apt:text-brand-primary transition-colors">{apt.patientName}</p>
+                                                                    {apt.status === 'Arrived' && (
+                                                                        <span className="w-2 h-2 flex-shrink-0 bg-emerald-500 rounded-full shadow-sm ml-1 mt-0.5 animate-pulse"></span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1 mt-1">
+                                                                    <span className="px-1.5 py-0.5 rounded-md bg-black/5 text-[9px] font-bold uppercase tracking-wider">{apt.type}</span>
+                                                                </div>
                                                                 {apt.status === 'Canceled' && (
-                                                                    <p className="text-red-500 font-bold text-[10px]">Canceled</p>
-                                                                )}
-                                                                {apt.status === 'Arrived' && (
-                                                                    <span className="absolute top-1 right-1 w-2 h-2 bg-brand-success rounded-full"></span>
+                                                                    <p className="text-rose-600 font-bold text-[10px] mt-1.5 bg-rose-50 inline-block px-1.5 py-0.5 rounded">Canceled</p>
                                                                 )}
                                                             </div>
                                                         );
                                                     })}
+                                                    {slotAppointments.length > 2 && (
+                                                        <div 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedSlot({ date: day, hour, appointments: slotAppointments });
+                                                            }}
+                                                            className="text-[10px] text-brand-primary font-bold text-center mt-1 py-1 rounded-md hover:bg-brand-primary/10 transition-colors cursor-pointer relative z-10"
+                                                        >
+                                                            + {slotAppointments.length - 2} more
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -1048,9 +1062,15 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
             </div>
 
             {/* List View Below Calendar */}
-            <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden flex-shrink-0">
+            <div className="bg-brand-surface border border-brand-border rounded-2xl overflow-hidden flex-shrink-0 mt-6">
                 <div className="p-4 border-b border-brand-border bg-brand-bg/50 flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-brand-textPrimary">Consultations & Appointments</h3>
+                    <div className="flex gap-4">
+                        <button 
+                            className="text-sm font-bold pb-1 border-b-2 transition-colors text-brand-primary border-brand-primary"
+                        >
+                            Consultations & Appointments
+                        </button>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -1117,8 +1137,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 doctors={doctors}
                 patients={patients}
             />
-
-            {isActionCardOpen && selectedAppointment && (
+            {isActionCardOpen && selectedAppointment && (
                 <AppointmentActionCard
                     isOpen={isActionCardOpen}
                     onClose={() => setIsActionCardOpen(false)}
@@ -1139,23 +1158,66 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                 />
             )}
 
-            {/* Patient Profile Overlay */}
+            {/* Patient Profile Slide-over */}
             {viewingPatientProfile && (
-                <div className="fixed inset-0 z-[60] flex justify-end">
-                    <div className="absolute inset-0 bg-brand-bg/80 backdrop-blur-sm" onClick={() => setViewingPatientProfile(null)}></div>
-                    <div className="w-[85%] max-w-6xl h-full bg-brand-bg shadow-2xl animate-slide-in-right relative overflow-hidden flex flex-col border-l border-brand-border">
-                        <div className="absolute top-4 right-4 z-50">
-                            <button onClick={() => setViewingPatientProfile(null)} className="bg-brand-surface p-2 rounded-full hover:bg-brand-error/20 text-brand-textSecondary hover:text-brand-error transition-colors shadow-sm border border-brand-border">
-                                <Plus size={24} className="rotate-45" />
+                <PatientProfile
+                    patient={DEFAULT_PATIENT_PROFILE}
+                    onClose={() => setViewingPatientProfile(null)}
+                />
+            )}
+
+            {/* Expanded Slot Modal */}
+            {expandedSlot && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setExpandedSlot(null)}>
+                    <div className="bg-brand-surface rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="p-4 border-b border-brand-border/60 flex justify-between items-center bg-brand-bg/50">
+                            <div>
+                                <h3 className="font-bold text-brand-textPrimary text-lg">
+                                    {expandedSlot.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                                </h3>
+                                <p className="text-sm text-brand-primary font-bold">
+                                    {expandedSlot.hour > 12 ? `${expandedSlot.hour - 12} PM` : expandedSlot.hour === 12 ? '12 PM' : `${expandedSlot.hour} AM`}
+                                </p>
+                            </div>
+                            <button onClick={() => setExpandedSlot(null)} className="p-2 hover:bg-brand-bg rounded-lg text-brand-textSecondary hover:text-brand-textPrimary transition-colors">
+                                ✕
                             </button>
                         </div>
-                        <PatientProfile
-                            patient={DEFAULT_PATIENT_PROFILE}
-                            onClose={() => setViewingPatientProfile(null)}
-                        />
+                        <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar flex flex-col gap-3">
+                            {expandedSlot.appointments.map(apt => {
+                                const doctor = doctors.find(d => d.name === apt.doctorName) || doctors.find(d => d.id === apt.doctorId);
+                                const colorClass = doctor?.color || 'bg-brand-surface text-brand-textSecondary border-brand-border';
+                                return (
+                                    <div
+                                        key={apt.id}
+                                        onClick={(e) => {
+                                            setExpandedSlot(null);
+                                            handleAppointmentClick(e, apt);
+                                        }}
+                                        className={`
+                                            p-3 rounded-xl border border-l-[4px] text-sm shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer relative group/apt
+                                            ${colorClass} ${apt.status === 'Canceled' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:brightness-95'}
+                                        `}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <p className="font-bold truncate leading-tight group-hover/apt:text-brand-primary transition-colors">{apt.patientName}</p>
+                                            {apt.status === 'Arrived' && (
+                                                <span className="w-2.5 h-2.5 flex-shrink-0 bg-emerald-500 rounded-full shadow-sm ml-2 mt-1 animate-pulse"></span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center mt-2">
+                                            <span className="px-2 py-0.5 rounded-md bg-black/5 text-[10px] font-bold uppercase tracking-wider">{apt.type}</span>
+                                            <span className="text-[11px] opacity-80 font-medium">{doctor?.name}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             )}
         </div>
     );
 };
+
+export default AppointmentsView;
