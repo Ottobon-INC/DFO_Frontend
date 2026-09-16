@@ -1483,6 +1483,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                     isOpen={isRescheduleModalOpen}
                     onClose={() => setIsRescheduleModalOpen(false)}
                     patientName={appointmentToReschedule.patientName}
+                    doctorName={appointmentToReschedule.doctorName || appointmentToReschedule.consultant}
                     onConfirm={handleRescheduleConfirm}
                 />
             )}
