@@ -853,11 +853,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                </button>
             </div>
 
-            {/* Language Toggles */}
-            <div className="hidden lg:flex items-center bg-slate-100 rounded-md p-0.5 border border-brand-border">
-              <span className="bg-brand-primary text-white text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer shadow-2xs">EN</span>
-              <span className="text-brand-textSecondary text-[10px] font-bold px-2 py-0.5 cursor-pointer hover:text-brand-textPrimary">HI</span>
-            </div>
+
             {/* Time / Date */}
             <div className="hidden xl:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
