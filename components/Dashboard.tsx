@@ -984,7 +984,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             } />
             <Route path="clinical-escalations" element={
               <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
-                <ClinicalEscalationsView appointments={appointments} onPatientSelect={handlePatientSelect} />
+                <SakhiEscalationsView />
               </div>
             } />
             <Route path="sakhi-escalations" element={

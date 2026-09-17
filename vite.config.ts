@@ -10,22 +10,22 @@ export default defineConfig(({ mode }) => {
       host: true, // Exposes to local network (0.0.0.0)
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://127.0.0.1:3005',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://127.0.0.1:8080',
           changeOrigin: true,
           secure: false,
         },
         '/thread': {
-          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:8080',
           changeOrigin: true,
           secure: false,
         },
         '/janmasethu': {
-          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:8080',
           changeOrigin: true,
           secure: false,
         },
         '/events': {
-          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:3005',
+          target: env.VITE_API_URL || env.VITE_BINDING_URL || 'http://localhost:8080',
           changeOrigin: true,
           secure: false,
         }

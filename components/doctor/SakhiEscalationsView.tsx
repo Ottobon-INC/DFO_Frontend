@@ -44,13 +44,7 @@ export const SakhiEscalationsView: React.FC = () => {
   const fetchEscalations = async () => {
     const userStr = localStorage.getItem('user');
     const loggedInUser = userStr ? JSON.parse(userStr) : null;
-    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId;
-
-    if (!loggedInDoctorId) {
-      setEscalations([]);
-      setLoading(false);
-      return;
-    }
+    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'all';
 
     try {
       setLoading(true);
