@@ -563,9 +563,22 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
     // Determine tabs based on role
     const isClinical = userRole === UserRole.DOCTOR || userRole === UserRole.NURSE || userRole === 'Receptionist' || userRole === UserRole.ADMIN;
 
+    // Determine if clinic is IVF/Fertility
+    const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+    const clinicName = userObj.clinic_name || '';
+    const specialization = userObj.specialization || '';
+    const clinicSpecialty = userObj.clinic_specialty || '';
+    
+    // Show IVF tab if clinic is IVF/Fertility, or if it's the Medcy demo clinic, or if doctor specializes in IVF
+    const isIvfClinic = String(clinicName).toLowerCase().includes('ivf') || 
+                        String(clinicName).toLowerCase().includes('fertility') || 
+                        String(clinicName).toLowerCase().includes('medcy') ||
+                        String(specialization).toLowerCase().includes('ivf') ||
+                        String(clinicSpecialty).toUpperCase() === 'IVF';
+
     const tabs = [
         { id: 'overview', label: 'Overview', shortLabel: 'Info' },
-        { id: 'ivf', label: 'IVF Case Sheet', shortLabel: 'IVF' },
+        ...(isIvfClinic ? [{ id: 'ivf', label: 'IVF Case Sheet', shortLabel: 'IVF' }] : []),
         { id: 'timeline', label: 'Timeline', shortLabel: 'Timeline' },
         { id: 'consultation', label: 'Consultation Notes', shortLabel: 'Notes' },
         { id: 'appointments', label: 'Appointments', shortLabel: 'Appts' },
@@ -780,13 +793,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             </div>
                                                         </div>
                                                         <div className="mt-2 flex items-baseline gap-1.5">
-                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestBp ? (latestBp.vital_value || latestBp.value) : '110/80'}</span>
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestBp ? (latestBp.vital_value || latestBp.value)?.toString().replace(/mmHg/i, '').trim() : '--'}</span>
                                                             <span className="text-xs font-medium text-slate-500">{latestBp?.unit || 'mmHg'}</span>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between text-[11px]">
                                                             <span className="text-slate-500 font-medium">Systolic / Diastolic</span>
                                                             <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestBp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
-                                                                {latestBp ? 'Recorded' : 'Baseline'}
+                                                                {latestBp ? 'Recorded' : 'Not Recorded'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -800,13 +813,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             </div>
                                                         </div>
                                                         <div className="mt-2 flex items-baseline gap-1.5">
-                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestHr ? (latestHr.vital_value || latestHr.value) : '87'}</span>
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestHr ? (latestHr.vital_value || latestHr.value)?.toString().replace(/bpm/i, '').trim() : '--'}</span>
                                                             <span className="text-xs font-medium text-slate-500">{latestHr?.unit || 'bpm'}</span>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between text-[11px]">
                                                             <span className="text-slate-500 font-medium">Resting Pulse</span>
                                                             <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestHr ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
-                                                                {latestHr ? 'Recorded' : 'Baseline'}
+                                                                {latestHr ? 'Recorded' : 'Not Recorded'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -820,13 +833,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             </div>
                                                         </div>
                                                         <div className="mt-2 flex items-baseline gap-1.5">
-                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestTemp ? (latestTemp.vital_value || latestTemp.value) : '99'}</span>
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestTemp ? (latestTemp.vital_value || latestTemp.value)?.toString().replace(/°F|°C|F|C/i, '').trim() : '--'}</span>
                                                             <span className="text-xs font-medium text-slate-500">{latestTemp?.unit || '°F'}</span>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between text-[11px]">
                                                             <span className="text-slate-500 font-medium">Body Temperature</span>
                                                             <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestTemp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
-                                                                {latestTemp ? 'Recorded' : 'Baseline'}
+                                                                {latestTemp ? 'Recorded' : 'Not Recorded'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -840,13 +853,13 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                             </div>
                                                         </div>
                                                         <div className="mt-2 flex items-baseline gap-1.5">
-                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestWeight ? (latestWeight.vital_value || latestWeight.value) : '70'}</span>
+                                                            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{latestWeight ? (latestWeight.vital_value || latestWeight.value)?.toString().replace(/kg|lbs/i, '').trim() : '--'}</span>
                                                             <span className="text-xs font-medium text-slate-500">{latestWeight?.unit || 'kg'}</span>
                                                         </div>
                                                         <div className="mt-2 flex items-center justify-between text-[11px]">
                                                             <span className="text-slate-500 font-medium">Standard Scale</span>
                                                             <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${latestWeight ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-slate-100 text-slate-500'}`}>
-                                                                {latestWeight ? 'Recorded' : 'Baseline'}
+                                                                {latestWeight ? 'Recorded' : 'Not Recorded'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1226,33 +1239,35 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                 {/* RIGHT COLUMN: IVF Case Sheet Spotlight + Trend Chart + Alerts/Conditions + Treatments + Clinical Notes */}
                                                 <div className="lg:col-span-7 xl:col-span-8 space-y-6">
                                                     {/* 1. IVF Case Sheet Spotlight Card */}
-                                                    <div className="relative overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-md">
-                                                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                                                            <div className="space-y-2">
-                                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold backdrop-blur-xs">
-                                                                    <Sparkles size={13} className="text-amber-300" />
-                                                                    <span>Specialty Clinical Module</span>
+                                                    {isIvfClinic && (
+                                                        <div className="relative overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-md">
+                                                            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                                                                <div className="space-y-2">
+                                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold backdrop-blur-xs">
+                                                                        <Sparkles size={13} className="text-amber-300" />
+                                                                        <span>Specialty Clinical Module</span>
+                                                                    </div>
+                                                                    <h3 className="text-xl font-black tracking-tight text-white">IVF Specialty Clinical Case Sheet</h3>
+                                                                    <p className="text-sky-100 text-xs sm:text-sm max-w-xl leading-relaxed">
+                                                                        Comprehensive 8-stage reproductive cycle documentation: stimulation charts, OPU/embryo tracking, cryopreservation records, and all-in-one printable dossier.
+                                                                    </p>
+                                                                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-semibold text-sky-200">
+                                                                        <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Stimulation & Monitoring</span>
+                                                                        <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">OPU & Embryology</span>
+                                                                        <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Embryo Transfer</span>
+                                                                        <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Cryopreservation</span>
+                                                                    </div>
                                                                 </div>
-                                                                <h3 className="text-xl font-black tracking-tight text-white">IVF Specialty Clinical Case Sheet</h3>
-                                                                <p className="text-sky-100 text-xs sm:text-sm max-w-xl leading-relaxed">
-                                                                    Comprehensive 8-stage reproductive cycle documentation: stimulation charts, OPU/embryo tracking, cryopreservation records, and all-in-one printable dossier.
-                                                                </p>
-                                                                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-semibold text-sky-200">
-                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Stimulation & Monitoring</span>
-                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">OPU & Embryology</span>
-                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Embryo Transfer</span>
-                                                                    <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20">Cryopreservation</span>
-                                                                </div>
+                                                                <button
+                                                                    onClick={() => setActiveTab('ivf')}
+                                                                    className="px-5 py-3 bg-white text-sky-700 hover:bg-sky-50 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 flex-shrink-0 group active:scale-95 cursor-pointer"
+                                                                >
+                                                                    <span>Launch IVF Case Sheet</span>
+                                                                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                                                </button>
                                                             </div>
-                                                            <button
-                                                                onClick={() => setActiveTab('ivf')}
-                                                                className="px-5 py-3 bg-white text-sky-700 hover:bg-sky-50 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 flex-shrink-0 group active:scale-95 cursor-pointer"
-                                                            >
-                                                                <span>Launch IVF Case Sheet</span>
-                                                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                                            </button>
                                                         </div>
-                                                    </div>
+                                                    )}
 
                                                     {/* 2. Physiological Trend Chart */}
                                                     <DynamicTrendChart vitals={dashboardData?.vitals || []} />
