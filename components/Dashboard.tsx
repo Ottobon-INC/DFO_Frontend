@@ -97,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
         const [apptsData, upcomingApptsData, leadsData, patientsData, doctorsData] = await Promise.all([
           api.getAppointments({ date: today.toISOString().split('T')[0] }), // Fetch all appointments today
-          api.getAppointments({ 
+          api.getAppointments({
             start_date: tomorrow.toISOString().split('T')[0],
             end_date: dayAfter.toISOString().split('T')[0]
           }), // Fetch next 48 hours
@@ -128,59 +128,59 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         const mapAppointments = (data: any) => {
           const items = Array.isArray(data?.data) ? data.data : (data?.data?.items ?? []);
           return Array.isArray(items) ? items.map((item: any) => {
-          // patient_name might be missing or 'Unknown', so handle explicitly
-          let resolvedName = item.patient?.name || item.patient?.full_name || item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
+            // patient_name might be missing or 'Unknown', so handle explicitly
+            let resolvedName = item.patient?.name || item.patient?.full_name || item.patient_name_snapshot || item.patient_name || item.patientName || item.name;
 
-          if (!resolvedName || resolvedName === 'Unknown') {
-            if (item.patient_id || item.patientId) {
-              resolvedName = patientMap.get(item.patient_id || item.patientId);
+            if (!resolvedName || resolvedName === 'Unknown') {
+              if (item.patient_id || item.patientId) {
+                resolvedName = patientMap.get(item.patient_id || item.patientId);
+              }
             }
-          }
 
-          if (!resolvedName || resolvedName === 'Unknown') {
-            // Fallback: check linked lead (via lead_id if present) or try matching patient_id to a lead
-            resolvedName = leadMap.get(item.lead_id) || leadMap.get(item.patient_id || item.patientId) || 'Unknown';
-          }
+            if (!resolvedName || resolvedName === 'Unknown') {
+              // Fallback: check linked lead (via lead_id if present) or try matching patient_id to a lead
+              resolvedName = leadMap.get(item.lead_id) || leadMap.get(item.patient_id || item.patientId) || 'Unknown';
+            }
 
-          const docId = item.doctor_id || item.doctorId;
-          // Robust Doctor Name Resolution
-          let resolvedDocName = item.doctor_name_snapshot || item.doctor_name || item.doctorName || item.consultant;
+            const docId = item.doctor_id || item.doctorId;
+            // Robust Doctor Name Resolution
+            let resolvedDocName = item.doctor_name_snapshot || item.doctor_name || item.doctorName || item.consultant;
 
-          if (!resolvedDocName || resolvedDocName === 'Unknown') {
-            resolvedDocName = doctorsList.find((d: any) => d.id === docId)?.name || 'Unknown';
-          }
+            if (!resolvedDocName || resolvedDocName === 'Unknown') {
+              resolvedDocName = doctorsList.find((d: any) => d.id === docId)?.name || 'Unknown';
+            }
 
-          // Final fallback for demo if ID exists but name failed (prevent 'Unknown' for valid-looking IDs)
-          if ((!resolvedDocName || resolvedDocName === 'Unknown') && docId) {
-            const found = doctorsList.find((d: any) => d.id === docId);
-            if (found) resolvedDocName = found.name;
-          }
+            // Final fallback for demo if ID exists but name failed (prevent 'Unknown' for valid-looking IDs)
+            if ((!resolvedDocName || resolvedDocName === 'Unknown') && docId) {
+              const found = doctorsList.find((d: any) => d.id === docId);
+              if (found) resolvedDocName = found.name;
+            }
 
-          return {
-            id: item.id,
-            patientName: resolvedName,
-            doctorName: resolvedDocName,
-            doctorId: docId,
-            patientId: item.patient_id || item.patientId,
-            time: item.start_time || item.time,
-            date: item.appointment_date || item.date,
-            type: item.type,
-            status: item.status,
-            queueStatus: item.queue_status || item.queueStatus,
-            resourceId: item.resource_id
-          };
-        }) : [];
+            return {
+              id: item.id,
+              patientName: resolvedName,
+              doctorName: resolvedDocName,
+              doctorId: docId,
+              patientId: item.patient_id || item.patientId,
+              time: item.start_time || item.time,
+              date: item.appointment_date || item.date,
+              type: item.type,
+              status: item.status,
+              queueStatus: item.queue_status || item.queueStatus,
+              resourceId: item.resource_id
+            };
+          }) : [];
         };
 
         setAppointments(mapAppointments(apptsData));
-        
+
         let upcoming = mapAppointments(upcomingApptsData);
         if (userRole === 'Doctor') {
-            // Wait, we need the logged in user's ID
-            const userStr = localStorage.getItem('user');
-            const loggedInUser = userStr ? JSON.parse(userStr) : null;
-            const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'dr_sireesha'; // default fallback
-            upcoming = upcoming.filter((a: any) => a.doctorId === loggedInDoctorId);
+          // Wait, we need the logged in user's ID
+          const userStr = localStorage.getItem('user');
+          const loggedInUser = userStr ? JSON.parse(userStr) : null;
+          const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'dr_sireesha'; // default fallback
+          upcoming = upcoming.filter((a: any) => a.doctorId === loggedInDoctorId);
         }
         setUpcomingAppointments(upcoming);
 
@@ -239,7 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const [isWalkInExpressOpen, setIsWalkInExpressOpen] = useState(false);
   const [walkInInitialData, setWalkInInitialData] = useState<any>(undefined);
   const [expressTokenResult, setExpressTokenResult] = useState<{ token: string; details: any } | null>(null);
-  
+
   // Global Search State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -256,7 +256,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
@@ -329,13 +329,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
   const leadsInCROQueue = leads.filter(l => l.status === 'Stalling - Sent to CRO').length;
   const leadsConvertedToday = leads.filter(l => l.status === 'Converted - Active Patient').length;
 
-    // --- Handlers ---
+  // --- Handlers ---
   const handleCheckIn = async (id: string) => {
     const targetApt = appointments.find(a => a.id === id);
     try {
       await api.updateAppointmentStatus(id, { status: 'Checked-In' });
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'Checked-In' } : a));
-      
+
       // Auto-enqueue to walk-in queue / waiting room if patientId and doctorId exist
       if (targetApt?.patientId && targetApt?.doctorId) {
         try {
@@ -349,7 +349,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           // Handled or already enqueued
         }
       }
-      
+
       const docInfo = targetApt?.doctorName ? ` for ${targetApt.doctorName}` : '';
       showToast(`✓ ${targetApt?.patientName || 'Patient'} checked in${docInfo}! Added to waiting queue.`);
       setRefreshTrigger(prev => prev + 1);
@@ -564,15 +564,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               active={location.pathname === '/dashboard/patients'}
               onClick={() => navigate('/dashboard/patients')}
             />
-              {userRole === UserRole.NURSE && (
-                <>
-                  <NavItem
-                    icon={<MessageSquare size={20} />}
-                    label="Triage Console"
-                    active={location.pathname === '/dashboard/nurse/triage'}
-                    onClick={() => navigate('/dashboard/nurse/triage')}
-                  />
-                  {/* Lobby Roster has been merged into the new unified Queue Management Board
+            {userRole === UserRole.NURSE && (
+              <>
+                <NavItem
+                  icon={<MessageSquare size={20} />}
+                  label="Triage Console"
+                  active={location.pathname === '/dashboard/nurse/triage'}
+                  onClick={() => navigate('/dashboard/nurse/triage')}
+                />
+                {/* Lobby Roster has been merged into the new unified Queue Management Board
                   <NavItem
                     icon={<Users size={20} />}
                     label="Lobby Roster"
@@ -580,8 +580,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                     onClick={() => navigate('/dashboard/nurse/lobby')}
                   />
                   */}
-                </>
-              )}
+              </>
+            )}
             {userRole !== UserRole.FRONT_DESK && (
               <RequireTier minTier={3} userRole={userRole}>
                 <NavItem
@@ -678,7 +678,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                   />
                 </>
               </RequireTier>
-              
+
               <RequireTier minTier={3} userRole={userRole}>
                 <NavItem
                   icon={<Clock size={20} />}
@@ -771,7 +771,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                 <input
                   value={globalSearch}
                   onChange={(e) => setGlobalSearch(e.target.value)}
-                  onFocus={() => { if(globalSearch) setShowSearchResults(true); }}
+                  onFocus={() => { if (globalSearch) setShowSearchResults(true); }}
                   placeholder="Search Patient Name, Phone, or ID..."
                   className="bg-transparent outline-none text-xs sm:text-sm w-full text-brand-textPrimary placeholder:text-brand-textSecondary"
                 />
@@ -798,17 +798,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                             <p className="text-sm font-bold text-brand-textPrimary">{patient.name || patient.fullname || patient.patientName}</p>
                             <p className="text-xs text-brand-textSecondary mt-0.5">{patient.phone || patient.mobile} {patient.uhid ? `• ${patient.uhid}` : ''}</p>
                           </div>
-                          <button 
-                             onClick={() => {
-                               setShowSearchResults(false);
-                               setGlobalSearch('');
-                               setWalkInInitialData({
-                                 name: patient.name || patient.fullname || patient.patientName,
-                                 phone: patient.phone || patient.mobile
-                               });
-                               setIsWalkInExpressOpen(true);
-                             }}
-                             className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                          <button
+                            onClick={() => {
+                              setShowSearchResults(false);
+                              setGlobalSearch('');
+                              setWalkInInitialData({
+                                name: patient.name || patient.fullname || patient.patientName,
+                                phone: patient.phone || patient.mobile
+                              });
+                              setIsWalkInExpressOpen(true);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 bg-brand-primary text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
                           >
                             Check-In
                           </button>
@@ -819,18 +819,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                     <div className="p-6 text-center">
                       <p className="text-sm font-bold text-brand-textPrimary mb-1">No existing patient found</p>
                       <p className="text-xs text-brand-textSecondary mb-3">
-                        {globalSearch.trim().replace(/\D/g, '').length >= 3 
+                        {globalSearch.trim().replace(/\D/g, '').length >= 3
                           ? `Mobile number "${globalSearch.trim()}" will be auto-filled in the registration form.`
                           : `Patient name "${globalSearch.trim()}" will be auto-filled in the registration form.`}
                       </p>
-                      <button 
-                        onClick={() => { 
+                      <button
+                        onClick={() => {
                           const initial = parseSearchQuery(globalSearch);
                           setWalkInInitialData(initial);
-                          setShowSearchResults(false); 
-                          setIsWalkInExpressOpen(true); 
-                          setGlobalSearch(''); 
-                        }} 
+                          setShowSearchResults(false);
+                          setIsWalkInExpressOpen(true);
+                          setGlobalSearch('');
+                        }}
                         className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 mx-auto"
                       >
                         <UserPlus size={14} /> Register New Walk-In
@@ -844,24 +844,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
 
           {/* Right Status / Toggles */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            
+
             {/* Walk-In and Queue Action Buttons */}
             <div className="flex items-center gap-1.5">
-               <button 
+              <button
                 onClick={() => setIsWalkInExpressOpen(true)}
                 className="flex items-center gap-1 bg-brand-primary hover:bg-brand-primaryDark text-white px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-xs active:scale-95 transition-all"
-               >
-                 <Activity size={13} /> <span className="hidden sm:inline">Walk-In</span>
-               </button>
-               <button
+              >
+                <Activity size={13} /> <span className="hidden sm:inline">Walk-In</span>
+              </button>
+              <button
                 onClick={() => navigate('/dashboard/waiting-room')}
                 className="hidden md:flex items-center gap-1.5 bg-brand-surface border border-brand-border text-brand-textPrimary hover:border-brand-primary px-3 py-1.5 rounded-md text-xs font-bold transition-colors shadow-2xs"
-               >
-                 <Users size={13} className="text-brand-primary" /> Queue
-               </button>
+              >
+                <Users size={13} className="text-brand-primary" /> Queue
+              </button>
             </div>
 
-            {/* Language Toggles Removed */}
+
             {/* Time / Date */}
             <div className="hidden xl:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
@@ -929,21 +929,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
           <Routes>
             <Route index element={
               userRole === UserRole.NURSE ? <Navigate to="/dashboard/nurse" replace /> :
-              <DashboardHome
-                userRole={userRole}
-                leads={leads}
-                appointments={appointments}
-                upcomingAppointments={upcomingAppointments}
-                leadsInCROQueue={leadsInCROQueue}
-                leadsConvertedToday={leadsConvertedToday}
-                onCheckIn={handleCheckIn}
-                onReschedule={(id) => setRescheduleId(id)}
-                onCancelAppointment={handleCancelAppointment}
-                onUpdateLead={handleUpdateLead}
-                onOpenAddLeadModal={() => setIsAddLeadModalOpen(true)}
-                onNavigateToLeads={handleNavigateToLeads}
-                onPatientSelect={handlePatientSelect}
-              />
+                <DashboardHome
+                  userRole={userRole}
+                  leads={leads}
+                  appointments={appointments}
+                  upcomingAppointments={upcomingAppointments}
+                  leadsInCROQueue={leadsInCROQueue}
+                  leadsConvertedToday={leadsConvertedToday}
+                  onCheckIn={handleCheckIn}
+                  onReschedule={(id) => setRescheduleId(id)}
+                  onCancelAppointment={handleCancelAppointment}
+                  onUpdateLead={handleUpdateLead}
+                  onOpenAddLeadModal={() => setIsAddLeadModalOpen(true)}
+                  onNavigateToLeads={handleNavigateToLeads}
+                  onPatientSelect={handlePatientSelect}
+                />
             } />
             <Route path="leads" element={
               <div className="w-full flex-1 bg-brand-surface rounded-lg shadow-2xs border border-brand-border overflow-hidden animate-slide-up flex flex-col min-h-0">
@@ -1057,9 +1057,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
         showToast={showToast}
       />
 
-            {isWalkInExpressOpen && (
+      {isWalkInExpressOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <ClinicRegistrationForm 
+          <ClinicRegistrationForm
             initialData={walkInInitialData}
             onCancel={() => {
               setIsWalkInExpressOpen(false);
@@ -1083,17 +1083,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             </div>
             <h2 className="text-2xl font-black text-brand-textPrimary mb-1">Check-in Complete!</h2>
             <p className="text-brand-textSecondary text-sm mb-6">Patient added to the waiting room.</p>
-            
+
             <div className="bg-brand-bg rounded-2xl p-6 border border-brand-border mb-6">
               <p className="text-xs text-brand-textSecondary font-bold uppercase tracking-widest mb-2">Token Number</p>
               <div className="text-6xl font-black text-brand-primary tracking-tighter mb-2">{expressTokenResult.token}</div>
               <p className="text-sm font-medium text-brand-textPrimary mt-4 pt-4 border-t border-brand-border border-dashed">
-                {expressTokenResult.details.name} <br/>
+                {expressTokenResult.details.name} <br />
                 <span className="text-brand-textSecondary text-xs">for {expressTokenResult.details.doctorName}</span>
               </p>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setExpressTokenResult(null)}
               className="w-full py-3 bg-brand-hover text-brand-textPrimary font-bold rounded-xl hover:bg-brand-surface transition-colors"
             >

@@ -4,6 +4,7 @@ import { X, Calendar, Clock, User, MapPin, Phone, Mail, Stethoscope, FileText, C
 import { Appointment } from '../types';
 import { api } from '../services/api';
 import { useDoctors } from '../hooks/useDoctors';
+import toast from 'react-hot-toast';
 
 interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -67,6 +68,11 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
     const [showResults, setShowResults] = useState(false);
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    const [doctorSchedules, setDoctorSchedules] = useState<any[]>([]);
+    const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+    const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+    const [isFetchingSlots, setIsFetchingSlots] = useState(false);
 
     const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
@@ -164,7 +170,111 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
 
         performSearch();
     }, [debouncedSearchQuery, initialPatients]);
+    // Fetch doctor schedules when consultant changes
+    useEffect(() => {
+        const fetchSchedules = async () => {
+            if (!formData.consultant) {
+                setDoctorSchedules([]);
+                return;
+            }
+            const selectedDoc = doctors?.find(d => d.name === formData.consultant);
+            if (selectedDoc?.id) {
+                try {
+                    const res = await api.getSchedules(selectedDoc.id);
+                    if (Array.isArray(res)) {
+                        setDoctorSchedules(res);
+                    } else {
+                        setDoctorSchedules([]);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch doctor schedules", error);
+                    setDoctorSchedules([]);
+                }
+            }
+        };
+        fetchSchedules();
+    }, [formData.consultant, doctors]);
 
+    // Validate Date and Generate Time Slots
+    useEffect(() => {
+        const validateDateAndGenerateSlots = async () => {
+            if (!formData.date || !formData.consultant) {
+                setAvailableTimeSlots([]);
+                return;
+            }
+
+            // Parse local date from YYYY-MM-DD
+            const [y, m, d] = formData.date.split('-').map(Number);
+            const selectedDate = new Date(y, m - 1, d);
+            const dayOfWeek = selectedDate.getDay();
+
+            if (doctorSchedules.length > 0) {
+                const shiftForDay = doctorSchedules.find(s => s.day_of_week === dayOfWeek);
+                
+                if (!shiftForDay) {
+                    toast.error(`${formData.consultant} is not available on ${selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}s.`);
+                    setFormData(prev => ({ ...prev, date: '', time: '' }));
+                    setAvailableTimeSlots([]);
+                    return;
+                }
+
+                // Generate slots based on shift
+                const slots: string[] = [];
+                const parseTime = (t: string) => {
+                    const [h, m2] = t.split(':').map(Number);
+                    return h * 60 + m2;
+                };
+
+                let currentMinutes = parseTime(shiftForDay.start_time);
+                const endMinutes = parseTime(shiftForDay.end_time);
+                const duration = shiftForDay.slot_duration_minutes || 15;
+
+                while (currentMinutes + duration <= endMinutes) {
+                    const h = Math.floor(currentMinutes / 60);
+                    const m2 = currentMinutes % 60;
+                    const formattedTime = `${String(h).padStart(2, '0')}:${String(m2).padStart(2, '0')}`;
+                    slots.push(formattedTime);
+                    currentMinutes += duration;
+                }
+                
+                setAvailableTimeSlots(slots);
+                
+                // Fetch existing appointments to block taken slots
+                try {
+                    setIsFetchingSlots(true);
+                    const selectedDoc = doctors?.find(doc => doc.name === formData.consultant);
+                    if (selectedDoc?.id) {
+                        const apptsRes = await api.getAppointments({ date: formData.date, doctor_id: selectedDoc.id });
+                        if (Array.isArray(apptsRes)) {
+                            const taken = apptsRes.filter(a => a.status !== 'Canceled').map(a => {
+                                let timeStr = a.time || '00:00';
+                                if (timeStr.includes('AM') || timeStr.includes('PM')) {
+                                    const [time, ampm] = timeStr.split(' ');
+                                    let [th, tm] = time.split(':').map(Number);
+                                    if (ampm === 'PM' && th < 12) th += 12;
+                                    if (ampm === 'AM' && th === 12) th = 0;
+                                    return `${String(th).padStart(2, '0')}:${String(tm).padStart(2, '0')}`;
+                                }
+                                return timeStr.substring(0, 5);
+                            });
+                            setBookedSlots(taken);
+                        } else {
+                            setBookedSlots([]);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch existing appointments", e);
+                } finally {
+                    setIsFetchingSlots(false);
+                }
+            } else {
+                // If no schedules defined, fallback to 9-5 default
+                setAvailableTimeSlots(['09:00', '09:15', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30']);
+            }
+        };
+
+        validateDateAndGenerateSlots();
+    }, [formData.date, doctorSchedules, formData.consultant, doctors]);
 
     const handlePatientSelect = (patient: any) => {
         setFormData(prev => ({
@@ -409,7 +519,22 @@ export const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({ isOp
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-brand-textSecondary uppercase ml-1 block mb-1">Time</label>
-                                        <input type="time" name="time" step="900" value={formData.time} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required />
+                                        <select name="time" value={formData.time} onChange={handleChange} className="w-full bg-brand-bg border border-brand-border rounded-lg py-2.5 px-3 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-all" required disabled={!formData.consultant || !formData.date || isFetchingSlots}>
+                                            <option value="">{isFetchingSlots ? 'Loading slots...' : 'Select Time'}</option>
+                                            {availableTimeSlots.map(slot => {
+                                                const isBooked = bookedSlots.includes(slot);
+                                                // Convert 24h slot to 12h format for display
+                                                const [h, m] = slot.split(':').map(Number);
+                                                const ampm = h >= 12 ? 'PM' : 'AM';
+                                                const h12 = h % 12 || 12;
+                                                const displaySlot = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+                                                return (
+                                                    <option key={slot} value={slot} disabled={isBooked}>
+                                                        {displaySlot} {isBooked ? '(Booked)' : ''}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
                                     </div>
                                 </div>
 
