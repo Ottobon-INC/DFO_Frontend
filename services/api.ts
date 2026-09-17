@@ -1130,7 +1130,7 @@ export const api = {
     },
 
     getThreadContext: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/context/${threadId}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/context/${threadId}`, {
             headers: getHeaders()
         });
     },
@@ -1153,6 +1153,14 @@ export const api = {
     getEscalationMessages: async (escalationId: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/escalations/${escalationId}/messages`, {
             headers: getHeaders()
+        });
+    },
+
+    sendEscalationReply: async (escalationId: string, message: string, sender: string = 'Doctor') => {
+        return fetchJson<any>(`${API_BASE_URL}/api/escalations/${escalationId}/reply`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ content: message, sender })
         });
     },
 
