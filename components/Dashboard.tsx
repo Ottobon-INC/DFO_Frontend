@@ -46,19 +46,27 @@ const DigitalClock: React.FC = React.memo(() => {
     return () => clearInterval(timer);
   }, []);
 
+  const dateStr = time.toLocaleString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  const timeStr = time.toLocaleString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   return (
-    <span className="text-[11px] font-bold text-brand-textPrimary ml-0.5">
-      {time.toLocaleString('en-GB', {
-        timeZone: 'Asia/Kolkata',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).replace(',', '')}
-    </span>
+    <>
+      <span className="text-[11px] font-bold text-brand-textPrimary ml-1 tracking-wider">{dateStr}</span>
+      <span className="text-[10px] text-brand-textSecondary/40 mx-2">|</span>
+      <span className="text-[11px] font-bold text-brand-textPrimary tracking-wider uppercase">{timeStr}</span>
+    </>
   );
 });
 
@@ -853,11 +861,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
                </button>
             </div>
 
-            {/* Language Toggles */}
-            <div className="hidden lg:flex items-center bg-slate-100 rounded-md p-0.5 border border-brand-border">
-              <span className="bg-brand-primary text-white text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer shadow-2xs">EN</span>
-              <span className="text-brand-textSecondary text-[10px] font-bold px-2 py-0.5 cursor-pointer hover:text-brand-textPrimary">HI</span>
-            </div>
+            {/* Language Toggles Removed */}
             {/* Time / Date */}
             <div className="hidden xl:flex items-center gap-1.5 bg-brand-surface border border-brand-border rounded-md px-2.5 py-1 shadow-2xs">
               <Clock size={12} className="text-brand-primary" />
