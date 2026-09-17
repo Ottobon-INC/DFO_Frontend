@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus, Sparkles } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, User, Lock, TrendingUp, Settings, Search, Bell, LogOut, ChevronDown, UserCheck, Activity, Stethoscope, MessageSquare, Clock, FileText, Shield, ShieldAlert, Inbox, Bed, AlertCircle, CheckCircle2, Menu, X, UserPlus, Sparkles, MessageCircle } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { AnalyticsView } from './AnalyticsView';
@@ -15,6 +15,7 @@ import { RescheduleModal, Toast, AddLeadModal } from './Modals';
 import { BookAppointmentModal } from './AppointmentModals';
 import { ClinicRegistrationForm } from './ClinicRegistrationForm';
 import { QueueManagementView } from './QueueManagementView';
+import { FrontDeskTicketsView } from './FrontDeskTicketsView';
 
 import { Appointment, Lead, DashboardProps, UserRole, Patient } from '../types';
 import { api } from '../services/api';
@@ -613,6 +614,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               onClick={() => navigate('/dashboard/appointments')}
             />
             <NavItem
+              icon={<MessageCircle size={20} className="text-emerald-500" />}
+              label="WhatsApp Live Tickets"
+              active={location.pathname === '/dashboard/live-tickets'}
+              onClick={() => navigate('/dashboard/live-tickets')}
+            />
+            <NavItem
               icon={<MessageSquare size={20} />}
               label="Follow-Ups Queue"
               active={location.pathname === '/dashboard/follow-ups'}
@@ -989,6 +996,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
             <Route path="clinical-escalations" element={
               <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
                 <ClinicalEscalationsView appointments={appointments} onPatientSelect={handlePatientSelect} />
+              </div>
+            } />
+            <Route path="live-tickets" element={
+              <div className="w-full flex-1 flex flex-col animate-slide-up min-h-0">
+                <FrontDeskTicketsView />
               </div>
             } />
             <Route path="sakhi-escalations" element={

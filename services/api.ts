@@ -1142,6 +1142,25 @@ export const api = {
         });
     },
 
+    getFrontDeskQueue: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/frontdesk`, {
+            headers: getHeaders()
+        });
+    },
+
+    sendThreadReply: async (threadId: string, content: string, senderId: string = 'Staff', senderType: 'HUMAN' | 'AI' | 'USER' = 'HUMAN') => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/event/message`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                thread_id: threadId,
+                sender_id: senderId,
+                sender_type: senderType,
+                content
+            })
+        });
+    },
+
     getSakhiEscalations: async (doctorId: string, clinicId?: string) => {
         const queryParams = new URLSearchParams({ doctorId });
         if (clinicId) queryParams.append('clinicId', clinicId);
