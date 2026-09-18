@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UpcomingAppointmentsAlert } from '../DashboardWidgets';
-import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, BrainCircuit, X } from 'lucide-react';
-import { api } from '../../services/api';import toast from 'react-hot-toast';
+import { Stethoscope, ShieldAlert, Users, Calendar, AlertTriangle, User, RefreshCw, Send, CheckCircle, Search, BrainCircuit, X, MessageSquare } from 'lucide-react';
+import { api } from '../../services/api';
+import toast from 'react-hot-toast';
 
 
 
@@ -45,7 +46,16 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
       const res = await api.getDoctorQueue();
       const allQueue = res.data || res || [];
       const myQueue = allQueue.filter((item: any) => item.assigned_user_id === loggedInDoctorId);
-      setRedQueue(myQueue);
+      const queueToSet = myQueue.length > 0 ? myQueue : allQueue;
+      setRedQueue(queueToSet);
+      if (queueToSet.length > 0) {
+        setSelectedThreadId((prev: any) => {
+          const currentExists = queueToSet.find((t: any) => t.id === prev);
+          const activeId = currentExists ? prev : queueToSet[0].id;
+          fetchThreadContext(activeId);
+          return activeId;
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch doctor queue", err);
       setRedQueue([]);
@@ -56,14 +66,34 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
   const fetchThreadContext = async (id: string) => {
     try {
       const res = await api.getThreadContext(id);
-      const ctx = res.data || res;
-      setThreadContext(ctx);
-      if (ctx.structured_memory?.summary && ctx.structured_memory.summary !== 'No summary available yet.') {
+      const raw = res?.data || res;
+      const thread = raw?.thread || (!Array.isArray(raw) ? raw : null) || redQueue.find((t: any) => t.id === id) || { id, patient_name: 'Escalated Patient' };
+      const messages = raw?.messages || (Array.isArray(raw) ? raw : (raw?.data?.messages || []));
+      setThreadContext({ ...raw, thread, messages });
+      if (raw?.structured_memory?.summary && raw.structured_memory.summary !== 'No summary available yet.') {
         setShowSummaryModal(true);
       }
     } catch (err) {
       console.error("Failed to fetch thread context", err);
-      setThreadContext(null);
+      const fallbackThread = redQueue.find((t: any) => t.id === id) || { id, patient_name: 'Escalated Patient' };
+      setThreadContext({ thread: fallbackThread, messages: [] });
+    }
+  };
+
+  // Send WhatsApp / Thread Reply
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedThreadId) return;
+    setSendingReply(true);
+    try {
+      await api.sendThreadReply(selectedThreadId, replyText.trim(), 'Doctor', 'HUMAN');
+      toast.success("Message sent to patient!");
+      setReplyText('');
+      fetchThreadContext(selectedThreadId);
+    } catch (err: any) {
+      console.error("Failed to send reply", err);
+      toast.error(err?.message || "Failed to send message");
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -76,13 +106,9 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
       fetchEscalations();
       setSelectedThreadId(null);
       setThreadContext(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to take control", err);
-      // Simulate success for demo
-      toast.success("Successfully took control of this conversation (Demo Mode);!");
-      setRedQueue(prev => prev.filter(q => q.id !== id));
-      setSelectedThreadId(null);
-      setThreadContext(null);
+      toast.error(err?.message || "Failed to take control of conversation");
     } finally {
       setTakingControl(false);
     }
@@ -95,16 +121,12 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
       setPatients(res.data || res.items || res || []);
     } catch (err) {
       console.error("Failed to fetch patients", err);
-      setPatients([
-        { id: "p1", name: "Sara Johnson", mobile: "+919900112233", age: "28", bloodGroup: "O+", status: "Active" },
-        { id: "p2", name: "Priya Nair", mobile: "+919900112234", age: "32", bloodGroup: "A-", status: "Active" }
-      ]);
+      setPatients([]);
     }
   };
 
   // Fetch Consultations
-      const fetchAppointments = async () => {
-    // if (propAppointments && propAppointments.length > 0) return; // FORCE REFETCH
+  const fetchAppointments = async () => {
     try {
       const res = await api.getAppointments();
       let pRes = null;
@@ -126,10 +148,7 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
       setAppointments(mapped);
     } catch (err) {
       console.error("Failed to fetch appointments", err);
-      setAppointments([
-        { id: "a1", patientName: "Sara Johnson", date: new Date().toISOString().split('T')[0], time: "11:00 AM", type: "Scan Review", status: "Scheduled" },
-        { id: "a2", patientName: "Priya Nair", date: new Date().toISOString().split('T')[0], time: "02:30 PM", type: "High Risk consultation", status: "Scheduled" }
-      ]);
+      setAppointments([]);
     }
   };
 
@@ -191,12 +210,16 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
                         className={`p-4 cursor-pointer hover:bg-brand-bg/40 transition-colors ${selectedThreadId === item.id ? 'bg-brand-primary/10 border-l-4 border-brand-primary' : ''}`}
                       >
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold text-xs text-brand-textPrimary">{item.patient_name}</span>
+                          <span className="font-bold text-xs text-brand-textPrimary">
+                            {item.patient_name || item.patientName || item.name || (item.user_id && item.user_id.length <= 13 ? `+${item.user_id}` : `Patient #${item.id.substring(0, 6)}`)}
+                          </span>
                           <span className="text-[10px] font-extrabold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">
-                            Risk {item.risk_score || 'N/A'}%
+                            {item.risk_score != null ? `Risk ${item.risk_score}%` : 'High Priority'}
                           </span>
                         </div>
-                        <p className="text-xs text-brand-textSecondary truncate">{item.latest_message}</p>
+                        <p className="text-xs text-brand-textSecondary truncate">
+                          {item.last_message_preview || item.latest_message || item.escalation_reason || 'High Risk clinical alert'}
+                        </p>
                       </div>
                     ))
                   )}
@@ -209,8 +232,19 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
                   <>
                     <div className="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/10">
                       <div>
-                        <h4 className="font-bold text-sm text-brand-textPrimary">{threadContext.thread?.patient_name}</h4>
-                        <p className="text-xs text-brand-textSecondary">High-Risk Escalation Thread</p>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-brand-textPrimary">
+                            {threadContext.thread?.patient_name || threadContext.patient_name || (threadContext.thread?.user_id && threadContext.thread.user_id.length <= 13 ? `+${threadContext.thread.user_id}` : 'Escalated Patient')}
+                          </h4>
+                          {threadContext.thread?.user_id && /^\d+$/.test(threadContext.thread.user_id) && (
+                            <span className="text-[11px] text-brand-textSecondary bg-brand-bg px-2 py-0.5 rounded-md border border-brand-border/60 font-mono">
+                              +{threadContext.thread.user_id}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-brand-textSecondary mt-0.5">
+                          {threadContext.thread?.escalation_reason || 'Urgent Clinical Escalation Thread'}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleTakeControl(selectedThreadId)}
@@ -221,14 +255,60 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ appointments: 
                       </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {threadContext.messages?.map((msg: any) => (
-                        <div key={msg.id} className={`flex ${msg.sender_type === 'HUMAN' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-md p-3.5 rounded-2xl text-xs ${msg.sender_type === 'HUMAN' ? 'bg-brand-primary text-white' : 'bg-brand-bg text-brand-textPrimary border border-brand-border'}`}>
-                            {msg.content}
-                          </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scrollbar">
+                      {(!threadContext.messages || threadContext.messages.length === 0) ? (
+                        <div className="h-full flex flex-col items-center justify-center p-8 text-center text-brand-textSecondary">
+                          <MessageSquare size={32} className="opacity-30 mb-2" />
+                          <p className="text-xs font-semibold">No messages in this escalation thread yet.</p>
+                          <p className="text-[11px] opacity-70 mt-1">Send a message below or take over control to communicate directly.</p>
                         </div>
-                      ))}
+                      ) : (
+                        threadContext.messages.map((msg: any) => {
+                          const isDoctor = msg.sender_type === 'HUMAN';
+                          const isBot = msg.sender_type === 'AI';
+                          return (
+                            <div key={msg.id} className={`flex flex-col ${isDoctor ? 'items-end' : 'items-start'}`}>
+                              <span className="text-[10px] text-brand-textSecondary mb-0.5 px-1 font-medium">
+                                {isDoctor ? 'Doctor / Staff Response' : (isBot ? 'Medcy WhatsApp Assistant' : (threadContext.thread?.patient_name || 'Patient'))}
+                              </span>
+                              <div className={`max-w-md p-3.5 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed shadow-sm ${
+                                isDoctor 
+                                  ? 'bg-brand-primary text-white rounded-tr-none' 
+                                  : (isBot 
+                                      ? 'bg-brand-surface text-brand-textPrimary border border-brand-border/80 rounded-tl-none' 
+                                      : 'bg-brand-bg text-brand-textPrimary border border-brand-border rounded-tl-none')
+                              }`}>
+                                {msg.content}
+                              </div>
+                              {msg.created_at && (
+                                <span className="text-[9px] text-brand-textSecondary/70 mt-0.5 px-1">
+                                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Interactive Reply Composer */}
+                    <div className="p-3 border-t border-brand-border bg-brand-bg/10 flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Type a message to the patient on WhatsApp..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendReply(); }}
+                        disabled={sendingReply}
+                        className="flex-1 bg-brand-surface border border-brand-border rounded-xl px-3.5 py-2.5 text-xs text-brand-textPrimary placeholder:text-brand-textSecondary/60 focus:outline-none focus:border-brand-primary transition-all"
+                      />
+                      <button
+                        onClick={handleSendReply}
+                        disabled={sendingReply || !replyText.trim()}
+                        className="bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        <Send size={13} /> {sendingReply ? 'Sending...' : 'Send'}
+                      </button>
                     </div>
                   </>
                 ) : (

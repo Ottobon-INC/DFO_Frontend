@@ -1130,7 +1130,7 @@ export const api = {
     },
 
     getThreadContext: async (threadId: string) => {
-        return fetchJson<any>(`${API_BASE_URL}/api/janmasethu/context/${threadId}`, {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/context/${threadId}`, {
             headers: getHeaders()
         });
     },
@@ -1139,6 +1139,25 @@ export const api = {
     getDoctorQueue: async () => {
         return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/doctor`, {
             headers: getHeaders()
+        });
+    },
+
+    getFrontDeskQueue: async () => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/queue/frontdesk`, {
+            headers: getHeaders()
+        });
+    },
+
+    sendThreadReply: async (threadId: string, content: string, senderId: string = 'Staff', senderType: 'HUMAN' | 'AI' | 'USER' = 'HUMAN') => {
+        return fetchJson<any>(`${API_BASE_URL}/api/thread/event/message`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                thread_id: threadId,
+                sender_id: senderId,
+                sender_type: senderType,
+                content
+            })
         });
     },
 
@@ -1153,6 +1172,14 @@ export const api = {
     getEscalationMessages: async (escalationId: string) => {
         return fetchJson<any>(`${API_BASE_URL}/api/escalations/${escalationId}/messages`, {
             headers: getHeaders()
+        });
+    },
+
+    sendEscalationReply: async (escalationId: string, message: string, sender: string = 'Doctor') => {
+        return fetchJson<any>(`${API_BASE_URL}/api/escalations/${escalationId}/reply`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ content: message, sender })
         });
     },
 
