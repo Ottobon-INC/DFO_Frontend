@@ -50,7 +50,10 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
   patientGender = ''
 }) => {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const isReadOnly = currentUser?.role === 'frontdesk' || currentUser?.role === 'cro';
+  // Allowlist: roles that can write to the IVF case sheet (case-insensitive, covers all DB variants)
+  const rawRole = (currentUser?.role || '').toLowerCase().replace(/[\s_-]/g, '');
+  const CAN_EDIT_ROLES = ['doctor', 'dr', 'physician', 'consultant', 'nurse', 'staffnurse', 'triagenurse', 'labstaff', 'admin', 'clinicadmin', 'hospitaladmin'];
+  const isReadOnly = !CAN_EDIT_ROLES.some(r => rawRole.includes(r));
   const [currentPage, setCurrentPage] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
