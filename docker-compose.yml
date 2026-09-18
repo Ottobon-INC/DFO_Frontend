@@ -18,4 +18,5 @@ services:
 
 networks:
   digital-op-desk-network:
-    external: true
+    name: digital-op-desk-network
+    driver: bridge
