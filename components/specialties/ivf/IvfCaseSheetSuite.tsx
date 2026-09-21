@@ -273,8 +273,33 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
     { date: '', dayOfCycle: '', rtOvary: '', ltOvary: '', et: '', mucus: '', remarks: '' },
   ]);
 
+  // ─── Page 13 State: Ovarian Stimulation Monitoring ───
+  interface StimDailyRow { day: number; date: string; e2: string; lh: string; drugs: string; rtOv: string; ltOv: string; em: string; }
+  const defaultStimLog = (): StimDailyRow[] => Array.from({ length: 16 }, (_, i) => ({ day: i, date: '', e2: '', lh: '', drugs: '', rtOv: '', ltOv: '', em: '' }));
+  const [stimProtocol, setStimProtocol] = useState('');
+  const [stimAgonistAntagonist, setStimAgonistAntagonist] = useState('');
+  const [stimPositiveNegative, setStimPositiveNegative] = useState('');
+  const [stimAntithyroidAbs, setStimAntithyroidAbs] = useState('');
+  const [stimE2Day0, setStimE2Day0] = useState('');
+  const [stimE2Day4, setStimE2Day4] = useState('');
+  const [stimE2Day10, setStimE2Day10] = useState('');
+  const [stimLHDay0, setStimLHDay0] = useState('');
+  const [stimLHDay4, setStimLHDay4] = useState('');
+  const [stimLHDay10, setStimLHDay10] = useState('');
+  const [stimE2LevelNote, setStimE2LevelNote] = useState('');
+  const [stimLHLevelNote, setStimLHLevelNote] = useState('');
+  const [stimDailyLog, setStimDailyLog] = useState<StimDailyRow[]>(defaultStimLog());
+  const [stimTotalDose, setStimTotalDose] = useState('');
+  const [stimTotalCount, setStimTotalCount] = useState('');
+  const [stimBrandName, setStimBrandName] = useState('');
+  const [stimGivenBy, setStimGivenBy] = useState('');
+  const [stimHcgDate, setStimHcgDate] = useState('');
+  const [stimHcgTime, setStimHcgTime] = useState('');
+  const [stimOrDate, setStimOrDate] = useState('');
+  const [stimOrTime, setStimOrTime] = useState('');
+
   // ─── Page Config ───────────────────────────────────────
-  const TOTAL_PAGES = 12; // We merged page 6 into page 3
+  const TOTAL_PAGES = 13;
 
   const pageConfig = [
     { num: 1, title: 'Female Profile & History', shortTitle: 'Female Profile', icon: <User size={13} /> },
@@ -289,6 +314,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
     { num: 10, title: 'Clinical Summary & Treatment Plan', shortTitle: 'Summary & Plan', icon: <Clipboard size={13} /> },
     { num: 11, title: 'IVF / ICSI Protocol Tracker', shortTitle: 'Protocol Track', icon: <ClipboardList size={13} /> },
     { num: 12, title: 'Follicular Monitoring & Trigger Tracker', shortTitle: 'Follicular Scan', icon: <BarChart3 size={13} /> },
+    { num: 13, title: 'Ovarian Stimulation Monitoring Sheet', shortTitle: 'Stim Sheet', icon: <Activity size={13} /> },
   ];
 
   // ─── Helpers ───────────────────────────────────────────
@@ -507,6 +533,32 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             setFollicularRows(d.treatmentTracking.follicular_rows);
           }
         }
+        if (d.stimulationSheet) {
+          const s = d.stimulationSheet;
+          setStimProtocol(s.protocol || '');
+          setStimAgonistAntagonist(s.agonist_antagonist || '');
+          setStimPositiveNegative(s.positive_negative || '');
+          setStimAntithyroidAbs(s.antithyroid_abs || '');
+          setStimE2LevelNote(s.e2_level_note || '');
+          setStimLHLevelNote(s.lh_level_note || '');
+          setStimE2Day0(s.e2_day0 || '');
+          setStimE2Day4(s.e2_day4 || '');
+          setStimE2Day10(s.e2_day10 || '');
+          setStimLHDay0(s.lh_day0 || '');
+          setStimLHDay4(s.lh_day4 || '');
+          setStimLHDay10(s.lh_day10 || '');
+          if (s.daily_log && Array.isArray(s.daily_log) && s.daily_log.length > 0) {
+            setStimDailyLog(s.daily_log);
+          }
+          setStimTotalDose(s.total_dose_fsh_lh_hmg || '');
+          setStimTotalCount(s.total_count || '');
+          setStimBrandName(s.brand_name || '');
+          setStimGivenBy(s.given_by || '');
+          setStimHcgDate(formatDateForInput(s.hcg_date));
+          setStimHcgTime(s.hcg_time || '');
+          setStimOrDate(formatDateForInput(s.or_date));
+          setStimOrTime(s.or_time || '');
+        }
       }
     } catch (e) {
       console.error("Failed to load IVF case sheet", e);
@@ -682,6 +734,29 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
           fm_diagnosis: fmDiagnosis,
           fm_protocol: fmProtocol,
           follicular_rows: follicularRows,
+        },
+        stimulationSheet: {
+          protocol: stimProtocol,
+          agonist_antagonist: stimAgonistAntagonist,
+          positive_negative: stimPositiveNegative,
+          antithyroid_abs: stimAntithyroidAbs,
+          e2_level_note: stimE2LevelNote,
+          lh_level_note: stimLHLevelNote,
+          e2_day0: stimE2Day0,
+          e2_day4: stimE2Day4,
+          e2_day10: stimE2Day10,
+          lh_day0: stimLHDay0,
+          lh_day4: stimLHDay4,
+          lh_day10: stimLHDay10,
+          daily_log: stimDailyLog,
+          total_dose_fsh_lh_hmg: stimTotalDose,
+          total_count: stimTotalCount,
+          brand_name: stimBrandName,
+          given_by: stimGivenBy,
+          hcg_date: stimHcgDate || null,
+          hcg_time: stimHcgTime,
+          or_date: stimOrDate || null,
+          or_time: stimOrTime,
         },
       };
 
@@ -1380,6 +1455,198 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
     </div>
   );
 
+  const renderPage13 = () => {
+    const cellCls = 'px-1 py-1';
+    const tdInputCls = inputCls + ' min-h-[30px]';
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className={sectionCls}>
+          <h3 className={headerCls}><Activity size={16} className="text-rose-500" /> Ovarian Stimulation Monitoring Sheet</h3>
+          
+          <div className="border border-slate-300 p-4 bg-white mb-4 shadow-sm text-[13px] text-slate-800 font-medium">
+            <div className="flex justify-between items-start mb-6">
+              {/* Protocol text input */}
+              <div className="flex items-center gap-2 w-1/3">
+                <span className="uppercase text-xs font-bold text-slate-700 whitespace-nowrap">PROTOCOL:</span>
+                <input value={stimProtocol} onChange={e => setStimProtocol(e.target.value)} className={inputCls + " w-full max-w-[200px] border-b-2 border-slate-300 rounded-none bg-transparent px-1 print:border-black print:text-black"} disabled={isReadOnly} />
+              </div>
+              
+              {/* Radio buttons for Agonist/Antagonist and Positive/Negative */}
+              <div className="flex flex-col gap-3 w-2/3 items-end pr-10">
+                <div className="flex items-center gap-6">
+                  <span className="uppercase text-xs font-bold text-slate-700 w-48 text-right">AGONIST / ANTAGONIST :</span>
+                  <div className="flex gap-4 w-48 text-xs font-bold">
+                    <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-600 print:text-black">
+                      <input type="radio" value="Agonist" checked={stimAgonistAntagonist === 'Agonist'} onClick={() => setStimAgonistAntagonist(stimAgonistAntagonist === 'Agonist' ? '' : 'Agonist')} onChange={() => {}} disabled={isReadOnly} className="accent-emerald-600 print:hidden" />
+                      <span className="hidden print:inline-block text-lg leading-none">{stimAgonistAntagonist === 'Agonist' ? '◉' : '◯'}</span>
+                      Agonist
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-600 print:text-black">
+                      <input type="radio" value="Antagonist" checked={stimAgonistAntagonist === 'Antagonist'} onClick={() => setStimAgonistAntagonist(stimAgonistAntagonist === 'Antagonist' ? '' : 'Antagonist')} onChange={() => {}} disabled={isReadOnly} className="accent-emerald-600 print:hidden" />
+                      <span className="hidden print:inline-block text-lg leading-none">{stimAgonistAntagonist === 'Antagonist' ? '◉' : '◯'}</span>
+                      Antagonist
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <span className="uppercase text-xs font-bold text-slate-700 w-48 text-right">POSITIVE / NEGATIVE :</span>
+                  <div className="flex gap-4 w-48 text-xs font-bold">
+                    <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-600 print:text-black">
+                      <input type="radio" value="Positive" checked={stimPositiveNegative === 'Positive'} onClick={() => setStimPositiveNegative(stimPositiveNegative === 'Positive' ? '' : 'Positive')} onChange={() => {}} disabled={isReadOnly} className="accent-emerald-600 print:hidden" />
+                      <span className="hidden print:inline-block text-lg leading-none">{stimPositiveNegative === 'Positive' ? '◉' : '◯'}</span>
+                      Positive
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer hover:text-emerald-600 print:text-black">
+                      <input type="radio" value="Negative" checked={stimPositiveNegative === 'Negative'} onClick={() => setStimPositiveNegative(stimPositiveNegative === 'Negative' ? '' : 'Negative')} onChange={() => {}} disabled={isReadOnly} className="accent-emerald-600 print:hidden" />
+                      <span className="hidden print:inline-block text-lg leading-none">{stimPositiveNegative === 'Negative' ? '◉' : '◯'}</span>
+                      Negative
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid for Lab Levels */}
+            <div className="grid grid-cols-3 gap-4 mb-2 items-start max-w-4xl">
+              {/* Col 1 */}
+              <div className="space-y-3">
+                 <div className="flex items-center gap-2 whitespace-nowrap">
+                   <span className="uppercase text-xs font-bold text-slate-700">ANTITHYROID Ab's :</span>
+                   <input value={stimAntithyroidAbs} onChange={e => setStimAntithyroidAbs(e.target.value)} className={inputCls + " w-24 border-b-2 border-slate-300 rounded-none bg-transparent px-1 print:border-black print:text-black"} disabled={isReadOnly} />
+                 </div>
+                 <div className="text-right pr-4 text-xs font-bold text-slate-600">Day 0 :</div>
+                 <div className="text-right pr-4 text-xs font-bold text-slate-600">Day 4 :</div>
+                 <div className="text-right pr-4 text-xs font-bold text-slate-600">Day 10 :</div>
+              </div>
+              
+              {/* Col 2 */}
+              <div className="space-y-3 flex flex-col items-center">
+                 <div className="flex items-center gap-2 uppercase text-xs font-bold text-slate-700">
+                    E2 LEVELS :
+                    <input value={stimE2LevelNote} onChange={e => setStimE2LevelNote(e.target.value)} className={inputCls + " w-20 text-center border-b-2 border-slate-300 rounded-none bg-transparent font-normal print:border-black print:text-black"} disabled={isReadOnly} />
+                 </div>
+                 <input value={stimE2Day0} onChange={e => setStimE2Day0(e.target.value)} className={inputCls + " w-24 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} />
+                 <input value={stimE2Day4} onChange={e => setStimE2Day4(e.target.value)} className={inputCls + " w-24 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} />
+                 <input value={stimE2Day10} onChange={e => setStimE2Day10(e.target.value)} className={inputCls + " w-24 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} />
+              </div>
+
+              {/* Col 3 */}
+              <div className="space-y-3">
+                 <div className="flex items-center justify-center gap-2 uppercase text-xs font-bold text-slate-700 pl-4">
+                    LH LEVELS :
+                    <input value={stimLHLevelNote} onChange={e => setStimLHLevelNote(e.target.value)} className={inputCls + " w-20 text-center border-b-2 border-slate-300 rounded-none bg-transparent font-normal print:border-black print:text-black"} disabled={isReadOnly} />
+                 </div>
+                 <div className="flex items-center justify-center gap-2 pl-4"><span className="w-14 text-right text-xs font-bold text-slate-600">Day 0 :</span><input value={stimLHDay0} onChange={e => setStimLHDay0(e.target.value)} className={inputCls + " w-20 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} /></div>
+                 <div className="flex items-center justify-center gap-2 pl-4"><span className="w-14 text-right text-xs font-bold text-slate-600">Day 4 :</span><input value={stimLHDay4} onChange={e => setStimLHDay4(e.target.value)} className={inputCls + " w-20 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} /></div>
+                 <div className="flex items-center justify-center gap-2 pl-4"><span className="w-14 text-right text-xs font-bold text-slate-600">Day 10 :</span><input value={stimLHDay10} onChange={e => setStimLHDay10(e.target.value)} className={inputCls + " w-20 text-center border-b-2 border-slate-300 rounded-none bg-transparent print:border-black print:text-black"} disabled={isReadOnly} /></div>
+              </div>
+            </div>
+            
+            <div className="text-center mt-6 font-bold text-slate-700 uppercase tracking-widest text-xs">ANTAGONIST</div>
+          </div>
+        </div>
+
+        {/* Daily Log Table */}
+        <div className={sectionCls}>
+          <h3 className={headerCls}><FileText size={16} className="text-sky-500" /> Daily Stimulation Log (Day 0 – Day 15)</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-800 text-white">
+                  <th className="px-2 py-2 text-left font-bold">Day</th>
+                  <th className="px-2 py-2 text-left font-bold">Date</th>
+                  <th className="px-2 py-2 text-left font-bold">E2</th>
+                  <th className="px-2 py-2 text-left font-bold">LH</th>
+                  <th className="px-2 py-2 text-left font-bold">Drugs</th>
+                  <th className="px-2 py-2 text-left font-bold">RT OV</th>
+                  <th className="px-2 py-2 text-left font-bold">LT OV</th>
+                  <th className="px-2 py-2 text-left font-bold">EM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stimDailyLog.map((row, i) => (
+                  <tr key={i} className={`border-b border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-rose-50/30`}>
+                    <td className={cellCls + ' font-bold text-slate-700 text-center w-10'}>{row.day}</td>
+                    <td className={cellCls}><input type="date" value={row.date} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, date: e.target.value } : r))} className={tdInputCls} disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.e2} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, e2: e.target.value } : r))} className={tdInputCls} placeholder="—" disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.lh} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, lh: e.target.value } : r))} className={tdInputCls} placeholder="—" disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.drugs} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, drugs: e.target.value } : r))} className={tdInputCls} placeholder="Drug + Dose" disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.rtOv} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, rtOv: e.target.value } : r))} className={tdInputCls} placeholder="—" disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.ltOv} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, ltOv: e.target.value } : r))} className={tdInputCls} placeholder="—" disabled={isReadOnly} /></td>
+                    <td className={cellCls}><input value={row.em} onChange={e => setStimDailyLog(prev => prev.map((r, idx) => idx === i ? { ...r, em: e.target.value } : r))} className={tdInputCls} placeholder="—" disabled={isReadOnly} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {!isReadOnly && (
+              <div className="flex justify-start gap-3 mt-3 px-1">
+                <button
+                  type="button"
+                  onClick={() => setStimDailyLog(prev => [...prev, { day: prev.length, date: '', e2: '', lh: '', drugs: '', rt_ov: '', lt_ov: '', em: '' } as any])}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded shadow-sm border border-slate-300 transition-colors flex items-center gap-1"
+                >
+                  <Plus size={14} /> Add Day
+                </button>
+                {stimDailyLog.length > 16 && (
+                  <button
+                    type="button"
+                    onClick={() => setStimDailyLog(prev => prev.slice(0, -1))}
+                    className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 text-xs font-semibold rounded shadow-sm border border-red-200 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 size={14} /> Remove Last Day
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Summary */}
+        <div className={sectionCls}>
+          <h3 className={headerCls}><ClipboardList size={16} className="text-violet-500" /> Summary & Totals</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div>
+              <label className={labelCls}>Total Dose (FSH + LH/HMG)</label>
+              <input value={stimTotalDose} onChange={e => setStimTotalDose(e.target.value)} className={inputCls} placeholder="e.g. 2250 IU" disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>Total Count</label>
+              <input value={stimTotalCount} onChange={e => setStimTotalCount(e.target.value)} className={inputCls} placeholder="—" disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>Brand Name</label>
+              <input value={stimBrandName} onChange={e => setStimBrandName(e.target.value)} className={inputCls} placeholder="e.g. Recagon" disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>Given By</label>
+              <input value={stimGivenBy} onChange={e => setStimGivenBy(e.target.value)} className={inputCls} placeholder="Staff name" disabled={isReadOnly} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className={labelCls}>HCG Trigger Date</label>
+              <input type="date" value={stimHcgDate} onChange={e => setStimHcgDate(e.target.value)} className={inputCls} disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>HCG Time</label>
+              <input type="time" value={stimHcgTime} onChange={e => setStimHcgTime(e.target.value)} className={inputCls} disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>OR (Egg Retrieval) Date</label>
+              <input type="date" value={stimOrDate} onChange={e => setStimOrDate(e.target.value)} className={inputCls} disabled={isReadOnly} />
+            </div>
+            <div>
+              <label className={labelCls}>OR Time</label>
+              <input type="time" value={stimOrTime} onChange={e => setStimOrTime(e.target.value)} className={inputCls} disabled={isReadOnly} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 1: return renderPage1();
@@ -1394,6 +1661,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
       case 10: return renderPage10();
       case 11: return renderPage11();
       case 12: return renderPage12();
+      case 13: return renderPage13();
       default: return renderPage1();
     }
   };
@@ -1796,11 +2064,19 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
             </div>
 
             {/* Section 12 */}
-            <div className="print-section">
+            <div className="print-section print-page-break">
               <div className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-t-md uppercase tracking-wider mb-2">
-                Page 12: Follicular Monitoring & Ovarian Stimulation Sheet
+                Page 12: Follicular Monitoring &amp; Ovarian Stimulation Sheet
               </div>
               {renderPage12()}
+            </div>
+
+            {/* Section 13 */}
+            <div className="print-section">
+              <div className="bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-t-md uppercase tracking-wider mb-2">
+                Page 13: Ovarian Stimulation Monitoring Sheet
+              </div>
+              {renderPage13()}
 
               {/* Print Sign-off Block */}
               <div className="mt-8 pt-4 border-t-2 border-slate-400 print-avoid-break flex justify-between items-end text-xs text-slate-700">
@@ -1811,7 +2087,7 @@ export const IvfCaseSheetSuite: React.FC<IvfCaseSheetSuiteProps> = ({
                 <div className="text-right space-y-1">
                   <div className="w-56 border-b border-slate-600 mb-1 inline-block"></div>
                   <p className="font-bold text-slate-900">Authorized IVF Specialist / Clinician</p>
-                  <p className="text-[10px] text-slate-500">Signature & Medical Registration Number</p>
+                  <p className="text-[10px] text-slate-500">Signature &amp; Medical Registration Number</p>
                 </div>
               </div>
             </div>

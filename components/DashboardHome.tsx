@@ -117,8 +117,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     }, [userRole, leads, leadsInCROQueue, leadsConvertedToday]); // Refetch when data changes
 
     return (
-        <div className="flex flex-col gap-8 md:gap-10 lg:gap-12 animate-fade-in overflow-hidden w-full p-4 lg:p-8">
-            <UpcomingAppointmentsAlert upcomingAppointments={upcomingAppointments} />
+        <div className="flex flex-col gap-8 md:gap-10 lg:gap-12 animate-fade-in overflow-y-auto w-full p-4 lg:p-8">
 
             {userRole === UserRole.ADMIN || userRole === UserRole.CRO ? (
                 // --- Premium Admin / CRO Layout ---
@@ -154,8 +153,6 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                             )}
                         </div>
                     </div>
-
-                    <UpcomingAppointmentsAlert upcomingAppointments={upcomingAppointments} />
                     
                     <DoctorDashboard
                         appointments={appointments}

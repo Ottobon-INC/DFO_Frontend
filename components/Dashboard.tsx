@@ -611,6 +611,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, userRole }) => {
               label="Appointments"
               active={location.pathname === '/dashboard/appointments'}
               onClick={() => navigate('/dashboard/appointments')}
+              badge={upcomingAppointments.length > 0 ? upcomingAppointments.length : undefined}
             />
             <NavItem
               icon={<MessageSquare size={20} />}
@@ -1128,7 +1129,8 @@ const NavItem: React.FC<{
   rightIcon?: React.ReactNode;
   isSubItem?: boolean;
   customClass?: string;
-}> = ({ icon, label, active, highlighted, onClick, rightIcon, isSubItem, customClass }) => (
+  badge?: number;
+}> = ({ icon, label, active, highlighted, onClick, rightIcon, isSubItem, customClass, badge }) => (
   <div
     onClick={onClick}
     className={`
@@ -1145,9 +1147,19 @@ const NavItem: React.FC<{
       </div>
       <span className={`text-xs tracking-tight ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
     </div>
-    {rightIcon && <div className="text-slate-400">{rightIcon}</div>}
+    <div className="flex items-center gap-1.5">
+      {badge !== undefined && badge > 0 && (
+        <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none ${
+          active ? 'bg-white text-brand-primary' : 'bg-red-500 text-white'
+        } animate-pulse`}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+      {rightIcon && <div className="text-slate-400">{rightIcon}</div>}
+    </div>
   </div>
 );
+
 
 
 
