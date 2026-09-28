@@ -240,7 +240,7 @@ export const ControlTowerWorkspace: React.FC = () => {
     // Subscribe to conversation_threads updates
     const threadsSubscription = supabase
       .channel('threads-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'opdesk_conversation_threads' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_threads' }, () => {
         fetchThreads();
       })
       .subscribe();
@@ -306,7 +306,7 @@ export const ControlTowerWorkspace: React.FC = () => {
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'opdesk_sakhi_conversations_new',
+        table: 'sakhi_conversations_new',
         filter: `user_id=eq.${threadDetails?.user_id || ''}`
       }, (payload) => {
         let sender_type = 'HUMAN';
