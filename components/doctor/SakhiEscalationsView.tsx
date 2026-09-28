@@ -67,7 +67,7 @@ export const SakhiEscalationsView: React.FC = () => {
                          item.reason?.toLowerCase().includes('bleeding');
           const cat = isCritical ? 'Critical' : (isPost ? 'Post-Care' : 'Pre-Care');
 
-          const patientName = item.patient_name || item.name || (item.user_id ? `Patient (${item.user_id})` : 'Patient');
+          const patientName = item.patient_name || item.name || (item.user_id ? `Patient:opdesk_Patient (${item.user_id})` : 'Patient');
           return {
             id: item.id || `esc-backend-${idx}`,
             patient_name: patientName,

@@ -365,7 +365,7 @@ export default function DoctorScheduleSettings({ userRole, currentUser, onNaviga
               className="bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-xs font-bold text-brand-textPrimary outline-none focus:border-brand-primary"
             >
               <option value={10}>10 Minutes / Patient</option>
-              <option value={15}>15 Minutes / Patient (Standard)</option>
+              <option value={15}>15 Minutes / Patient:opdesk_Patient (Standard)</option>
               <option value={20}>20 Minutes / Patient</option>
               <option value={30}>30 Minutes / Patient</option>
               <option value={45}>45 Minutes / Patient</option>

@@ -498,7 +498,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
                   />
                 </div>
                 <div>
-                  <label htmlFor="lead-doctor" className="block text-xs font-bold text-brand-textSecondary uppercase mb-1">Treatment Doctor (Camp) <span className="text-brand-textSecondary/50 normal-case">(Optional)</span></label>
+                  <label htmlFor="lead-doctor" className="block text-xs font-bold text-brand-textSecondary uppercase mb-1">Treatment Doctor:opdesk_Doctor (Camp) <span className="text-brand-textSecondary/50 normal-case">(Optional)</span></label>
                   <select id="lead-doctor"
                     value={data.treatmentDoctor}
                     onChange={e => {
@@ -511,7 +511,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ isOpen, onClose, onC
                     }}
                     className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-brand-textPrimary outline-none focus:border-brand-primary transition-colors"
                   >
-                    <option value="">Select Doctor (Optional)</option>
+                    <option value="">Select Doctor:opdesk_Doctor (Optional)</option>
                     {doctors.map(doc => (
                       <option key={doc.id} value={doc.name}>{doc.name}</option>
                     ))}

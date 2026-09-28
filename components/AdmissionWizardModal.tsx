@@ -172,7 +172,7 @@ export const AdmissionWizardModal: React.FC<AdmissionWizardModalProps> = ({ isOp
               {/* Doctor Select */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-brand-textSecondary flex items-center space-x-2">
-                  <Stethoscope size={16} /> <span>Attending Doctor (Optional)</span>
+                  <Stethoscope size={16} /> <span>Attending Doctor:opdesk_Doctor (Optional)</span>
                 </label>
                 <select
                   value={selectedDoctorId}

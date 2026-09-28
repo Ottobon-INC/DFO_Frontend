@@ -221,7 +221,7 @@ export const AppointmentsView: React.FC<AppointmentsViewProps> = ({ userRole }) 
                         };
                     }) : [];
                 } else {
-                    console.warn("Failed to fetch appointments (API Error)");
+                    console.warn("Failed to fetch appointments:opdesk_appointments (API Error)");
                     mapped = [];
                 }
                 setAppointments(mapped);

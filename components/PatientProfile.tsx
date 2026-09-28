@@ -1563,7 +1563,7 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                             }
                                                                         }}
                                                                         className="p-2 text-brand-textSecondary hover:text-brand-warning transition-colors"
-                                                                        title="Remove from Patient (Unlink)"
+                                                                        title="Remove from Patient:opdesk_Patient (Unlink)"
                                                                     >
                                                                         <X size={18} />
                                                                     </button>

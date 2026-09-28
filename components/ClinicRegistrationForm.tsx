@@ -542,7 +542,7 @@ export const ClinicRegistrationForm: React.FC<ClinicRegistrationFormProps> = ({ 
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Referral Doctor (if applicable)</label>
+                <label className="block text-xs font-bold text-brand-textSecondary mb-1.5">Referral Doctor:opdesk_Doctor (if applicable)</label>
                 <input 
                   type="text" value={referralDoctor} onChange={e => setReferralDoctor(e.target.value)} 
                   className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-brand-primary" 

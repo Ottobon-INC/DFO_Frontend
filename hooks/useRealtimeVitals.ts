@@ -25,7 +25,7 @@ export const useRealtimeVitals = (
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'sakhi_clinic_patient_vitals',
+                    table: 'opdesk_sakhi_clinic_patient_vitals',
                     filter: `patient_id=eq.${patientId}`
                 },
                 (payload) => {
@@ -38,7 +38,7 @@ export const useRealtimeVitals = (
                 {
                     event: 'UPDATE',
                     schema: 'public',
-                    table: 'sakhi_clinic_patient_vitals',
+                    table: 'opdesk_sakhi_clinic_patient_vitals',
                     filter: `patient_id=eq.${patientId}`
                 },
                 (payload) => {

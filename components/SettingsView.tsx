@@ -87,7 +87,7 @@ export const SettingsView: React.FC = () => {
                                     {[1, 2, 3].map((i) => (
                                         <tr key={i} className="hover:bg-brand-bg/50 transition-colors">
                                             <td className="p-4 font-bold text-brand-textPrimary">Dr. Sarah Sharma</td>
-                                            <td className="p-4 text-sm text-brand-textSecondary">Doctor (IVF)</td>
+                                            <td className="p-4 text-sm text-brand-textSecondary">Doctor:opdesk_Doctor (IVF)</td>
                                             <td className="p-4"><span className="bg-brand-success/10 text-brand-success text-xs font-bold px-2 py-1 rounded border border-brand-success/20">Active</span></td>
                                             <td className="p-4 text-sm text-brand-textSecondary">2 mins ago</td>
                                             <td className="p-4">
