@@ -1506,10 +1506,10 @@ export const PatientProfile: React.FC<PatientProfileProps> = ({ patient: initial
                                                                                 setTimeout(fetchPatientDocuments, 2000);
                                                                             }
                                                                         }}
-                                                                        className="p-2 text-brand-textSecondary hover:text-brand-primary transition-colors"
-                                                                        title="Preview Document"
+                                                                        className="px-3 py-1.5 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-lg hover:bg-brand-primary hover:text-white transition-colors"
+                                                                        title="Open Document"
                                                                     >
-                                                                        <Eye size={18} />
+                                                                        Open
                                                                     </button>
                                                                     <button
                                                                         onClick={async () => {
