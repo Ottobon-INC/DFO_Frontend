@@ -44,13 +44,7 @@ export const SakhiEscalationsView: React.FC = () => {
   const fetchEscalations = async () => {
     const userStr = localStorage.getItem('user');
     const loggedInUser = userStr ? JSON.parse(userStr) : null;
-    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId;
-
-    if (!loggedInDoctorId) {
-      setEscalations([]);
-      setLoading(false);
-      return;
-    }
+    const loggedInDoctorId = loggedInUser?.id || loggedInUser?.userId || 'all';
 
     try {
       setLoading(true);
@@ -113,13 +107,24 @@ export const SakhiEscalationsView: React.FC = () => {
           if (Array.isArray(msgs)) {
             setCustomMessages(prev => ({
               ...prev,
-              [selectedEscalation.id]: msgs.map((m: any) => ({
-                id: m.id,
-                sender: m.role === 'assistant' || m.role === 'triage_alert' ? 'SAKHI AI TRIAGE PROTOCOL' : (m.role === 'doctor' ? (m.sender || 'Doctor') : selectedEscalation.patient_name),
-                role: m.role === 'assistant' ? 'triage_alert' : m.role,
-                content: m.content,
-                time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'
-              }))
+              [selectedEscalation.id]: msgs.map((m: any) => {
+                const isAssistant = m.role === 'assistant' || m.role === 'triage_alert' || m.sender === 'BOT' || (typeof m.sender === 'string' && m.sender.includes('SAKHI'));
+                const isDoctor = m.role === 'doctor' || (typeof m.sender === 'string' && (m.sender.toLowerCase().includes('doctor') || m.sender.toLowerCase().includes('nurse') || m.sender.toLowerCase().includes('operator')));
+                const role = isAssistant ? 'triage_alert' : (isDoctor ? 'doctor' : 'patient');
+                const senderName = isAssistant 
+                  ? 'SAKHI AI TRIAGE PROTOCOL' 
+                  : (isDoctor ? (typeof m.sender === 'string' ? m.sender : 'Doctor') : (typeof m.sender === 'string' ? m.sender : (selectedEscalation.patient_name || 'Patient')));
+                const content = m.content || m.text || m.message || '';
+                const timeStr = m.time || (m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now');
+
+                return {
+                  id: m.id || Math.random().toString(),
+                  sender: senderName,
+                  role,
+                  content,
+                  time: timeStr
+                };
+              })
             }));
           }
         })
@@ -188,6 +193,13 @@ export const SakhiEscalationsView: React.FC = () => {
     }));
 
     setReplyText('');
+    try {
+      if ((api as any).sendEscalationReply) {
+        (api as any).sendEscalationReply(selectedEscalation.id, replyText.trim(), doctorName);
+      }
+    } catch (err) {
+      console.warn('Could not post reply to backend:', err);
+    }
     toast.success('Message sent to patient via Sakhi');
   };
 
